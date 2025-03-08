@@ -1,5 +1,13 @@
 {
-	"pages": [{
+	"pages": [
+		{
+			"path": "pages/enter-class/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "知苗成长"
+			}
+		},
+		{
 			"path": "pages/list/list",
 			"style": {
 				// #ifndef APP
@@ -15,19 +23,23 @@
 				"navigationStyle": "custom"
 				//#endif
 			}
-		}, {
+		},
+		{
 			"path": "pages/list/search/search",
 			"style": {
 				"navigationBarTitleText": "搜索"
 			}
-		}, {
+		},
+		{
 			"path": "pages/list/detail",
 			"style": {
 				"app-plus": {
 					"titleNView": {
-						"buttons": [{
-							"type": "share"
-						}],
+						"buttons": [
+							{
+								"type": "share"
+							}
+						],
 						"type": "transparent"
 					}
 				},
@@ -53,7 +65,8 @@
 					"popGesture": "none"
 				}
 			}
-		}, {
+		},
+		{
 			"path": "pages/ucenter/settings/settings",
 			"style": {
 				"navigationBarTitleText": "设置"
@@ -67,15 +80,18 @@
 			}
 		}
 		// #ifdef APP
-		, {
+		,
+		{
 			"path": "pages/ucenter/about/about",
 			"style": {
 				"navigationBarTitleText": "关于",
 				"app-plus": {
 					"titleNView": {
-						"buttons": [{
-							"type": "share"
-						}]
+						"buttons": [
+							{
+								"type": "share"
+							}
+						]
 					}
 				}
 			}
@@ -92,7 +108,6 @@
 					"popGesture": "none",
 					"animationType": "fade-in",
 					"animationDuration": 200
-
 				}
 			}
 		},
@@ -105,19 +120,23 @@
 		}
 		// #endif
 	],
-	"subPackages": [{
+	"subPackages": [
+		{
 			"root": "uni_modules/uni-feedback",
-			"pages": [{
-				"path": "pages/opendb-feedback/opendb-feedback",
-				"style": {
-					"navigationBarTitleText": "意见反馈",
-					"enablePullDownRefresh": false
+			"pages": [
+				{
+					"path": "pages/opendb-feedback/opendb-feedback",
+					"style": {
+						"navigationBarTitleText": "意见反馈",
+						"enablePullDownRefresh": false
+					}
 				}
-			}]
+			]
 		},
 		{
 			"root": "uni_modules/uni-id-pages/pages",
-			"pages": [{
+			"pages": [
+				{
 					"path": "userinfo/userinfo",
 					"style": {
 						"navigationBarTitleText": "个人资料"
@@ -165,24 +184,28 @@
 					"style": {
 						"navigationBarTitleText": "重置密码"
 					}
-				}, {
+				},
+				{
 					"path": "common/webview/webview",
 					"style": {
 						"enablePullDownRefresh": false,
 						"navigationBarTitleText": ""
 					}
-				}, {
+				},
+				{
 					"path": "userinfo/change_pwd/change_pwd",
 					"style": {
 						"enablePullDownRefresh": false,
 						"navigationBarTitleText": "修改密码"
 					}
-				}, {
+				},
+				{
 					"path": "register/register-by-email",
 					"style": {
 						"navigationBarTitleText": "邮箱验证码注册"
 					}
-				}, {
+				},
+				{
 					"path": "retrieve/retrieve-by-email",
 					"style": {
 						"navigationBarTitleText": "通过邮箱重置密码"
@@ -228,9 +251,11 @@
 		// "rpxCalcIncludeWidth":0
 	},
 	"condition": {
-		"list": [{
+		"list": [
+			{
 				"path": "pages/list/detail"
-			}, {
+			},
+			{
 				"path": "pages/list/list"
 			},
 			{
@@ -244,22 +269,26 @@
 		"selectedColor": "#007AFF",
 		"borderStyle": "black",
 		"backgroundColor": "#FFFFFF",
-		"list": [{
-			"pagePath": "pages/list/list",
-			"iconPath": "static/tabbar/list.png",
-			"selectedIconPath": "static/tabbar/list_active.png",
-			"text": "列表"
-		}, {
-			"pagePath": "pages/grid/grid",
-			"iconPath": "static/tabbar/grid.png",
-			"selectedIconPath": "static/tabbar/grid_active.png",
-			"text": "宫格"
-		}, {
-			"pagePath": "pages/ucenter/ucenter",
-			"iconPath": "static/tabbar/me.png",
-			"selectedIconPath": "static/tabbar/me_active.png",
-			"text": "我的"
-		}]
+		"list": [
+			{
+				"pagePath": "pages/list/list",
+				"iconPath": "static/tabbar/list.png",
+				"selectedIconPath": "static/tabbar/list_active.png",
+				"text": "列表"
+			},
+			{
+				"pagePath": "pages/grid/grid",
+				"iconPath": "static/tabbar/grid.png",
+				"selectedIconPath": "static/tabbar/grid_active.png",
+				"text": "宫格"
+			},
+			{
+				"pagePath": "pages/ucenter/ucenter",
+				"iconPath": "static/tabbar/me.png",
+				"selectedIconPath": "static/tabbar/me_active.png",
+				"text": "我的"
+			}
+		]
 	},
 	"uniIdRouter": {
 		"loginPage": "uni_modules/uni-id-pages/pages/login/login-withoutpwd",

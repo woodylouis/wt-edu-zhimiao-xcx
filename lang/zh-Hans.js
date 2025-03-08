@@ -1,12 +1,13 @@
 export default {
-	tabbar:'列表,宫格,通讯录,我的',
-	agreementsTitle:'用户服务协议,隐私政策',
-	common:{
+	xcxName: '知苗成长',
+	tabbar: '列表,宫格,通讯录,我的',
+	agreementsTitle: '用户服务协议,隐私政策',
+	common: {
 		wechatFriends: "微信好友",
 		wechatBbs: "微信朋友圈",
-		weibo:"微博",
+		weibo: "微博",
 		more: "更多",
-		agree:"同意",
+		agree: "同意",
 		copy: "复制",
 		wechatApplet: "微信小程序",
 		cancelShare: "取消分享",
@@ -25,15 +26,15 @@ export default {
 		error: "错误",
 		complete: "完成",
 		submit: "提交",
-		formatErr:"手机号码格式不正确",
-		sixDigitCode:"请输入6位验证码",
-		resetNavTitle:"重置密码"
-		
+		formatErr: "手机号码格式不正确",
+		sixDigitCode: "请输入6位验证码",
+		resetNavTitle: "重置密码"
+
 	},
 	list: {
 		inputPlaceholder: "请输入搜索内容",
 	},
-	search:{
+	search: {
 		cancelText: '取消',
 		searchHistory: "搜索历史",
 		searchDiscovery: "搜索发现",
@@ -43,7 +44,7 @@ export default {
 		complete: "完成",
 		searchHiddenTip: "当前搜索发现已隐藏",
 	},
-	grid:{
+	grid: {
 		grid: "宫格组件",
 		visibleToAll: "所有人可见",
 		invisibleToTourists: "游客不可见",
@@ -51,10 +52,14 @@ export default {
 		clickTip: "点击第",
 		clickTipGrid: "个宫格",
 	},
-	mine:{
+	enterClassMethod: {
+		create: "创建班级",
+		apply: "申请进入"
+	},
+	mine: {
 		showText: "文字",
 		signIn: "普通签到",
-		signInByAd:"看广告签到",
+		signInByAd: "看广告签到",
 		toEvaluate: "去评分",
 		readArticles: "阅读过的文章",
 		myScore: "我的积分",
@@ -69,8 +74,8 @@ export default {
 		noScore: "当前无积分",
 		notLogged: "未登录",
 	},
-	userinfo:{
-		navigationBarTitle:"个人资料",
+	userinfo: {
+		navigationBarTitle: "个人资料",
 		ProfilePhoto: "头像",
 		nickname: "昵称",
 		notSet: "未设置",
@@ -87,27 +92,27 @@ export default {
 		deleteSucceeded: "删除成功",
 		setSucceeded: "设置成功",
 	},
-	smsCode:{
+	smsCode: {
 		resendVerifyCode: "重新发送",
 		phoneErrTip: "手机号格式错误",
 		sendSuccessTip: "短信验证码发送成功",
 	},
-	loadMore:{
+	loadMore: {
 		noData: "暂无数据",
 		noNetwork: "网络异常",
 		toSet: "前往设置",
 		error: "错误",
 	},
-	uniFeedback:{
-		navigationBarTitle:"问题与反馈",
+	uniFeedback: {
+		navigationBarTitle: "问题与反馈",
 		msgTitle: "留言内容",
 		imgTitle: "图片列表",
 		contacts: "联系人",
 		phone: "联系电话",
 		submit: "提交",
 	},
-	settings:{
-		navigationBarTitle:"设置",
+	settings: {
+		navigationBarTitle: "设置",
 		userInfo: "账号资料",
 		changePassword: "修改密码",
 		clearTmp: "清理缓存",
@@ -131,26 +136,26 @@ export default {
 		confirmText: "确定",
 		cancelText: '取消',
 	},
-	deactivate:{
+	deactivate: {
 		cancelText: '取消',
 		nextStep: "下一步",
-		navigationBarTitle:"注销提示"
+		navigationBarTitle: "注销提示"
 	},
-	about:{
+	about: {
 		sacnQR: "扫描二维码，您的朋友也可以下载",
 		client: "客户端",
 		and: "和",
 		about: "关于",
 	},
-	invite:{
+	invite: {
 		download: "下载",
 	},
-	login:{
+	login: {
 		phoneLogin: "登录后即可展示自己",
 		phoneLoginTip: "未注册的手机号验证通过后将自动注册",
 		getVerifyCode: "获取验证码",
 	},
-	uniQuickLogin:{
+	uniQuickLogin: {
 		accountLogin: "账号登录",
 		SMSLogin: "短信验证码",
 		wechatLogin: "微信登录",
@@ -162,7 +167,7 @@ export default {
 		loginErr: "登录服务初始化错误",
 		chooseOtherLogin: "点击了第三方登录",
 	},
-	pwdLogin:{
+	pwdLogin: {
 		pwdLogin: "用户名密码登录",
 		placeholder: "请输入手机号/用户名",
 		passwordPlaceholder: "请输入密码",
@@ -171,22 +176,22 @@ export default {
 		forgetPassword: "忘记密码",
 		register: "注册账号",
 	},
-	register:{
-		navigationBarTitle:"注册",
+	register: {
+		navigationBarTitle: "注册",
 		usernamePlaceholder: "请输入用户名",
 		nicknamePlaceholder: "请输入用户昵称",
 		registerAndLogin: "注册并登录",
 		passwordDigitsPlaceholder: "请输入6-20位密码",
 		passwordAgain: "再次输入密码",
 	},
-	listDetail:{
+	listDetail: {
 		follow: "点击关注",
 		newsErr: "出错了，新闻ID为空",
 	},
-	newsLog:{
-		navigationBarTitle:"阅读记录"
+	newsLog: {
+		navigationBarTitle: "阅读记录"
 	},
-	bindMobile:{
-		navigationBarTitle:"绑定手机号码"
+	bindMobile: {
+		navigationBarTitle: "绑定手机号码"
 	}
 }
