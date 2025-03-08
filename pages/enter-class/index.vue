@@ -13,10 +13,23 @@
                 <swiper v-else class="swiper-box" @change="changeSwiper" :current="current" indicator-dots>
                     <swiper-item v-for="(item, index) in data" :key="item._id">
                         <image class="banner-image" :src="item.bannerfile.url" mode="aspectFill" @click="clickBannerItem(item)" :draggable="false" />
+                        <view class="banner-mask"></view>
                     </swiper-item>
                 </swiper>
             </unicloud-db>
 
+        </view>
+        <view class="enter-class-option">
+            <view class="option">
+                <view class="title">{{ $t('enterClassMethod.create') }}</view>
+                <image class="image" src="../../static/enter-class/create.svg" />
+
+            </view>
+            <view class="option">
+                <view class="title"> {{ $t('enterClassMethod.apply') }}</view>
+                <image class="image" src="../../static/enter-class/apply.svg" />
+
+            </view>
         </view>
 
 
@@ -50,13 +63,26 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.enter-class {}
+.enter-class {
+    background-color: #F2F7F6;
+    height: 100vh;
+}
 
 .navigation {
     flex-direction: column;
     align-items: center;
     position: relative; // 新增相对定位容器
     height: calc(100vh / 3); // 添加与轮播图相同的高度
+
+    .title {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 0; // 移除下边距
+        position: absolute; // 新增绝对定位
+        left: 50%; // 水平居中
+        transform: translate(-50%, -50%); // 精确居中
+        z-index: 1; // 确保标题在轮播图之上
+    }
 
     .swiper-box {
         height: 100%;
@@ -71,16 +97,55 @@ export default {
             object-fit: cover;
             border-radius: 0; // 移除圆角;
         }
+
+        .banner-mask {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100rpx;
+            background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
+            z-index: 1;
+        }
     }
 }
 
-.title {
-    width: 100%;
-    text-align: center;
-    margin-bottom: 0; // 移除下边距
-    position: absolute; // 新增绝对定位
-    left: 50%; // 水平居中
-    transform: translate(-50%, -50%); // 精确居中
-    z-index: 1; // 确保标题在轮播图之上
+.enter-class-option {
+    // 左右、上面分别空出40rpx
+    margin: 40rpx 40rpx 0 40rpx;
+
+    .option {
+        width: calc(100vw - 80rpx);
+        height: 118px;
+        flex-shrink: 0;
+        border-radius: 12px;
+        background: #FFF;
+        box-shadow: 0px 0px 1px 0px rgba(193, 197, 210, 0.20);
+        margin-bottom: 32rpx;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .title {
+            color: #100D40;
+            font-family: "PingFang SC";
+            font-size: 20px;
+            font-style: normal;
+            font-weight: 600;
+            line-height: normal;
+            margin-left: 80rpx;
+            margin-right: 90rpx;
+            // font-size: 28rpx;
+        }
+
+        .image {
+            width: 170rpx;
+            height: 170rpx;
+            margin-right: 40rpx;
+        }
+    }
+
+
+
 }
 </style>

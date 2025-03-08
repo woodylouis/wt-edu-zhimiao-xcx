@@ -54,7 +54,7 @@ export default {
 	},
 	enterClassMethod: {
 		create: "创建班级",
-		apply: "申请进入"
+		apply: "进入班级"
 	},
 	mine: {
 		showText: "文字",
