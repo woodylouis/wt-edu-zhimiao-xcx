@@ -56,6 +56,9 @@ export default {
 		create: "创建班级",
 		apply: "进入班级"
 	},
+	assessmentList: {
+		first: "儿童成长评估",
+	},
 	mine: {
 		showText: "文字",
 		signIn: "普通签到",

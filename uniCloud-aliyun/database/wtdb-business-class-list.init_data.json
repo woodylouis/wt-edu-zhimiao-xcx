@@ -1,0 +1,18 @@
+// 在本文件中可配置云数据库初始化，数据格式见：https://uniapp.dcloud.io/uniCloud/hellodb?id=db-init
+// 编写完毕后对本文件点右键，可按配置规则创建表和添加数据
+[
+  {
+    "code": "123456",
+    "name": "小小班3班",
+    "description": "2024届小小班3班",
+    "created_by": "67cbb8e08b0da45f01e34d3c", // 需替换为实际用户ID
+    "create_time": { "$date": "2024-01-20T08:00:00Z" }
+  },
+  {
+    "code": "654321",
+    "name": "小小班3班",
+    "description": "2025届小小班3班",
+    "created_by": "67cbb8e08b0da45f01e34d3c", 
+    "create_time": { "$date": "2025-01-21T09:30:00Z" }
+  }
+]

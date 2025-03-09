@@ -20,15 +20,9 @@
 
         </view>
         <view class="enter-class-option">
-            <view class="option">
-                <view class="title">{{ $t('enterClassMethod.create') }}</view>
-                <image class="image" src="../../static/enter-class/create.svg" />
-
-            </view>
-            <view class="option">
-                <view class="title"> {{ $t('enterClassMethod.apply') }}</view>
-                <image class="image" src="../../static/enter-class/apply.svg" />
-
+            <view class="option" @click="clickAssessmentItem">
+                <view class="title">{{ $t('assessmentList.first') }}</view>
+                <image class="image" src="../../static/assessment-list/child-assess.svg" />
             </view>
         </view>
 
