@@ -4,12 +4,12 @@
 	"version": "2.2.3",
 	"description": "云端一体应用快速开发基本项目模版",
 	"keywords": [
-        "login",
-        "登录",
-        "搜索",
-        "uni-id实例",
-        "留言板"
-    ],
+		"login",
+		"登录",
+		"搜索",
+		"uni-id实例",
+		"留言板"
+	],
 	"repository": "https://gitcode.net/dcloud/uni-starter",
 	"engines": {
 		"HBuilderX": "^3.2.6"
@@ -42,16 +42,16 @@
 		"platforms": {
 			"cloud": {
 				"tcb": "y",
-                "aliyun": "y",
-                "alipay": "y"
+				"aliyun": "y",
+				"alipay": "y"
 			},
 			"client": {
 				"App": {
-                    "app-vue": "y",
-                    "app-nvue": "u",
-                    "app-harmony": "u",
-                    "app-uvue": "u"
-                },
+					"app-vue": "y",
+					"app-nvue": "u",
+					"app-harmony": "u",
+					"app-uvue": "u"
+				},
 				"H5-mobile": {
 					"Safari": "u",
 					"Android Browser": "u",
@@ -85,6 +85,7 @@
 		}
 	},
 	"dependencies": {
+		"dayjs": "^1.11.13",
 		"qrcodejs2": "^0.0.2"
 	}
 }

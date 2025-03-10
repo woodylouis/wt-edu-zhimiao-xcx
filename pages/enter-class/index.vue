@@ -20,7 +20,7 @@
 
         </view>
         <view class="enter-class-option">
-            <view class="option">
+            <view class="option" @click="onClickCreate">
                 <view class="title">{{ $t('enterClassMethod.create') }}</view>
                 <image class="image" src="../../static/enter-class/create.svg" />
 
@@ -31,13 +31,24 @@
 
             </view>
         </view>
-
+        <up-overlay :show="show" @click="show = false">
+            <view class="warp" @tap.stop>
+                <model-box :confirmText="'立即创建'" :list="modalOptionsList" />
+            </view>
+        </up-overlay>
 
     </view>
 </template>
 
 <script>
+// 导入modelBox组件
+import modelBox from '../../components/modelBox/modelBox.vue';
+// 注册组件
+
 export default {
+    components: {
+        modelBox
+    },
     data() {
         return {
             current: 0,
@@ -48,6 +59,8 @@ export default {
             menuButtonInfoStyle: '',
             sysconfigMap: {},
             xcxNameMarginTopStyle: '',
+            show: true,
+            modalOptionsList: ['我是老师'],
         }
     },
     onLoad() {
@@ -58,7 +71,11 @@ export default {
 
     },
     methods: {
-
+        onClickCreate() {
+            // 点击创建按钮的逻辑
+            this.show = true;
+            // console.log('创建按钮被点击 show', show.value);
+        }
     }
 }
 </script>
@@ -145,8 +162,18 @@ export default {
             margin-right: 40rpx;
         }
     }
+}
 
+.warp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
 
-
+.rect {
+    width: 120px;
+    height: 120px;
+    background-color: #fff;
 }
 </style>
