@@ -12,9 +12,9 @@
                     <text class="section-title">选择学段</text>
                 </view>
                 <view class="options-wrap">
-                    <button v-for="(section, idx) in schoolSections" :key="idx" class="option-button" :class="{ 'option-selected': selectedSection === section }" @tap="selectSection(section)">
+                    <view v-for="(section, idx) in schoolSections" :key="idx" class="option-button" :class="{ 'option-selected': selectedSection === section }" @tap="selectSection(section)">
                         {{ section }}
-                    </button>
+                    </view>
                 </view>
             </view>
 
@@ -25,9 +25,9 @@
                     <text class="section-title">选择年级</text>
                 </view>
                 <view class="options-grid">
-                    <button v-for="(grade, idx) in grades" :key="idx" class="option-button" :class="{ 'option-selected': selectedGrade === grade }" @tap="selectGrade(grade)">
+                    <view v-for="(grade, idx) in grades" :key="idx" class="option-button" :class="{ 'option-selected': selectedGrade === grade }" @tap="selectGrade(grade)">
                         {{ grade }}
-                    </button>
+                    </view>
                 </view>
             </view>
 
@@ -38,9 +38,9 @@
                     <text class="section-title">选择班级</text>
                 </view>
                 <view class="options-grid">
-                    <button v-for="(classNum, idx) in classes" :key="idx" class="option-button" :class="{ 'option-selected': selectedClass === classNum }" @tap="selectClass(classNum)">
+                    <view v-for="(classNum, idx) in classes" :key="idx" class="option-button" :class="{ 'option-selected': selectedClass === classNum }" @tap="selectClass(classNum)">
                         {{ classNum }}班
-                    </button>
+                    </view>
                 </view>
             </view>
 
@@ -104,7 +104,7 @@ export default {
 .growth-assessment {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
 
 }
 
@@ -123,15 +123,16 @@ export default {
     flex-direction: column;
     border-radius: 48rpx 48rpx 0 0;
     background-color: rgba(255, 255, 255, 1);
-    padding: 38rpx 40rpx;
+    /* padding: 38rpx 40rpx; */
     font-size: 28rpx;
     color: rgba(111, 115, 116, 1);
-    /* margin-top: -20px; */
+    margin-top: -10px;
     z-index: 1;
 }
 
 .section-group {
     margin-bottom: 32rpx;
+    padding: 38rpx 40rpx;
 }
 
 .section-header {
@@ -153,28 +154,30 @@ export default {
     color: rgba(0, 33, 77, 1);
 }
 
+.options-grid,
 .options-wrap {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 32rpx;
-    margin-top: 24rpx;
-}
-
-.options-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 32rpx;
-    margin-top: 24rpx;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* 强制三列布局 */
+    gap: 20rpx;
+    width: 100%;
 }
 
 .option-button {
+    width: 100%;
+    /* 确保填满网格单元格 */
+    min-width: 0;
+    /* 防止内容溢出 */
+    flex: 0 0 calc(33.333% - 14rpx);
     border-radius: 12rpx;
     background-color: rgba(242, 247, 246, 1);
-    padding: 20rpx 74rpx;
+    padding: 20rpx 0;
     border: none;
     color: inherit;
     font-size: inherit;
+    text-align: center;
     line-height: 1;
+    box-sizing: border-box;
 }
 
 .option-selected {
@@ -186,7 +189,8 @@ export default {
     margin-top: auto;
     display: flex;
     gap: 24rpx;
-    padding: 40rpx 0 0;
+    padding: 40rpx 0 60rpx;
+    box-shadow: 0px -7px 24px 0px rgba(103, 11, 3, 0.06);
 }
 
 .cancel-button {
@@ -198,6 +202,13 @@ export default {
     color: rgba(0, 33, 77, 1);
     font-size: 32rpx;
     font-weight: 500;
+    height: 48px;
+    /* 新增居中属性 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    line-height: 1;
+    margin-left: 20rpx;
 }
 
 .confirm-button {
@@ -209,5 +220,12 @@ export default {
     color: rgba(0, 33, 77, 1);
     font-size: 32rpx;
     font-weight: 500;
+    height: 48px;
+    /* 新增居中属性 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    line-height: 1;
+    margin-right: 20rpx;
 }
 </style>
