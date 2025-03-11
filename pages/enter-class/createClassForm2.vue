@@ -155,17 +155,37 @@ export default {
             });
         },
     },
-
-    onShow() {
-        // 新增缓存数据初始化
-        const cacheData = uni.getStorageSync('classFormData');
-        console.log("cacheData", cacheData);
-        if (cacheData) {
-            this.formData.className = `${cacheData.grade}${cacheData.class}班`;
-            this.formData.nickname = `${cacheData.grade}${cacheData.class}班`;
+    watch: {
+        // 新增字段监听
+        'formData.nickname'(newVal) {
+            this.updateLocalStorage();
+        },
+        'formData.teacherName'(newVal) {
+            this.updateLocalStorage();
         }
     },
-};
+    methods: {
+        // 新增缓存更新方法
+        updateLocalStorage() {
+            const cacheData = uni.getStorageSync('classFormData') || {};
+            const newData = {
+                ...cacheData,
+                nickname: this.formData.nickname,
+                teacherName: this.formData.teacherName
+            };
+            uni.setStorageSync('classFormData', newData);
+        },
+    },
+    onShow() {
+        const cacheData = uni.getStorageSync('classFormData');
+        if (cacheData) {
+            // 初始化班级名称并设置昵称默认值
+            this.formData.className = `${cacheData.grade}${cacheData.class}班`;
+            this.formData.nickname = this.formData.className; // 设置昵称初始值
+            this.updateLocalStorage();
+        }
+    }
+}
 </script>
 
 <style lang="scss" scoped>
