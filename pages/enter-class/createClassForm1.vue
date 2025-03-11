@@ -1,7 +1,7 @@
 <template>
     <view class="growth-assessment">
         <u-sticky>
-            <custom-nav />
+            <custom-nav :needBack="true" />
         </u-sticky>
         <!-- <view class="assessment-header">成长评估</view> -->
         <view class="selection-container">
@@ -46,8 +46,8 @@
 
             <!-- Action Buttons -->
             <view class="action-buttons">
-                <button class="cancel-button" @tap="handleCancel">取消</button>
-                <button class="confirm-button" @tap="handleConfirm">确定</button>
+                <button class="cancel-button" @click="handleCancel">取消</button>
+                <button class="confirm-button" @click="handleConfirm">确定</button>
             </view>
         </view>
     </view>
@@ -64,6 +64,15 @@ export default {
             selectedGrade: "",
             selectedClass: "",
         };
+    },
+    onShow() {
+        // 新增缓存初始化逻辑
+        const cacheData = uni.getStorageSync('classFormData');
+        if (cacheData) {
+            this.selectedSection = cacheData.section;
+            this.selectedGrade = cacheData.grade;
+            this.selectedClass = cacheData.class;
+        }
     },
     methods: {
         selectSection(section) {
@@ -82,6 +91,7 @@ export default {
             uni.navigateBack();
         },
         handleConfirm() {
+            console.log("确认按钮被点击");
             if (!this.selectedSection || !this.selectedGrade || !this.selectedClass) {
                 uni.showToast({
                     title: "请完成所有选择",
@@ -96,8 +106,10 @@ export default {
                 class: this.selectedClass,
             };
 
-            uni.$emit("classSelected", result);
-            uni.navigateBack();
+            uni.setStorageSync('classFormData', result);
+            uni.navigateTo({
+                url: "/pages/enter-class/createClassForm2"
+            });
         },
     },
 };

@@ -6,7 +6,7 @@
                 {{ $t('xcxName') }}
             </view>
             <!-- banner -->
-            <unicloud-db ref="bannerdb" v-slot:default="{ data, loading, error, options }" collection="opendb-banner" field="_id,bannerfile,open_url,title" @load="onqueryload">
+            <unicloud-db ref="bannerdb" v-slot:default="{ data, loading, error, options }" collection="opendb-banner" field="_id,bannerfile,open_url,title">
                 <!-- 当无banner数据时显示占位图 -->
                 <image v-if="!(loading || data.length)" class="banner-image" src="/static/uni-center/headers.png" mode="aspectFill" :draggable="false" />
 

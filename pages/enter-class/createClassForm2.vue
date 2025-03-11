@@ -1,7 +1,7 @@
 <template>
     <view class="growth-assessment">
         <u-sticky>
-            <custom-nav />
+            <custom-nav :needBack="true" />
         </u-sticky>
         <view class="form-container">
             <text class="form-description">您正在创建班级，请填写以下信息</text>

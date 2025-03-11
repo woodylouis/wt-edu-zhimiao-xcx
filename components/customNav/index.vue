@@ -2,7 +2,10 @@
     <!-- 导航 -->
     <view class="navigation" :style="navStyle">
         <view class="header" :style="xcxNameMarginTopStyle">
-            <image class="back-arrow" src="/static/general/back.png" isBack />
+            <!-- 添加点击区域并调整层级 -->
+            <view class="back-wrap" @click.stop="handleBack" v-if="needBack">
+                <image class="back-arrow" src="/static/general/back.png" />
+            </view>
             <view class="title">
                 {{ xcxName }}
             </view>
@@ -10,6 +13,22 @@
         <view class="decoration-bar"></view>
     </view>
 </template>
+
+<style scoped lang="scss">
+.back-wrap {
+    position: absolute;
+    left: 20rpx;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 20rpx;
+    z-index: 2; // 提升层级
+    
+    .back-arrow {
+        width: 32rpx;
+        height: 32rpx;
+    }
+}
+</style>
 
 <script>
 
@@ -19,9 +38,9 @@ export default {
             type: String,
             default: "创建班级",
         },
-        isBack: {
+        needBack: {
             type: Boolean,
-            default: true,
+            default: false,
         },
     },
     data() {
@@ -35,10 +54,12 @@ export default {
     mounted() {
         const menuButtonInfo = uni.getMenuButtonBoundingClientRect();
         this.xcxNameMarginTopStyle = `height:${menuButtonInfo.height}px;margin-top:${menuButtonInfo.top}px;`;
-        // this.navStyle = `height:${menuButtonInfo.height * 3}px`;
-        console.log('xcxNameMarginTopStyle', this.xcxNameMarginTopStyle)
-        console.log('menuButtonInfo', menuButtonInfo)
-
+    },
+    methods: {
+        handleBack() {
+            console.log('back')
+            uni.navigateBack()
+        }
     },
 
 }
