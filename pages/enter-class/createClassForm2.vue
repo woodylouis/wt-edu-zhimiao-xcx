@@ -10,7 +10,7 @@
                     <view class="input-group">
                         <text class="input-label">所属班级</text>
                         <u-form-item prop="className" :borderBottom="false">
-                            <u--input v-model="formData.className" placeholder="请选择所属班级" border="false" :custom-style="inputStyle" />
+                            <u--input v-model="formData.className" placeholder="请选择所属班级" border="false" :custom-style="{ ...inputStyle, backgroundColor: '#F5F5F5', color: '#999999' }" disabled />
                         </u-form-item>
                     </view>
 
@@ -134,6 +134,15 @@ export default {
                 url: "/pages/help/index",
             });
         },
+    },
+
+    onShow() {
+        // 新增缓存数据初始化
+        const cacheData = uni.getStorageSync('classFormData');
+        console.log("cacheData", cacheData);
+        if (cacheData) {
+            this.formData.className = `${cacheData.grade}${cacheData.class}班`;
+        }
     },
 };
 </script>
