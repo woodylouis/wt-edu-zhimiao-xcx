@@ -5,26 +5,26 @@
         </u-sticky>
         <view class="form-container">
             <text class="form-description">您正在创建班级，请填写以下信息</text>
-            <u--form :model="formData" :rules="rules" ref="uForm" :errorType="['message']" :borderBottom="false">
+            <u--form :model="formData" :rules="rules" ref="uForm" errorType="message" :borderBottom="false">
                 <view class="form-content">
                     <view class="input-group">
                         <text class="input-label">所属班级</text>
                         <u-form-item prop="className" :borderBottom="false">
-                            <u--input v-model="formData.className" placeholder="请选择所属班级" :border="false" :custom-style="inputStyle" />
+                            <u--input v-model="formData.className" placeholder="请选择所属班级" border="false" :custom-style="inputStyle" />
                         </u-form-item>
                     </view>
 
                     <view class="input-group">
                         <text class="input-label">班级昵称</text>
                         <u-form-item prop="nickname" :borderBottom="false">
-                            <u--input v-model="formData.nickname" placeholder="输入班级昵称" :border="false" :custom-style="inputStyle" />
+                            <u--input v-model="formData.nickname" placeholder="输入班级昵称" border="false" :custom-style="inputStyle" />
                         </u-form-item>
                     </view>
 
                     <view class="input-group">
                         <text class="input-label">我的姓名</text>
                         <u-form-item prop="teacherName" :borderBottom="false">
-                            <u--input v-model="formData.teacherName" placeholder="请输入我的姓名" :border="false" :custom-style="inputStyle" />
+                            <u--input v-model="formData.teacherName" placeholder="请输入我的姓名" border="false" :custom-style="inputStyle" />
                         </u-form-item>
                     </view>
 
@@ -108,17 +108,26 @@ export default {
     },
     methods: {
         handleSubmit() {
-            uni.showLoading({
-                title: "提交中...",
+            this.$refs.uForm.validate().then(valid => {
+                if (valid) {
+                    uni.showLoading({
+                        title: "提交中...",
+                    });
+                    // 真实提交逻辑应放在这里
+                    setTimeout(() => {
+                        uni.hideLoading();
+                        uni.showToast({
+                            title: "创建成功",
+                            icon: "success",
+                        });
+                    }, 1500);
+                } else {
+                    uni.showToast({
+                        title: "请完善表单信息",
+                        icon: "none"
+                    });
+                }
             });
-            // Add submission logic here
-            setTimeout(() => {
-                uni.hideLoading();
-                uni.showToast({
-                    title: "创建成功",
-                    icon: "success",
-                });
-            }, 1500);
         },
         handleHelp() {
             uni.navigateTo({
