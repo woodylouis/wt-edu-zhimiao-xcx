@@ -165,11 +165,11 @@ export default {
         }
     },
     methods: {
-        // 新增缓存更新方法
+        // 优化缓存更新方法（保留其他字段）
         updateLocalStorage() {
             const cacheData = uni.getStorageSync('classFormData') || {};
             const newData = {
-                ...cacheData,
+                ...cacheData,  // 保留已有字段
                 nickname: this.formData.nickname,
                 teacherName: this.formData.teacherName
             };
@@ -179,10 +179,10 @@ export default {
     onShow() {
         const cacheData = uni.getStorageSync('classFormData');
         if (cacheData) {
-            // 初始化班级名称并设置昵称默认值
+            // 仅初始化本页字段
             this.formData.className = `${cacheData.grade}${cacheData.class}班`;
-            this.formData.nickname = this.formData.className; // 设置昵称初始值
-            this.updateLocalStorage();
+            this.formData.nickname = this.formData.className;
+            this.formData.teacherName = cacheData.teacherName || "";
         }
     }
 }

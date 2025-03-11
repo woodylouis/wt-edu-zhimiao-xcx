@@ -89,17 +89,16 @@ export default {
             this.selectedClass = classNum;
             this.updateLocalStorage();
         },
-        // 新增缓存更新方法
+        // 修改缓存更新方法（保留其他字段）
         updateLocalStorage() {
-            const currentData = {
+            const currentCache = uni.getStorageSync('classFormData') || {};
+            const newData = {
+                ...currentCache,  // 保留已有字段
                 section: this.selectedSection,
                 grade: this.selectedGrade,
                 class: this.selectedClass
             };
-            uni.setStorageSync('classFormData', currentData);
-        },
-        handleCancel() {
-            uni.navigateBack();
+            uni.setStorageSync('classFormData', newData);
         },
         handleConfirm() {
             console.log("确认按钮被点击");
@@ -111,13 +110,15 @@ export default {
                 return;
             }
 
+            const currentCache = uni.getStorageSync('classFormData') || {};  // 新增获取当前缓存
             const result = {
+                ...currentCache,  // 合并已有缓存
                 section: this.selectedSection,
                 grade: this.selectedGrade,
-                class: this.selectedClass,
+                class: this.selectedClass
             };
 
-            uni.setStorageSync('classFormData', result);
+            uni.setStorageSync('classFormData', result);  // 替换原有设置方式
             uni.navigateTo({
                 url: "/pages/enter-class/createClassForm2"
             });
