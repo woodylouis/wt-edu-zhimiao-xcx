@@ -107,27 +107,47 @@ export default {
         };
     },
     methods: {
-        handleSubmit() {
-            this.$refs.uForm.validate().then(valid => {
-                if (valid) {
-                    uni.showLoading({
-                        title: "提交中...",
-                    });
-                    // 真实提交逻辑应放在这里
-                    setTimeout(() => {
-                        uni.hideLoading();
-                        uni.showToast({
-                            title: "创建成功",
-                            icon: "success",
-                        });
-                    }, 1500);
-                } else {
-                    uni.showToast({
-                        title: "请完善表单信息",
-                        icon: "none"
-                    });
+        async handleSubmit() {
+            const valid = await this.$refs.uForm.validate()
+            if (!valid) {
+                uni.showToast({ title: "请完善表单信息", icon: "none" })
+                return
+            }
+
+            uni.showLoading({ title: "提交中..." })
+
+            try {
+                // 获取完整班级数据
+                const cacheData = uni.getStorageSync('classFormData') || {}
+                const postData = {
+                    ...cacheData,
+                    nickname: this.formData.nickname,
+                    teacherName: this.formData.teacherName
                 }
-            });
+
+                // 调用真实接口（替换示例代码）
+                // const res = await uni.request({
+                //     url: '你的接口地址',
+                //     method: 'POST',
+                //     data: postData
+                // })
+
+                // 接口调用成功处理
+                uni.hideLoading()
+                uni.showToast({ title: "创建成功", icon: "success" })
+
+                // 清除本页使用的缓存
+                uni.removeStorageSync('classFormData')
+
+                // 跳转到成功页面或返回
+                uni.navigateBack()
+            } catch (error) {
+                uni.hideLoading()
+                uni.showToast({
+                    title: `创建失败: ${error.errMsg || '未知错误'}`,
+                    icon: "none"
+                })
+            }
         },
         handleHelp() {
             uni.navigateTo({
@@ -142,6 +162,7 @@ export default {
         console.log("cacheData", cacheData);
         if (cacheData) {
             this.formData.className = `${cacheData.grade}${cacheData.class}班`;
+            this.formData.nickname = `${cacheData.grade}${cacheData.class}班`;
         }
     },
 };
