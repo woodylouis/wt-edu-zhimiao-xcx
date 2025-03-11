@@ -34,9 +34,9 @@
                 </view>
             </u--form>
         </view>
-        <up-overlay show>
+        <up-overlay :show="show">
             <view class="warp">
-                <modal-box :confirmText="'立即创建'" :list="modalOptionsList" @cancel="show = false" @create="onConfirm" />
+                <modal-box :className="formData.className" :nickname="formData.nickname" :teacherName="formData.teacherName" :confirmText="'立即创建'" @cancel="show = false" @create="onConfirm" />
             </view>
         </up-overlay>
     </view>

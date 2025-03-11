@@ -8,15 +8,15 @@
         <div class="confirmation-content">
             <div class="info-field">
                 <span class="info-label">所属班级：</span>
-                <span class="info-value">小班11班</span>
+                <span class="info-value">{{ className }}</span>
             </div>
             <div class="info-field">
                 <span class="info-label">班级昵称：</span>
-                <span class="info-value">小班11班</span>
+                <span class="info-value">{{ nickname }}</span>
             </div>
             <div class="info-field">
                 <span class="info-label">我的身份：</span>
-                <span class="info-value">李平平老师</span>
+                <span class="info-value">{{ teacherName }}</span>
             </div>
         </div>
 
@@ -35,6 +35,16 @@
 export default {
     name: "CreateClassCard",
     props: {
+        // 新增数据字段
+        className: {
+            type: String,
+        },
+        nickname: {
+            type: String,
+        },
+        teacherName: {
+            type: String,
+        },
         list: {
             type: Array,
             default: () => ["我是家长/家委", "老师"],
