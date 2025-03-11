@@ -134,7 +134,7 @@ export default {
 }
 
 .section-group {
-    /* margin-bottom: 32rpx; */
+    margin-bottom: 32rpx;
     padding: 38rpx 40rpx;
 }
 
