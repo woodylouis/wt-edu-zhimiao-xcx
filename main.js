@@ -16,11 +16,12 @@ app.$mount()
 
 // #ifdef VUE3
 import { createSSRApp } from 'vue'
-
+import customNav from '@/components/customNav'
 export function createApp() {
 	const app = createSSRApp(App)
 	app.use(i18n)
 	app.use(uviewPlus)
+	app.component('customNav', customNav)
 	return { app }
 }
 // #endif

@@ -23,6 +23,13 @@
 			}
 		},
 		{
+			"path": "pages/enter-class/createClassForm1",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "创建班级-选择年级"
+			}
+		},
+		{
 			"path": "pages/list/list",
 			"style": {
 				// #ifndef APP

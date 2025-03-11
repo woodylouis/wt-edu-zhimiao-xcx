@@ -31,9 +31,9 @@
 
             </view>
         </view>
-        <up-overlay :show="show" @click="show = false">
-            <view class="warp" @tap.stop>
-                <model-box :confirmText="'立即创建'" :list="modalOptionsList" />
+        <up-overlay :show="show">
+            <view class="warp">
+                <model-box :confirmText="'立即创建'" :list="modalOptionsList" @cancel="show = false" @create="onConfirm" />
             </view>
         </up-overlay>
 
@@ -59,7 +59,7 @@ export default {
             menuButtonInfoStyle: '',
             sysconfigMap: {},
             xcxNameMarginTopStyle: '',
-            show: true,
+            show: false,
             modalOptionsList: ['我是老师'],
         }
     },
@@ -75,6 +75,13 @@ export default {
             // 点击创建按钮的逻辑
             this.show = true;
             // console.log('创建按钮被点击 show', show.value);
+        },
+        onConfirm() {
+            console.log('确认按钮被点击');
+            this.show = false;
+            uni.navigateTo({
+                url: '/pages/enter-class/createClassForm1'
+            })
         }
     }
 }

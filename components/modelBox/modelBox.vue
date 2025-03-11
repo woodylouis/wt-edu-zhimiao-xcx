@@ -58,11 +58,9 @@ export default {
             this.$emit("select", index);
         },
         onCancel() {
-            uni.vibrateShort();
             this.$emit("cancel");
         },
         onCreate() {
-            uni.vibrateShort();
             this.$emit("create", this.selected);
         },
     },
