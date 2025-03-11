@@ -1,7 +1,8 @@
 <template>
     <view class="growth-assessment">
         <u-sticky>
-            <custom-nav :needBack="true" />
+            <!-- 添加自定义返回处理 -->
+            <custom-nav :needBack="true" :back-handler="handleCustomBack" />
         </u-sticky>
         <!-- <view class="assessment-header">成长评估</view> -->
         <view class="selection-container">
@@ -77,15 +78,25 @@ export default {
     methods: {
         selectSection(section) {
             this.selectedSection = section;
-            console.log(this.selectedSection)
+            // 实时更新缓存
+            this.updateLocalStorage();
         },
         selectGrade(grade) {
             this.selectedGrade = grade;
-            console.log(this.selectedGrade)
+            this.updateLocalStorage();
         },
         selectClass(classNum) {
             this.selectedClass = classNum;
-            console.log(this.selectedClass)
+            this.updateLocalStorage();
+        },
+        // 新增缓存更新方法
+        updateLocalStorage() {
+            const currentData = {
+                section: this.selectedSection,
+                grade: this.selectedGrade,
+                class: this.selectedClass
+            };
+            uni.setStorageSync('classFormData', currentData);
         },
         handleCancel() {
             uni.navigateBack();
@@ -110,6 +121,11 @@ export default {
             uni.navigateTo({
                 url: "/pages/enter-class/createClassForm2"
             });
+        },
+        // 新增自定义返回处理
+        handleCustomBack() {
+            uni.removeStorageSync('classFormData')
+            uni.navigateBack()
         },
     },
 };

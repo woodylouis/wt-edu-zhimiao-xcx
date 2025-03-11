@@ -42,6 +42,10 @@ export default {
             type: Boolean,
             default: false,
         },
+        backHandler: {
+            type: Function,
+            default: null
+        },
     },
     data() {
         return {
@@ -57,8 +61,13 @@ export default {
     },
     methods: {
         handleBack() {
-            console.log('back')
-            uni.navigateBack()
+            if (this.backHandler) {
+                // 执行自定义返回逻辑
+                this.backHandler()
+            } else {
+                // 默认返回行为
+                uni.navigateBack()
+            }
         }
     },
 
