@@ -7,6 +7,7 @@
                 {{ xcxName }}
             </view>
         </view>
+        <view class="decoration-bar"></view>
     </view>
 </template>
 
@@ -45,7 +46,7 @@ export default {
 </script>
 <style scoped lang="scss">
 .navigation {
-    height: calc(100vh / 8);
+    height: calc(100vh / 7);
     // text-align: center;
     // flex-direction: column;
     // align-items: center;
@@ -53,6 +54,7 @@ export default {
     background-color: #F2F7F6;
     display: flex;
     // justify-content: center; // 新增水平居中
+    position: relative;
 
     .header {
         display: flex;
@@ -61,6 +63,7 @@ export default {
         justify-content: center;
         align-items: center;
         height: 100%;
+        z-index: 1; // 确保在header下方
 
         .title {
             z-index: 1;
@@ -78,6 +81,20 @@ export default {
             transform: translateY(-50%); // 精确居中
         }
     }
+
+    .decoration-bar {
+        position: absolute;
+        bottom: 0; // 改为顶部定位
+        left: 0;
+        width: 100%;
+        height: 15%; // 修改高度
+        background-color: rgba(255, 255, 255, 1);
+        // background-color: red;
+        z-index: 1; // 确保在header下方
+        border-radius: 24px 24px 0px 0px;
+    }
+
+
 
 }
 </style>
