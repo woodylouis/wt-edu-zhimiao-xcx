@@ -30,6 +30,12 @@
 			}
 		},
 		{
+			"path": "pages/enter-class/createClassForm2",
+			"style": {
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/list/list",
 			"style": {
 				// #ifndef APP

@@ -3,232 +3,173 @@
         <u-sticky>
             <custom-nav />
         </u-sticky>
-        <!-- <view class="assessment-header">成长评估</view> -->
-        <view class="selection-container">
-            <!-- School Section -->
-            <view class="section-group">
-                <view class="section-header">
-                    <view class="indicator-bar"></view>
-                    <text class="section-title">选择学段</text>
-                </view>
-                <view class="options-wrap">
-                    <view v-for="(section, idx) in schoolSections" :key="idx" class="option-button" :class="{ 'option-selected': selectedSection === section }" @tap="selectSection(section)">
-                        {{ section }}
+        <view class="form-container">
+            <text class="form-description">您正在创建班级，请填写以下信息</text>
+            <u--form :model="formData" :rules="rules" ref="uForm" :errorType="['message']" :borderBottom="false">
+                <view class="form-content">
+                    <view class="input-group">
+                        <text class="input-label">所属班级</text>
+                        <u-form-item prop="className" :borderBottom="false">
+                            <u--input v-model="formData.className" placeholder="请选择所属班级" :border="false" :custom-style="inputStyle" />
+                        </u-form-item>
                     </view>
-                </view>
-            </view>
 
-            <!-- Grade Selection -->
-            <view class="section-group">
-                <view class="section-header">
-                    <view class="indicator-bar"></view>
-                    <text class="section-title">选择年级</text>
-                </view>
-                <view class="options-grid">
-                    <view v-for="(grade, idx) in grades" :key="idx" class="option-button" :class="{ 'option-selected': selectedGrade === grade }" @tap="selectGrade(grade)">
-                        {{ grade }}
+                    <view class="input-group">
+                        <text class="input-label">班级昵称</text>
+                        <u-form-item prop="nickname" :borderBottom="false">
+                            <u--input v-model="formData.nickname" placeholder="输入班级昵称" :border="false" :custom-style="inputStyle" />
+                        </u-form-item>
                     </view>
-                </view>
-            </view>
 
-            <!-- Class Selection -->
-            <view class="section-group">
-                <view class="section-header">
-                    <view class="indicator-bar"></view>
-                    <text class="section-title">选择班级</text>
-                </view>
-                <view class="options-grid">
-                    <view v-for="(classNum, idx) in classes" :key="idx" class="option-button" :class="{ 'option-selected': selectedClass === classNum }" @tap="selectClass(classNum)">
-                        {{ classNum }}班
+                    <view class="input-group">
+                        <text class="input-label">我的姓名</text>
+                        <u-form-item prop="teacherName" :borderBottom="false">
+                            <u--input v-model="formData.teacherName" placeholder="请输入我的姓名" :border="false" :custom-style="inputStyle" />
+                        </u-form-item>
                     </view>
-                </view>
-            </view>
 
-            <!-- Action Buttons -->
-            <view class="action-buttons">
-                <button class="cancel-button" @tap="handleCancel">取消</button>
-                <button class="confirm-button" @tap="handleConfirm">确定</button>
-            </view>
+                    <u-button @click="handleSubmit" :custom-style="buttonStyle">创建新班级</u-button>
+
+                    <text class="help-link" @click="handleHelp">遇到问题？查看帮助</text>
+                </view>
+            </u--form>
+
         </view>
     </view>
 </template>
 
 <script>
+import FormSection from "./components/formSection.vue";
 export default {
+    components: {
+        FormSection,
+    },
     data() {
         return {
-            schoolSections: ["幼儿园"],
-            grades: ["幼托", "小小班", "小班", "中班", "大班"],
-            classes: Array.from({ length: 18 }, (_, i) => i + 1),
-            selectedSection: "",
-            selectedGrade: "",
-            selectedClass: "",
+            formData: {
+                className: "",
+                nickname: "",
+                teacherName: "",
+            },
+            rules: {
+                className: [
+                    {
+                        required: true,
+                        message: "请选择所属班级",
+                        trigger: ["change", "blur"],
+                    },
+                ],
+                nickname: [
+                    {
+                        required: true,
+                        message: "请输入班级昵称",
+                        trigger: ["change", "blur"],
+                    },
+                    {
+                        min: 2,
+                        max: 20,
+                        message: "班级昵称长度在2-20个字符之间",
+                        trigger: ["change", "blur"],
+                    },
+                ],
+                teacherName: [
+                    {
+                        required: true,
+                        message: "请输入教师姓名",
+                        trigger: ["change", "blur"],
+                    },
+                    {
+                        min: 2,
+                        max: 10,
+                        message: "姓名长度在2-10个字符之间",
+                        trigger: ["change", "blur"],
+                    },
+                ],
+            },
+            inputStyle: {
+                backgroundColor: "#FFFFFF",
+                borderRadius: "16rpx",
+                border: "2rpx solid rgba(206, 213, 218, 1)",
+                padding: "24rpx 32rpx",
+                fontSize: "28rpx",
+                color: "rgba(111, 115, 116, 1)",
+            },
+            buttonStyle: {
+                backgroundColor: "rgba(110, 221, 138, 1)",
+                color: "rgba(0, 33, 77, 1)",
+                borderRadius: "48rpx",
+                fontWeight: "500",
+                fontSize: "32rpx",
+                padding: "26rpx 0",
+                height: "48px",
+                marginTop: "40rpx"
+            },
         };
     },
     methods: {
-        selectSection(section) {
-            this.selectedSection = section;
-            console.log(this.selectedSection)
-        },
-        selectGrade(grade) {
-            this.selectedGrade = grade;
-            console.log(this.selectedGrade)
-        },
-        selectClass(classNum) {
-            this.selectedClass = classNum;
-            console.log(this.selectedClass)
-        },
-        handleCancel() {
-            uni.navigateBack();
-        },
-        handleConfirm() {
-            if (!this.selectedSection || !this.selectedGrade || !this.selectedClass) {
+        handleSubmit() {
+            uni.showLoading({
+                title: "提交中...",
+            });
+            // Add submission logic here
+            setTimeout(() => {
+                uni.hideLoading();
                 uni.showToast({
-                    title: "请完成所有选择",
-                    icon: "none",
+                    title: "创建成功",
+                    icon: "success",
                 });
-                return;
-            }
-
-            const result = {
-                section: this.selectedSection,
-                grade: this.selectedGrade,
-                class: this.selectedClass,
-            };
-
-            uni.$emit("classSelected", result);
-            uni.navigateBack();
+            }, 1500);
+        },
+        handleHelp() {
+            uni.navigateTo({
+                url: "/pages/help/index",
+            });
         },
     },
 };
 </script>
 
-<style scoped>
-.growth-assessment {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-
-}
-
-.assessment-header {
-    background-color: rgba(242, 247, 246, 1);
-    padding: 40rpx 140rpx;
-    font-size: 36rpx;
-    color: rgba(0, 33, 77, 1);
-    font-weight: 600;
-    text-align: center;
-}
-
-.selection-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+<style lang="scss" scoped>
+.form-container {
+    background-color: #ffffff;
     border-radius: 48rpx 48rpx 0 0;
-    background-color: rgba(255, 255, 255, 1);
-    /* padding: 38rpx 40rpx; */
-    font-size: 28rpx;
-    color: rgba(111, 115, 116, 1);
-    margin-top: -10px;
-    z-index: 1;
-}
-
-.section-group {
-    margin-bottom: 32rpx;
-    padding: 38rpx 40rpx;
-}
-
-.section-header {
+    min-height: 80vh;
+    padding: 32rpx 40rpx;
     display: flex;
-    align-items: center;
-    gap: 16rpx;
-    margin-bottom: 24rpx;
+    flex-direction: column;
 }
 
-.indicator-bar {
-    border-radius: 8rpx;
-    background-color: rgba(110, 221, 138, 1);
-    width: 8rpx;
-    height: 24rpx;
-}
-
-.section-title {
+.form-description {
+    color: #3D464A;
     font-size: 24rpx;
-    color: rgba(0, 33, 77, 1);
-}
-
-.options-grid,
-.options-wrap {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    /* 强制三列布局 */
-    gap: 20rpx;
-    width: 100%;
-}
-
-.option-button {
-    width: 100%;
-    /* 确保填满网格单元格 */
-    min-width: 0;
-    /* 防止内容溢出 */
-    flex: 0 0 calc(33.333% - 14rpx);
-    border-radius: 12rpx;
-    background-color: rgba(242, 247, 246, 1);
-    padding: 20rpx 0;
-    border: none;
-    color: inherit;
-    font-size: inherit;
-    text-align: center;
     line-height: 1;
-    box-sizing: border-box;
+    margin-bottom: 32rpx;
 }
 
-.option-selected {
-    background-color: rgba(219, 242, 226, 1);
-    color: rgba(0, 33, 77, 1);
-}
-
-.action-buttons {
-    margin-top: auto;
+.form-content {
     display: flex;
+    flex-direction: column;
+    gap: 32rpx;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
     gap: 24rpx;
-    padding: 40rpx 0 60rpx;
-    box-shadow: 0px -7px 24px 0px rgba(103, 11, 3, 0.06);
 }
 
-.cancel-button {
-    flex: 1;
-    border-radius: 48rpx;
-    border: 2rpx solid rgba(0, 33, 77, 1);
-    padding: 26rpx 0;
-    background: transparent;
+.input-label {
     color: rgba(0, 33, 77, 1);
     font-size: 32rpx;
-    font-weight: 500;
-    height: 48px;
-    /* 新增居中属性 */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    line-height: 1;
-    margin-left: 20rpx;
+    font-weight: 600;
+    font-family: PingFang SC;
 }
 
-.confirm-button {
-    flex: 1;
-    border-radius: 48rpx;
-    background-color: rgba(110, 221, 138, 1);
-    padding: 26rpx 0;
-    border: none;
-    color: rgba(0, 33, 77, 1);
-    font-size: 32rpx;
-    font-weight: 500;
-    height: 48px;
-    /* 新增居中属性 */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    line-height: 1;
-    margin-right: 20rpx;
+.help-link {
+    color: rgba(111, 115, 116, 1);
+    font-size: 28rpx;
+    text-decoration: underline;
+    text-align: center;
+    margin-top: 32rpx;
 }
 </style>
