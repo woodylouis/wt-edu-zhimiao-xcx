@@ -33,7 +33,7 @@
         </view>
         <up-overlay :show="show">
             <view class="warp">
-                <model-box :confirmText="'立即创建'" :list="modalOptionsList" @cancel="show = false" @create="onConfirm" />
+                <modal-box-mcq :confirmText="'立即创建'" :list="modalOptionsList" @cancel="show = false" @create="onConfirm" />
             </view>
         </up-overlay>
 
@@ -41,13 +41,12 @@
 </template>
 
 <script>
-// 导入modelBox组件
-import modelBox from '../../components/modelBox/modelBox.vue';
-// 注册组件
+// 导入modlBox组件
+import modalBoxMcq from '../../components/modalBox-MCQ';
 
 export default {
     components: {
-        modelBox
+        modalBoxMcq
     },
     data() {
         return {

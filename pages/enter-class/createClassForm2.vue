@@ -33,16 +33,21 @@
                     <text class="help-link" @click="handleHelp">遇到问题？查看帮助</text>
                 </view>
             </u--form>
-
         </view>
+        <up-overlay show>
+            <view class="warp">
+                <modal-box :confirmText="'立即创建'" :list="modalOptionsList" @cancel="show = false" @create="onConfirm" />
+            </view>
+        </up-overlay>
     </view>
 </template>
 
 <script>
-import FormSection from "./components/formSection.vue";
+// 导入modlBox组件
+import modalBox from '../../components/modalBox';
 export default {
     components: {
-        FormSection,
+        modalBox,
     },
     data() {
         return {
@@ -50,6 +55,7 @@ export default {
                 className: "",
                 nickname: "",
                 teacherName: "",
+                show: true,
             },
             rules: {
                 className: [
@@ -222,6 +228,13 @@ export default {
     font-size: 32rpx;
     font-weight: 600;
     font-family: PingFang SC;
+}
+
+.warp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
 }
 
 .help-link {

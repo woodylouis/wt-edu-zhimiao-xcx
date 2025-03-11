@@ -9,17 +9,17 @@
 	},
 	"pages": [
 		{
-			"path": "pages/assessment/list",
-			"style": {
-				"navigationStyle": "custom",
-				"navigationBarTitleText": "成长评估"
-			}
-		},
-		{
 			"path": "pages/enter-class/index",
 			"style": {
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "知苗成长"
+			}
+		},
+		{
+			"path": "pages/assessment/list",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "成长评估"
 			}
 		},
 		{
