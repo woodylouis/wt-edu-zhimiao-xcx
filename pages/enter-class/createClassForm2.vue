@@ -44,7 +44,7 @@
 
 <script>
 // 导入modlBox组件
-import modalBox from '../../components/modalBox';
+import modalBox from '../../components/modalBox/modalBox';
 export default {
     components: {
         modalBox,
