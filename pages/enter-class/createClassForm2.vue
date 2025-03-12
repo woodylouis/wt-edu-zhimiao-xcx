@@ -139,18 +139,22 @@ export default {
             uni.showLoading({ title: "提交中..." });
             try {
                 const cacheData = uni.getStorageSync('classFormData') || {};
+                // 新增用户信息获取
+                const userInfo = uni.getStorageSync('uni-id-pages-userInfo') || {};
+                
                 const postData = {
                     grade: cacheData.grade,
                     class: cacheData.class,
                     nickname: this.formData.nickname,
                     teacherName: this.formData.teacherName,
-                    section: cacheData.section || '小学'
+                    section: cacheData.section || '小学',
+                    userId: userInfo._id // 添加用户ID字段
                 };
-
+                
                 // 调用云函数
                 const { result } = await uniCloud.callFunction({
                     name: 'wtdb-business-class-create',
-                    data: postData
+                    data: postData  // 包含userId的请求数据
                 });
 
                 if (result.code === 200) {
