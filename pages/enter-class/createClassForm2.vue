@@ -49,13 +49,14 @@ export default {
     components: {
         modalBox,
     },
+    // 在data中修正show定义位置
     data() {
         return {
+            show: false,  // 移动到顶层
             formData: {
                 className: "",
                 nickname: "",
                 teacherName: "",
-                show: false,
             },
             rules: {
                 className: [
@@ -81,7 +82,7 @@ export default {
                 teacherName: [
                     {
                         required: true,
-                        message: "请输入教师姓名",
+                        message: "请输入你的姓名",
                         trigger: ["change", "blur"],
                     },
                     {
@@ -112,25 +113,23 @@ export default {
             },
         };
     },
+    // 修正handleSubmit中的逻辑
     methods: {
         async handleSubmit() {
-            // 移除无效的setValue调用
             try {
-                // 改用标准验证方式
                 const valid = await this.$refs.uForm.validate()
-                console.log("valid", valid)
-                // 确保数据已保存
                 if (valid) {
-                    // 确保数据已保存
-                    console.log("valid", valid)
                     this.updateLocalStorage()
-                    this.show = true
-                    console.log("this.show", this.show)
+                    // 添加强制更新确保DOM刷新
+                    this.$nextTick(() => {
+                        this.show = true
+                    })
                 }
-
             } catch (error) {
+                // 处理数组类型的错误对象
+                const errorMessages = error?.map(e => e.message) || ['未知错误']
                 uni.showToast({
-                    title: "请完善以下信息: " + error.join(','),
+                    title: `请完善以下信息：${errorMessages.join('，')}`,
                     icon: "none"
                 })
             }
