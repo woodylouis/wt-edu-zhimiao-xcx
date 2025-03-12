@@ -1,6 +1,6 @@
 <template>
     <!-- 导航 -->
-    <view class="navigation" :style="navStyle">
+    <view class="navigation" :style="navCustomStyle">
         <view class="header" :style="xcxNameMarginTopStyle">
             <!-- 添加点击区域并调整层级 -->
             <view class="back-wrap" @click.stop="handleBack" v-if="needBack">
@@ -10,7 +10,7 @@
                 {{ xcxName }}
             </view>
         </view>
-        <view class="decoration-bar"></view>
+        <view v-if="needBar" class="decoration-bar"></view>
     </view>
 </template>
 
@@ -22,7 +22,7 @@
     transform: translateY(-50%);
     padding: 20rpx;
     z-index: 2; // 提升层级
-    
+
     .back-arrow {
         width: 32rpx;
         height: 32rpx;
@@ -42,10 +42,18 @@ export default {
             type: Boolean,
             default: false,
         },
+        needBar: {
+            type: Boolean,
+            default: true,
+        },
         backHandler: {
             type: Function,
             default: null
         },
+        navCustomStyle: {
+            type: String,
+            default: ''
+        }
     },
     data() {
         return {

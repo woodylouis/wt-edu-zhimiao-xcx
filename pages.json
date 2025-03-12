@@ -30,6 +30,13 @@
 			}
 		},
 		{
+			"path": "pages/dashboard/teacher/teacher",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "知苗成长"
+			}
+		},
+		{
 			"path": "pages/enter-class/createClassForm2",
 			"style": {
 				"navigationStyle": "custom"
