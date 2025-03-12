@@ -133,36 +133,47 @@ export default {
                     icon: "none"
                 })
             }
-        },
+        },  // 注意这里需要逗号分隔
 
         async handleConfirm() {
-            uni.showLoading({ title: "提交中..." })
-
+            uni.showLoading({ title: "提交中..." });
             try {
-                const cacheData = uni.getStorageSync('classFormData') || {}
+                const cacheData = uni.getStorageSync('classFormData') || {};
                 const postData = {
-                    ...cacheData,
+                    grade: cacheData.grade,
+                    class: cacheData.class,
                     nickname: this.formData.nickname,
-                    teacherName: this.formData.teacherName
+                    teacherName: this.formData.teacherName,
+                    section: cacheData.section || '小学'
+                };
+
+                // 调用云函数
+                const { result } = await uniCloud.callFunction({
+                    name: 'wtdb-business-class-create',
+                    data: postData
+                });
+
+                if (result.code === 200) {
+                    uni.showToast({
+                        title: `创建成功！班级码：${result.data.classCode}`,
+                        icon: "none",
+                        duration: 3000
+                    });
+                    uni.removeStorageSync('classFormData');
+                    setTimeout(() => uni.navigateBack(), 1500);
+                } else {
+                    throw new Error(result.msg);
                 }
-
-                // 调用真实接口
-                // const res = await uni.request({...})
-
-                uni.hideLoading()
-                uni.showToast({ title: "创建成功", icon: "success" })
-                uni.removeStorageSync('classFormData')
-                uni.navigateBack()
             } catch (error) {
-                uni.hideLoading()
                 uni.showToast({
-                    title: `创建失败: ${error.errMsg || '未知错误'}`,
+                    title: `创建失败: ${error.errMsg || error.message}`,
                     icon: "none"
-                })
+                });
+            } finally {
+                uni.hideLoading();
             }
-        },
+        },  // 注意这里需要逗号分隔
 
-        // 将watch中的方法移动到这里
         updateLocalStorage() {
             const cacheData = uni.getStorageSync('classFormData') || {};
             const newData = {
