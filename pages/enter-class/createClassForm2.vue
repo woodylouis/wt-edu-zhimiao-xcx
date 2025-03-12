@@ -36,7 +36,7 @@
         </view>
         <up-overlay :show="show">
             <view class="warp">
-                <modal-box :className="formData.className" :nickname="formData.nickname" :teacherName="formData.teacherName" :confirmText="'立即创建'" @cancel="show = false" @create="onConfirm" />
+                <modal-box v-if="show" :className="formData.className" :nickname="formData.nickname" :teacherName="formData.teacherName" confirmText="立即创建" @cancel="show = false" @create="handleConfirm" />
             </view>
         </up-overlay>
     </view>
@@ -55,7 +55,7 @@ export default {
                 className: "",
                 nickname: "",
                 teacherName: "",
-                show: true,
+                show: false,
             },
             rules: {
                 className: [
@@ -114,16 +114,32 @@ export default {
     },
     methods: {
         async handleSubmit() {
-            const valid = await this.$refs.uForm.validate()
-            if (!valid) {
-                uni.showToast({ title: "请完善表单信息", icon: "none" })
-                return
-            }
+            // 移除无效的setValue调用
+            try {
+                // 改用标准验证方式
+                const valid = await this.$refs.uForm.validate()
+                console.log("valid", valid)
+                // 确保数据已保存
+                if (valid) {
+                    // 确保数据已保存
+                    console.log("valid", valid)
+                    this.updateLocalStorage()
+                    this.show = true
+                    console.log("this.show", this.show)
+                }
 
+            } catch (error) {
+                uni.showToast({
+                    title: "请完善以下信息: " + error.join(','),
+                    icon: "none"
+                })
+            }
+        },
+
+        async handleConfirm() {
             uni.showLoading({ title: "提交中..." })
 
             try {
-                // 获取完整班级数据
                 const cacheData = uni.getStorageSync('classFormData') || {}
                 const postData = {
                     ...cacheData,
@@ -131,21 +147,12 @@ export default {
                     teacherName: this.formData.teacherName
                 }
 
-                // 调用真实接口（替换示例代码）
-                // const res = await uni.request({
-                //     url: '你的接口地址',
-                //     method: 'POST',
-                //     data: postData
-                // })
+                // 调用真实接口
+                // const res = await uni.request({...})
 
-                // 接口调用成功处理
                 uni.hideLoading()
                 uni.showToast({ title: "创建成功", icon: "success" })
-
-                // 清除本页使用的缓存
                 uni.removeStorageSync('classFormData')
-
-                // 跳转到成功页面或返回
                 uni.navigateBack()
             } catch (error) {
                 uni.hideLoading()
@@ -155,14 +162,25 @@ export default {
                 })
             }
         },
+
+        // 将watch中的方法移动到这里
+        updateLocalStorage() {
+            const cacheData = uni.getStorageSync('classFormData') || {};
+            const newData = {
+                ...cacheData,
+                nickname: this.formData.nickname,
+                teacherName: this.formData.teacherName
+            };
+            uni.setStorageSync('classFormData', newData);
+        },
+
         handleHelp() {
             uni.navigateTo({
                 url: "/pages/help/index",
             });
-        },
-    },
+        }
+    },  // methods结束
     watch: {
-        // 新增字段监听
         'formData.nickname'(newVal) {
             this.updateLocalStorage();
         },
@@ -170,18 +188,7 @@ export default {
             this.updateLocalStorage();
         }
     },
-    methods: {
-        // 优化缓存更新方法（保留其他字段）
-        updateLocalStorage() {
-            const cacheData = uni.getStorageSync('classFormData') || {};
-            const newData = {
-                ...cacheData,  // 保留已有字段
-                nickname: this.formData.nickname,
-                teacherName: this.formData.teacherName
-            };
-            uni.setStorageSync('classFormData', newData);
-        },
-    },
+    // 删除重复的methods声明块
     onShow() {
         const cacheData = uni.getStorageSync('classFormData');
         if (cacheData) {
