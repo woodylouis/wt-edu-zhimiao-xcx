@@ -1,7 +1,7 @@
 // 文档教程: https://uniapp.dcloud.net.cn/uniCloud/schema
 {
   "bsonType": "object",
-  "required": ["name", "created_by", "code"], // 新增必填字段
+  "required": ["nickname", "created_by", "code"], // 新增必填字段
   "properties": {
     "_id": { "description": "班级ID" },
     "code": {
@@ -11,12 +11,16 @@
       "description": "唯一班级码（6位数字）",
       "unique": true // 强制全局唯一
     },
-    "name": { "bsonType": "string", "title": "班级名称" },
+	"section": { "bsonType": "string", "title": "学段" },
+	"grade": { "bsonType": "string", "title": "年级" },
+	"class": { "bsonType": "string", "title": "班级" },
+    "nickname": { "bsonType": "string", "title": "班级昵称" },
     "description": { "bsonType": "string", "title": "班级描述" },
+	"teacherName": { "bsonType": "string", "title": "创建者老师名字" },
     "created_by": { 
       "bsonType": "string", 
       "foreignKey": "uni-id-users._id",
-      "title": "创建者（老师）ID" 
+      "title": "创建者ID" 
     },
     "create_time": { 
       "bsonType": "timestamp", 
