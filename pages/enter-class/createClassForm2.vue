@@ -141,7 +141,7 @@ export default {
                 const cacheData = uni.getStorageSync('classFormData') || {};
                 // 新增用户信息获取
                 const userInfo = uni.getStorageSync('uni-id-pages-userInfo') || {};
-                
+
                 const postData = {
                     grade: cacheData.grade,
                     class: cacheData.class,
@@ -150,21 +150,34 @@ export default {
                     section: cacheData.section || '小学',
                     userId: userInfo._id // 添加用户ID字段
                 };
-                
+
                 // 调用云函数
                 const { result } = await uniCloud.callFunction({
                     name: 'wtdb-business-class-create',
-                    data: postData  // 包含userId的请求数据
+                    data: postData
                 });
 
                 if (result.code === 200) {
+                    // 第一步：缓存完整班级信息
+                    uni.setStorageSync('currentClass', {
+                        id: result.data.classId,
+                        code: result.data.classCode,
+                        grade: cacheData.grade,
+                        class: cacheData.class,
+                        nickname: this.formData.nickname
+                    });
+
                     uni.showToast({
                         title: `创建成功！班级码：${result.data.classCode}`,
                         icon: "none",
                         duration: 3000
                     });
                     uni.removeStorageSync('classFormData');
-                    setTimeout(() => uni.navigateBack(), 1500);
+                    setTimeout(() => {
+                        uni.reLaunch({
+                            url: "/pages/dashboard/teacher/teacher"
+                        });
+                    }, 1500);
                 } else {
                     throw new Error(result.msg);
                 }

@@ -7,8 +7,8 @@
             <view class="profile-left">
                 <image class="avatar-image" :src="avatarUrl" />
                 <view class="info">
-                    <view class="name">李老师</view>
-                    <view class="class">小班3班 <view class="invite">邀请加入本班</view>
+                    <view class="name">{{ displayName }}</view>
+                    <view class="class">{{ classDisplay }}<view class="invite">邀请加入本班</view>
                     </view>
                 </view>
             </view>
@@ -30,7 +30,7 @@
 
 <script setup>
 import customNav from '@/components/customNav'
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
@@ -50,38 +50,26 @@ const reports = [
         teacher: "何嘉琪老师",
     },
 ];
+// 新增用户信息获取
+const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
+const currentClass = ref(uni.getStorageSync('currentClass') || {});
 
-// 获取班级列表并缓存
-const refreshClassCache = async () => {
-    try {
-        // 新增登录状态检查
-        const hasLogin = uni.getStorageSync('uni-id-pages-userInfo')._id
-        if (!hasLogin) {
-            console.log('用户未登录');
-            return;
-        }
+// 修改用户信息显示部分
+const displayName = computed(() => {
+    return userInfo.value.nickname || userInfo.value.username || '老师';
+});
 
-        const res = await uniCloud.callFunction({
-            name: 'wtdb-business-class-list',
-            data: {
-                // 使用标准参数名传递token
-                uniIdToken: uni.getStorageSync('uni_id_token')
-            }
-        });
-        console.log('班级列表获取成功', res)
-        if (res.result.code === 200) {
-            // 存储到本地缓存
-            uni.setStorageSync('cachedClasses', res.result.data);
-            console.log('班级缓存已更新', res.result.data);
-        }
-    } catch (e) {
-        console.error('更新缓存失败:', e);
+// 修改班级显示逻辑
+const classDisplay = computed(() => {
+    if (currentClass.value.grade && currentClass.value.class) {
+        return `${currentClass.value.grade}${currentClass.value.class}班`;
     }
-}
+    return '暂无班级信息';
+});
 
 // 在页面加载时触发
 onMounted(() => {
-    refreshClassCache();
+    // refreshClassCache();
 });
 </script>
 
