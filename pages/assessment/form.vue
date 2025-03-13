@@ -28,14 +28,15 @@
 <script setup>
 import customNav from '@/components/customNav';
 import { onLoad } from '@dcloudio/uni-app'
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, onUnmounted } from "vue";
 
 let childId = ref('');
-let current = ref(3);
-let count = ref(10);
-let section = ref('运动');
-let persentage = ref('30%');
-let question = ref('喜欢长时间的自身旋转。');
+let assessmentId = ref('');
+// let current = ref(3);
+// let count = ref(10);
+// let section = ref('运动');
+// let persentage = ref('30%');
+// let question = ref('喜欢长时间的自身旋转。');
 let buttonStyle1 = {
     backgroundColor: "rgba(110, 221, 138, 1)",
     color: "rgba(0, 33, 77, 1)",
@@ -60,12 +61,86 @@ let buttonStyle2 = {
 
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 
-onLoad((options) => {
-    console.log(options)
-    childId.value = options.childId;
+// 新增状态管理
+const questions = ref([]);          // 题目列表
+const currentIndex = ref(0);        // 当前题目索引
+const answers = ref({});            // 答案存储对象
 
+// 计算属性改造
+const persentage = computed(() => {
+    return ((currentIndex.value + 1) / questions.value.length * 100).toFixed(0) + '%';
 });
 
+const current = computed(() => currentIndex.value + 1);
+const count = computed(() => questions.value.length);
+const section = computed(() => questions.value[currentIndex.value]?.section || '');
+const question = computed(() => questions.value[currentIndex.value]?.content || '');
+
+// 新增数据加载逻辑
+const loadQuestions = async () => {
+    try {
+        const cacheKey = `assessment_${assessmentId.value}`;
+        const cachedData = uni.getStorageSync(cacheKey);
+
+        if (cachedData) {
+            questions.value = cachedData.questions;
+            answers.value = cachedData.answers;
+            currentIndex.value = cachedData.currentIndex;
+        } else {
+            const res = await uniCloud.callFunction({
+                name: 'wt-fetch-assessment',
+                data: { assessmentId: assessmentId.value }
+            });
+
+            questions.value = res.result.data;
+            uni.setStorageSync(cacheKey, {
+                questions: res.result.data,
+                answers: {},
+                currentIndex: 0
+            });
+        }
+    } catch (e) {
+        uni.showToast({ title: '题目加载失败', icon: 'none' });
+    }
+};
+
+// 改造提交处理
+const handleSubmit = (answer) => {
+    const cacheKey = `assessment_${assessmentId.value}`;
+
+    // 记录答案
+    answers.value[questions.value[currentIndex.value]._id] = answer;
+
+    // 更新缓存
+    uni.setStorageSync(cacheKey, {
+        questions: questions.value,
+        answers: answers.value,
+        currentIndex: currentIndex.value
+    });
+
+    // 跳转下一题或提交
+    if (currentIndex.value < questions.value.length - 1) {
+        currentIndex.value++;
+    } else {
+        // 提交逻辑
+        uni.showToast({ title: '评估完成', icon: 'success' });
+        uni.removeStorageSync(cacheKey);
+        uni.navigateBack();
+    }
+};
+
+// 新增生命周期处理
+onUnmounted(() => {
+    const cacheKey = `assessment_${assessmentId.value}`;
+    uni.removeStorageSync(cacheKey);
+});
+
+// 改造onLoad
+onLoad(async (options) => {
+    assessmentId.value = options.assessmentId;
+    childId.value = options.childId;
+    await loadQuestions();
+});
 </script>
 
 <style lang="scss" scoped>

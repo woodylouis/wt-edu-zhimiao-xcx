@@ -81,7 +81,7 @@ const clickAssessmentItem = () => {
 
     // 跳转并携带参数（示例评估ID，根据实际业务替换）
     uni.navigateTo({
-        url: `/pages/assessment/chooseChild?classId=${currentClass.value.id}&assessmentId=assessment_001`
+        url: `/pages/assessment/chooseChild?classId=${currentClass.value.id}&assessmentId=abc_scale_001`
     });
 };
 
