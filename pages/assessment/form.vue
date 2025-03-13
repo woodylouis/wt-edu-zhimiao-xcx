@@ -1,6 +1,6 @@
 <template>
     <view class="assessment">
-        <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" />
+        <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" :backHandler="handleNavBack" />
         <view class="content">
             <view class="progress">
                 <view class="title">
@@ -16,8 +16,20 @@
                 <view class="section"> {{ section }} </view>
                 <view class="question"> {{ question }} </view>
             </view>
-            <u-button @click="handleSubmit" :custom-style="buttonStyle1">是</u-button>
-            <u-button @click="handleSubmit" :custom-style="buttonStyle2">否</u-button>
+
+            <view class="button-group">
+                <u-button @click="handleSubmit(true)" :custom-style="getButtonStyle(true)">是</u-button>
+                <u-button @click="handleSubmit(false)" :custom-style="getButtonStyle(false)">否</u-button>
+            </view>
+
+            <view class="nav-buttons">
+                <u-button v-if="currentIndex > 0" @click="backToPrevious" :custom-style="{
+            ...buttonStyle1,
+            position: 'fixed',
+            bottom: '60rpx',
+            width: 'calc(100% - 80rpx)'
+        }">返回上一题</u-button>
+            </view>
 
 
 
@@ -107,9 +119,12 @@ const loadQuestions = async () => {
 // 改造提交处理
 const handleSubmit = (answer) => {
     const cacheKey = `assessment_${assessmentId.value}`;
-
+    const currentQid = questions.value[currentIndex.value]._id;
     // 记录答案
-    answers.value[questions.value[currentIndex.value]._id] = answer;
+    answers.value = {
+        ...answers.value,
+        [currentQid]: answer
+    };
 
     // 更新缓存
     uni.setStorageSync(cacheKey, {
@@ -125,6 +140,44 @@ const handleSubmit = (answer) => {
         // 提交逻辑
         uni.showToast({ title: '评估完成', icon: 'success' });
         uni.removeStorageSync(cacheKey);
+        uni.navigateBack();
+    }
+};
+
+// 新增样式计算逻辑
+const getButtonStyle = (isYes) => {
+    const currentQid = questions.value[currentIndex.value]?._id;
+    const isSelected = answers.value[currentQid] === isYes;
+
+    return isSelected ? {
+        ...buttonStyle1,
+        border: '2px solid #6EDE8A'
+    } : {
+        ...buttonStyle2,
+        border: 'none'
+    };
+};
+
+// 在handleSubmit后添加返回上一题逻辑
+const backToPrevious = () => {
+    if (currentIndex.value > 0) {
+        currentIndex.value--;
+    }
+};
+
+// 在loadQuestions后添加导航返回拦截
+const handleNavBack = () => {
+    if (Object.keys(answers.value).length > 0) {
+        uni.showModal({
+            title: '提示',
+            content: '评估进度将在30天后自动清除，确定要离开吗？',
+            success: (res) => {
+                if (res.confirm) {
+                    uni.navigateBack();
+                }
+            }
+        });
+    } else {
         uni.navigateBack();
     }
 };
@@ -202,6 +255,7 @@ onLoad(async (options) => {
                 /* 150% */
             }
         }
+
     }
 }
 </style>
