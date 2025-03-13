@@ -1,0 +1,11 @@
+[
+    {
+        "_id": "abc_scale_001",
+        "title": "ABC自闭症行为量表",
+        "description": "用于筛查自闭症儿童行为特征的标准化量表（修订版）",
+        "type": "on_demand",
+        "created_by": "teacher_001",
+        "created_time": 1717027200000,
+        "is_active": true
+    }
+]

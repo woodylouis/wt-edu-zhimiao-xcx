@@ -1,0 +1,64 @@
+{
+    "bsonType": "object",
+    "required": [
+        "title"
+    ],
+    "properties": {
+        "_id": {
+            "description": "量表ID"
+        },
+        "title": {
+            "bsonType": "string",
+            "title": "标题"
+        },
+        "description": {
+            "bsonType": "string",
+            "title": "描述"
+        },
+        "type": {
+            "bsonType": "string",
+            "enum": [
+                "regular",
+                "on_demand"
+            ],
+            "title": "类型（定期/按需）"
+        },
+        "frequency": {
+            "bsonType": "int",
+            "minimum": 1,
+            "title": "频率（月数，仅定期有效）"
+        },
+        "created_by": {
+            "bsonType": "string",
+            "foreignKey": "uni-id-users._id",
+            "title": "创建者ID"
+        },
+        "created_time": {
+            "bsonType": "timestamp",
+            "defaultValue": {
+                "$env": "now"
+            },
+            "title": "创建时间"
+        },
+        "is_active": {
+            "bsonType": "bool",
+            "defaultValue": true,
+            "title": "是否启用"
+        }
+    },
+    "validator": {
+        "$or": [
+            {
+                "type": {
+                    "$ne": "regular"
+                }
+            },
+            {
+                "type": "regular",
+                "frequency": {
+                    "$exists": true
+                }
+            }
+        ]
+    }
+}

@@ -1,0 +1,53 @@
+[
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 1,
+        "type": "radio",
+        "content": "是否回避与他人目光接触？",
+        "section": "social",
+        "options": [
+            {
+                "text": "是",
+                "score": 0
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 2,
+        "type": "radio",
+        "content": "对声音刺激反应是否异常？",
+        "section": "sensory",
+        "options": [
+            {
+                "text": "是",
+                "score": 0
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 3,
+        "type": "radio",
+        "content": "是否有重复刻板动作？",
+        "section": "body_control",
+        "options": [
+            {
+                "text": "是",
+                "score": 0
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    }
+]

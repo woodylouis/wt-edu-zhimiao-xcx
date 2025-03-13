@@ -7,7 +7,9 @@
                     <view>进度</view>
                     <view> {{ persentage }} </view>
                 </view>
-                <view class="progress-bar"></view>
+                <view class="progress-bar">
+                    <u-line-progress :percentage="30" activeColor="#6EDE8A" inactiveColor="#C9E8D1" :showText="false"></u-line-progress>
+                </view>
                 <view class="current">{{ current }}/{{ count }} 问题</view>
             </view>
             <view class="question-part">
@@ -87,7 +89,9 @@ onLoad((options) => {
                 margin-bottom: 30rpx;
             }
 
-            .progress {}
+            .progress-bar {
+                margin-bottom: 24rpx;
+            }
 
             .current {
                 color: #459C5C;
