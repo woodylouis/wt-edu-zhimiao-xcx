@@ -1,0 +1,46 @@
+{
+  "bsonType": "object",
+  "required": [
+    "name",
+    "class_id"
+  ],
+  "properties": {
+    "_id": {
+      "description": "儿童ID"
+    },
+    "name": {
+      "bsonType": "string",
+      "title": "姓名"
+    },
+    "gender": {
+      "bsonType": "string",
+      "enum": [
+        "male",
+        "female",
+        "unknown"
+      ],
+      "defaultValue": "unknown",
+      "title": "性别"
+    },
+    "birthdate": {
+      "bsonType": "timestamp",
+      "title": "出生日期",
+      "description": "存储时间戳用于计算年龄"
+    },
+    "formatBirthdate": {
+      "bsonType": "string",
+      "title": "格式化出生日期",
+      "pattern": "^\\d{4}年\\d{2}月\\d{2}日$",
+      "description": "前端直接显示的日期格式"
+    },
+    "class_id": {
+      "bsonType": "string",
+      "foreignKey": "class._id",
+      "title": "所属班级ID"
+    },
+    "avatar": {
+      "bsonType": "string",
+      "title": "头像URL"
+    }
+  }
+}
