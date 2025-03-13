@@ -1,31 +1,32 @@
 'use strict';
-// 初始化班级数据的云函数（initClassData）
-exports.main = async (event, context) => {
-  const db = uniCloud.database()
-  // 生成唯一班级码
-  const generateCode = async () => {
-    let code;
-    do {
-      code = Math.floor(100000 + Math.random() * 900000).toString();
-    } while ((await db.collection('wtdb-business-class-list').where({ code }).count()).total > 0);
-    return code;
-  };
+'use strict';
+const db = uniCloud.database();
+// 使用正确的模块路径
+const uniID = require('uni-id-common')
 
-  const initData = [
-    {
-      code: await generateCode(),
-      name: "小小班3班",
-      description: "2025届小小班3班",
-      created_by: "67cbb8e08b0da45f01e34d3c" // 动态绑定真实用户ID
-    },
-    {
-      code: await generateCode(),
-      name: "小小班3班",
-      description: "2024届小小班3班",
-      created_by: "67cbb8e08b0da45f01e34d3c"
-    }
-  ];
+exports.main = async (event, context) => { // 移除context参数
+	const uniIdInstance = uniID.createInstance({
+		context
+	})
 
-  const result = await db.collection('wtdb-business-class-list').add(initData);
-  return result;
+	// 从event参数获取token
+	const { uid } = await uniIdInstance.checkToken(event.uniIdToken)
+	if (!uid) {
+		return { code: 401, msg: '无效的登录状态' }
+	}
+
+	try {
+		const classRes = await db.collection('wtdb-business-class-list')
+			.where({ created_by: uid }) // 使用token解析的uid
+			.get();
+
+		return {
+			code: 200,
+			data: classRes.data,
+			msg: '查询成功'
+		};
+	} catch (e) {
+		return { code: 500, msg: `查询失败: ${e.message}` };
+	}
 };
+

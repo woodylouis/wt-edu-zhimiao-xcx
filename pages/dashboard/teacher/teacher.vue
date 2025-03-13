@@ -30,11 +30,8 @@
 
 <script setup>
 import customNav from '@/components/customNav'
-import { ref } from "vue";
-import { useRoute } from "vue-router";
-import profileHeader from "./profileHeader.vue";
-import notificationBanner from "./notificationBanner.vue";
-import growthReportCard from "./growthReportCard.vue";
+import { ref, onMounted } from "vue";
+
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 let avatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
@@ -53,6 +50,39 @@ const reports = [
         teacher: "何嘉琪老师",
     },
 ];
+
+// 获取班级列表并缓存
+const refreshClassCache = async () => {
+    try {
+        // 新增登录状态检查
+        const hasLogin = uni.getStorageSync('uni-id-pages-userInfo')._id
+        if (!hasLogin) {
+            console.log('用户未登录');
+            return;
+        }
+
+        const res = await uniCloud.callFunction({
+            name: 'wtdb-business-class-list',
+            data: {
+                // 使用标准参数名传递token
+                uniIdToken: uni.getStorageSync('uni_id_token')
+            }
+        });
+        console.log('班级列表获取成功', res)
+        if (res.result.code === 200) {
+            // 存储到本地缓存
+            uni.setStorageSync('cachedClasses', res.result.data);
+            console.log('班级缓存已更新', res.result.data);
+        }
+    } catch (e) {
+        console.error('更新缓存失败:', e);
+    }
+}
+
+// 在页面加载时触发
+onMounted(() => {
+    refreshClassCache();
+});
 </script>
 
 <style lang="scss" scoped>
