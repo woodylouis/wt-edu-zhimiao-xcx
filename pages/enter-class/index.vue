@@ -66,8 +66,9 @@ export default {
         // console.log('hasLogin', getApp().hasLogin)
         const menuButtonInfo = uni.getMenuButtonBoundingClientRect();
         this.xcxNameMarginTopStyle = `top:${menuButtonInfo.top + menuButtonInfo.height / 2}px;`
-
-
+    },
+    onShow() {
+        this.checkLoginStatus();
     },
     methods: {
         onClickCreate() {
@@ -81,6 +82,41 @@ export default {
             uni.navigateTo({
                 url: '/pages/enter-class/createClassForm1'
             })
+        },
+        async checkLoginStatus() {
+            try {
+                // 获取本地存储的登录信息
+                const token = uni.getStorageSync('uni_id_token');
+                const userInfo = uni.getStorageSync('uni-id-pages-userInfo');
+                const tokenExpired = uni.getStorageSync('uni_id_token_expired');
+
+                // 三重校验条件
+                const isValid = token &&
+                    userInfo?._id &&
+                    tokenExpired > Date.now();
+
+                if (!isValid) {
+                    this.navigateToLogin();
+                    return false;
+                }
+                return true;
+            } catch (e) {
+                console.error('登录状态检查失败:', e);
+                this.navigateToLogin();
+                return false;
+            }
+        },
+        navigateToLogin() {
+            uni.navigateTo({
+                url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
+            });
+        },
+        onClickCreate() {
+            this.checkLoginStatus().then(valid => {
+                if (valid) {
+                    this.show = true;
+                }
+            });
         }
     }
 }
