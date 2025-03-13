@@ -11,11 +11,7 @@
                 <view class="instruction">请输入您要进行儿童量表评估的小朋友姓名，系统将根据您的选择进入相应的评估流程。</view>
             </view>
             <view class="search">
-                <search :list="filteredStudents" labelName="name" valueName="_id" placeholder="请输入小朋友姓名" @input="handleSearch" @select="(id) => {
-            uni.navigateTo({
-                url: `/pages/assessment/form?childId=${id}&assessmentId=${assessmentId.value}`
-            });
-        }" />
+                <search :list="filteredStudents" labelName="name" valueName="_id" placeholder="请输入小朋友姓名" @input="handleSearch" @select="handleSelectChild"></search>
             </view>
         </view>
     </view>
@@ -41,16 +37,7 @@ const formValue = ref({
     // ... 其他字段保持不变 ...
     childId: '' // 新增选中儿童ID存储
 });
-let list = [
-    {
-        "id": "1",
-        "flightNo": "CXA2212"
-    },
-    {
-        "id": "2",
-        "flightNo": "CXA2215"
-    }
-]
+
 // 加载班级学生数据
 const loadStudents = async () => {
     try {
@@ -70,12 +57,10 @@ const loadStudents = async () => {
 };
 // 处理搜索输入
 let timeoutId = null
-const handleSearch = (keyword) => {
-    searchKeyword.value = keyword.trim()
-    clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => {
-        loadStudents() // 触发云函数重新查询
-    }, 300)
+const handleSelectChild = (id) => {
+    uni.navigateTo({
+        url: `/pages/assessment/form?childId=${id}&assessmentId=${assessmentId.value}`
+    });
 };
 
 // 新增路由参数接收
