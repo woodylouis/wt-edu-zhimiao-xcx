@@ -1,6 +1,8 @@
 {
   "name": "wtdb-business-class-create",
-  "dependencies": {},
+  "dependencies": {
+    "wtdb-business-join-class": "file:../common/wtdb-business-join-class"
+  },
   "extensions": {
     "uni-cloud-jql": {}
   }

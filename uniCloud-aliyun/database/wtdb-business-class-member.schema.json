@@ -1,34 +1,78 @@
-// 文档教程: https://uniapp.dcloud.net.cn/uniCloud/schema
 {
   "bsonType": "object",
-  "required": ["user_id", "class_id", "role"],
+  "required": [
+    "user_id",
+    "class_id",
+    "role"
+  ],
   "properties": {
-    "_id": { "description": "ID" },
-    "user_id": { 
-      "bsonType": "string", 
+    "_id": {
+      "description": "ID"
+    },
+    "user_id": {
+      "bsonType": "string",
       "foreignKey": "uni-id-users._id",
-      "title": "用户ID" 
+      "title": "用户ID"
     },
-    "class_id": { 
-      "bsonType": "string", 
+    "class_id": {
+      "bsonType": "string",
       "foreignKey": "class._id",
-      "title": "班级ID" 
+      "title": "班级ID"
     },
-    "role": { 
-      "bsonType": "string", 
-      "enum": ["teacher", "parent"],
-      "title": "角色" 
+    "role": {
+      "bsonType": "string",
+      "enum": [
+        "teacher",
+        "parent"
+      ],
+      "title": "角色"
     },
-    "child_id": { 
-      "bsonType": "string", 
+    "child_id": {
+      "bsonType": "string",
       "foreignKey": "child._id",
-      "title": "关联的儿童ID（仅家长角色必填）" 
+      "title": "关联的儿童ID（仅家长角色必填）"
+    },
+    "relationship": {
+      "bsonType": "string",
+      "title": "家庭成员关系",
+      "enum": [
+        "father",
+        "mother",
+        "grandfather",
+        "grandmother",
+        "other"
+      ],
+      "description": "仅家长角色需要，枚举：父亲、母亲、爷爷、奶奶、其他"
     }
   },
-  "validator": { // 家长角色必须关联孩子
+  "validator": {
     "$or": [
-      { "role": { "$ne": "parent" } },
-      { "role": "parent", "child_id": { "$exists": true } }
+      {
+        "role": {
+          "$ne": "parent"
+        }
+      },
+      {
+        "role": "parent",
+        "$and": [
+          {
+            "child_id": {
+              "$exists": true
+            }
+          },
+          {
+            "relationship": {
+              "$in": [
+                "father",
+                "mother",
+                "grandfather",
+                "grandmother",
+                "other"
+              ]
+            }
+          }
+        ]
+      }
     ]
   }
 }

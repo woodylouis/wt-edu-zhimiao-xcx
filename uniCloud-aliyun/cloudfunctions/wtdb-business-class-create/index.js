@@ -23,14 +23,39 @@ exports.main = async (event, context) => {
 			code: generateClassCode()
 		};
 
+		// TO-DO 检查是否有权限创建班级 - 只是classAdmin和superAdmin才可以，其他角色不可以创建班级
+		// 检查用户是否为classAdmin或superAdmin
+		// db name - wtdb-admin-users
+
 		// 写入数据库（会自动触发schema校验）
 		const res = await classCollection.add(classData)
+
+		// 新增：创建者自动加入班级
+		const joinClass = require('wtdb-business-join-class')
+
+		try {
+			await joinClass({
+				classId: res.id, // 使用刚创建的班级ID
+				userId: userId,  // 当前创建者ID
+				role: 'teacher'  // 默认赋予教师身份
+			})
+		} catch (joinError) {
+			console.error('创建者加入失败:', joinError)
+			// 回滚班级创建
+			await classCollection.doc(res.id).remove()
+			return {
+				code: 500,
+				msg: `班级创建失败：${joinError.message}`,
+				data: null
+			}
+		}
 
 		return {
 			code: 200,
 			data: {
 				classId: res.id,
-				classCode: classData.code
+				classCode: classData.code,
+				joinStatus: 'success' // 新增加入状态标识
 			},
 			msg: '班级创建成功'
 		}
