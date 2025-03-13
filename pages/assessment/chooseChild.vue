@@ -11,7 +11,11 @@
                 <view class="instruction">请输入您要进行儿童量表评估的小朋友姓名，系统将根据您的选择进入相应的评估流程。</view>
             </view>
             <view class="search">
-                <search :list="list" labelName="flightNo" valueName="id" placeholder="请输入小朋友姓名" @select="formValue.flightNo = $event"></search>
+                <search :list="filteredStudents" labelName="name" valueName="_id" placeholder="请输入小朋友姓名" @input="handleSearch" @select="(id) => {
+            uni.navigateTo({
+                url: `/pages/assessment/form?childId=${id}&assessmentId=${assessmentId.value}`
+            });
+        }" />
             </view>
         </view>
     </view>
@@ -24,29 +28,64 @@ import { ref, onMounted, computed } from "vue";
 import { onLoad } from '@dcloudio/uni-app'
 
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
+// 新增班级学生相关状态
+const classId = ref('');        // 存储传入的班级ID
+const assessmentId = ref('');   // 存储评估ID
+const students = ref([]);        // 原始学生列表
+const filteredStudents = ref([]); // 过滤后的学生列表
+const searchKeyword = ref('');   // 搜索关键词
 let currentClass = '小班8班'
 let displayName = '李萍萍'
-let formValue = ref({
-    pageSize: 20,
-    pageNumber: 1,
-    flightNo: ''
-})
-let list = [{
-    "id": "1",
-    "flightNo": "CXA2212"
-},
-{
-    "id": "2",
-    "flightNo": "CXA2215"
-}
+// 更新模板绑定（修改search组件使用方式）
+const formValue = ref({
+    // ... 其他字段保持不变 ...
+    childId: '' // 新增选中儿童ID存储
+});
+let list = [
+    {
+        "id": "1",
+        "flightNo": "CXA2212"
+    },
+    {
+        "id": "2",
+        "flightNo": "CXA2215"
+    }
 ]
+// 加载班级学生数据
+const loadStudents = async () => {
+    try {
+        const res = await uniCloud.callFunction({
+            name: 'wtdb-business-children-list',
+            data: {
+                classId: classId.value,
+                keyword: searchKeyword.value
+            }
+        })
+
+        students.value = res.result.data;
+        filteredStudents.value = res.result.data;
+    } catch (e) {
+        console.error('加载失败:', e);
+    }
+};
+// 处理搜索输入
+let timeoutId = null
+const handleSearch = (keyword) => {
+    searchKeyword.value = keyword.trim()
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => {
+        loadStudents() // 触发云函数重新查询
+    }, 300)
+};
+
 // 新增路由参数接收
 onLoad((options) => {
-    console.log('接收到的路由参数:', {
-        classId: options.classId,
-        assessmentId: options.assessmentId
-    });
+    console.log(options)
+    classId.value = options.classId;
+    assessmentId.value = options.assessmentId;
+    loadStudents(); // 初始加载学生数据
 });
+
 onMounted((params) => {
     // TODO: 查询数据
     console.log(params)

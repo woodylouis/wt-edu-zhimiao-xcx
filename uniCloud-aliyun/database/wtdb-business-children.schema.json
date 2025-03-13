@@ -4,6 +4,12 @@
     "name",
     "class_id"
   ],
+  "permission": {
+    "read": "auth.uid != null",
+    "create": false,
+    "update": false,
+    "delete": false
+  },
   "properties": {
     "_id": {
       "description": "儿童ID"
