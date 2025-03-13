@@ -23,6 +23,12 @@
 			}
 		},
 		{
+			"path": "pages/assessment/chooseChild",
+			"style": {
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/enter-class/createClassForm1",
 			"style": {
 				"navigationStyle": "custom",

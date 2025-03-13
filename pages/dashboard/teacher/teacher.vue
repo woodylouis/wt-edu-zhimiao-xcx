@@ -71,6 +71,20 @@ const classDisplay = computed(() => {
 onMounted(() => {
     // refreshClassCache();
 });
+const clickAssessmentItem = () => {
+    console.log('点击了评估选项');
+    // 确保班级ID存在
+    if (!currentClass.value?.id) {
+        uni.showToast({ title: '请先选择班级', icon: 'none' });
+        return;
+    }
+
+    // 跳转并携带参数（示例评估ID，根据实际业务替换）
+    uni.navigateTo({
+        url: `/pages/assessment/chooseChild?classId=${currentClass.value.id}&assessmentId=assessment_001`
+    });
+};
+
 </script>
 
 <style lang="scss" scoped>
