@@ -1,39 +1,7 @@
 <template>
     <view class="assessment">
         <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" :backHandler="handleNavBack" />
-        <view class="content">
-            <view class="progress">
-                <view class="title">
-                    <view>进度</view>
-                    <view> {{ persentage }}% </view>
-                </view>
-                <view class="progress-bar">
-                    <u-line-progress :percentage="persentage" activeColor="#6EDE8A" inactiveColor="#C9E8D1" :showText="false"></u-line-progress>
-                </view>
-                <view class="current">{{ current }}/{{ count }} 问题</view>
-            </view>
-            <view class="question-part">
-                <view class="section"> {{ section }} </view>
-                <view class="question"> {{ question }} </view>
-            </view>
 
-            <view class="button-group">
-                <u-button @click="handleSubmit(true)" :custom-style="getButtonStyle(true)">是</u-button>
-                <u-button @click="handleSubmit(false)" :custom-style="getButtonStyle(false)">否</u-button>
-            </view>
-
-            <view class="nav-buttons">
-                <u-button v-if="currentIndex > 0" @click="backToPrevious" :custom-style="{
-            ...buttonStyle1,
-            position: 'fixed',
-            bottom: '60rpx',
-            width: 'calc(100% - 80rpx)'
-        }">返回上一题</u-button>
-            </view>
-
-
-
-        </view>
     </view>
 </template>
 
@@ -165,8 +133,6 @@ const backToPrevious = () => {
     }
 };
 
-
-const cacheKey = `assessment_${assessmentId.value}`;
 // 在loadQuestions后添加导航返回拦截
 const handleNavBack = () => {
     if (Object.keys(answers.value).length > 0) {
@@ -176,8 +142,6 @@ const handleNavBack = () => {
             success: (res) => {
                 if (res.confirm) {
                     uni.navigateBack();
-                    const cacheKey = `assessment_${assessmentId.value}`;
-                    uni.removeStorageSync(cacheKey);
                     // TODO-提交评估进度
                 }
             }
