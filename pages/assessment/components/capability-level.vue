@@ -95,20 +95,32 @@ const analysisText = computed(() => {
         '自理': ziliLevel.value
     };
 
-    // 筛选阶段≥3的维度
+    // 筛选各阶段维度
     const laggingDimensions = Object.entries(levels)
-        .filter(([_, level]) => level >= 3)
-        .map(([name]) => name);
+        .filter(([_, level]) => level >= 3);
 
-    // 构造描述语句
     if (laggingDimensions.length === 0) {
-        return `${props.displayName}的五大能力维度发育均符合当前月龄宝宝的正常水平`;
+        return `经评估，${props.displayName}在五大能区发育商数均处于同龄常模范围（±1SD），发展轨迹正常。`;
     }
 
-    const normalText = `${props.displayName}的${laggingDimensions.join('、')}能力`;
-    const laggingText = laggingDimensions.length > 1 ? '等方面' : '方面';
+    // 专业分级描述
+    const severityLevel = {
+        3: '轻度发育迟缓',
+        4: '中度发育迟缓',
+        5: '显著发育落后',
+        6: '严重发育异常'
+    };
 
-    return `${normalText}${laggingText}落后于当前月龄宝宝的正常水平，需要特别关注并加强训练`;
+    // 构建专业描述
+    const dimensionDesc = laggingDimensions.map(([name, level]) =>
+        `${name}能区（${severityLevel[level]}，阶段${level}）`
+    ).join('、');
+
+    const severityText = laggingDimensions.some(([_, l]) => l >= 5) ?
+        '建议结合专项训练及定期发育监测' :
+        '建议加强日常训练并观察进展';
+
+    return `发育评估显示：${props.displayName}在${dimensionDesc}。${severityText}，必要时可进行标准化发育量表复核评估。`;
 });
 // 通用阶段计算函数
 const getLevel = (score, ranges) => {
