@@ -2,7 +2,7 @@
     <view class="development-section">
         <view class="development-card">
             <view class="card-title">能力达标情况</view>
-            <view class="analysis-text">
+            <view class="analysis-text-overall">
                 {{ analysisText }}
             </view>
             <view class="capability-bar">
@@ -37,6 +37,44 @@
                     </u-line-progress>
                 </view>
             </view>
+            <div class="analysis-section">
+                <div class="strength-section">
+                    <div class="section-header">
+                        <span class="indicator strength"></span>
+                        <span>优势领域</span>
+                    </div>
+                    <div class="analysis-item">
+                        <h4 class="analysis-title">适应能力：</h4>
+                        <p class="analysis-text">
+                            xx的适应自理能力发育符合当前月龄宝宝的正常水平,语言能力落后于当前月龄宝宝的正常水平，需要注意
+                        </p>
+                    </div>
+                    <div class="analysis-item">
+                        <h4 class="analysis-title">大运动：</h4>
+                        <p class="analysis-text">
+                            xx的适应自理能力发育符合当前月龄宝宝的正常水平,语言能力落后于当前月龄宝宝的正常水平，需要注意
+                        </p>
+                    </div>
+                </div>
+                <div class="concern-section">
+                    <div class="section-header">
+                        <span class="indicator concern"></span>
+                        <span>需要关注</span>
+                    </div>
+                    <div class="analysis-item">
+                        <h4 class="analysis-title">社会行为：</h4>
+                        <p class="analysis-text">
+                            xx的适应自理能力发育符合当前月龄宝宝的正常水平,语言能力落后于当前月龄宝宝的正常水平，需要注意
+                        </p>
+                    </div>
+                    <div class="analysis-item">
+                        <h4 class="analysis-title">大运动：</h4>
+                        <p class="analysis-text">
+                            xx的适应自理能力发育符合当前月龄宝宝的正常水平,语言能力落后于当前月龄宝宝的正常水平，需要注意
+                        </p>
+                    </div>
+                </div>
+            </div>
         </view>
     </view>
 </template>
@@ -144,7 +182,7 @@ const ziliResult = computed(() => `${ziliLevel.value}阶段`);
     margin-bottom: 10px;
 }
 
-.analysis-text {
+.analysis-text-overall {
     color: #00214d;
     font-size: 14px;
     background-color: #f2f7f6;
@@ -183,5 +221,70 @@ const ziliResult = computed(() => `${ziliLevel.value}阶段`);
     margin-right: -5px;
     height: 17px;
     z-index: 999;
+}
+
+.analysis-section {
+    margin-top: 24px;
+}
+
+.strength-section {
+    background-color: rgba(110, 221, 138, 0.15);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.concern-section {
+    background-color: rgba(255, 84, 112, 0.15);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 12px;
+}
+
+.section-header {
+    color: #00214d;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.indicator {
+    width: 4px;
+    height: 12px;
+    border-radius: 4px;
+}
+
+.strength {
+    background-color: #00bf71;
+}
+
+.concern {
+    background-color: #ff5470;
+}
+
+.analysis-item {
+    margin-top: 16px;
+}
+
+.analysis-title {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 20px;
+}
+
+.strength-section .analysis-title {
+    color: #00bf71;
+}
+
+.concern-section .analysis-title {
+    color: #ff5470;
+}
+
+.analysis-text {
+    color: #00214d;
+    font-size: 12px;
+    line-height: 18px;
 }
 </style>
