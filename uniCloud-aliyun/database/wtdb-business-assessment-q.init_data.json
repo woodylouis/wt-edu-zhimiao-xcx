@@ -37,7 +37,7 @@
         "assessment_id": "abc_scale_001",
         "order": 3,
         "type": "radio",
-        "content": "经常没有接触环境和进行交往的要求。", // 分号→句号
+        "content": "经常没有接触环境和进行交往的要求。",
         "section": "社交",
         "options": [
             {

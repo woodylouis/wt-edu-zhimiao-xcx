@@ -5,10 +5,10 @@
             <view class="progress">
                 <view class="title">
                     <view>进度</view>
-                    <view> {{ persentage }} </view>
+                    <view> {{ persentage }}% </view>
                 </view>
                 <view class="progress-bar">
-                    <u-line-progress :percentage="30" activeColor="#6EDE8A" inactiveColor="#C9E8D1" :showText="false"></u-line-progress>
+                    <u-line-progress :percentage="persentage" activeColor="#6EDE8A" inactiveColor="#C9E8D1" :showText="false"></u-line-progress>
                 </view>
                 <view class="current">{{ current }}/{{ count }} 问题</view>
             </view>
@@ -80,7 +80,7 @@ const answers = ref({});            // 答案存储对象
 
 // 计算属性改造
 const persentage = computed(() => {
-    return ((currentIndex.value + 1) / questions.value.length * 100).toFixed(0) + '%';
+    return ((currentIndex.value + 1) / questions.value.length * 100).toFixed(0);
 });
 
 const current = computed(() => currentIndex.value + 1);

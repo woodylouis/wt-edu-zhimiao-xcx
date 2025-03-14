@@ -1,0 +1,7 @@
+{
+  "name": "wt-insert-assessment",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}
