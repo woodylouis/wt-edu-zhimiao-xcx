@@ -2,15 +2,24 @@
     <view class="development-section">
         <view class="development-card">
             <view class="card-title">整体发育水平</view>
-            <view class="development-status" :style="{ color: statusColors.main }">
-                {{ developmentStatus }}
+            <view class="card-header">
+                <view>
+                    <view class="development-status" :style="{ color: statusColors.main }">
+                        {{ developmentStatus }}
+                    </view>
+                    <view class="result-label">评估结果</view>
+
+                </view>
+                <view>
+                    <image class="status-face" src="../images/serious-face.png" mode="scaleToFill" />
+                </view>
             </view>
-            <view class="result-label">评估结果</view>
             <view class="progress-bar">
                 <u-line-progress :percentage="percentage" :activeColor="statusColors.progress[0]" :inactiveColor="statusColors.progress[1]" :showText="false" :height="50" :borderRadius="12"></u-line-progress>
             </view>
             <view class="status-info">
                 <view class="status-text">
+                    <image class="status-icon" src="../images/serious-icon.png" mode="scaleToFill" />
                     <span>达到了</span>
                     <span class="highlight" :style="{ color: statusColors.main }">
                         阶段{{ level }}
@@ -25,7 +34,7 @@
 <script setup>
 import { ref, onMounted, computed, onUnmounted } from "vue";
 
-
+const statusIcon = ref('../images/serious-icon.png');
 
 const props = defineProps({
     totalScore: {
@@ -95,6 +104,14 @@ const statusColors = computed(() => {
     font-size: 14px;
     font-weight: 500;
     line-height: 20px;
+    margin-bottom: 10px;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
 }
 
 .development-status {
@@ -131,19 +148,22 @@ const statusColors = computed(() => {
 .status-info {
     display: flex;
     align-items: center;
+    /* 新增水平居中 */
     gap: 8px;
-    margin-top: 10px;
+    margin-top: 26rpx;
 }
 
 .status-icon {
     width: 16px;
     height: 16px;
+    margin-right: 16rpx;
 }
 
 .status-text {
     color: #3d464a;
     font-size: 14px;
     line-height: 20px;
+    display: flex;
 }
 
 .highlight {
@@ -151,6 +171,11 @@ const statusColors = computed(() => {
     font-weight: bolder;
     margin-left: 4px;
     margin-right: 4px;
-    font-size: 36rpx;
+    font-size: 34rpx;
+}
+
+.status-face {
+    width: 56px;
+    height: 56px;
 }
 </style>
