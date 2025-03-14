@@ -53,8 +53,31 @@ const props = defineProps({
     displayName: String
 });
 
-const analysisText = ref(`${props.displayName}的适应自理能力发育符合当前月龄宝宝的正常水平,语言能力落后于当前月龄宝宝的正常水平，需要注意`)
+const analysisText = computed(() => {
+    // 获取各维度阶段值
+    const levels = {
+        '感知': ganzhijueLevel.value,
+        '社交': shejiaoLevel.value,
+        '运动': yundongLevel.value,
+        '语言': yuyanLevel.value,
+        '自理': ziliLevel.value
+    };
 
+    // 筛选阶段≥3的维度
+    const laggingDimensions = Object.entries(levels)
+        .filter(([_, level]) => level >= 3)
+        .map(([name]) => name);
+
+    // 构造描述语句
+    if (laggingDimensions.length === 0) {
+        return `${props.displayName}的五大能力维度发育均符合当前月龄宝宝的正常水平`;
+    }
+
+    const normalText = `${props.displayName}的${laggingDimensions.join('、')}能力`;
+    const laggingText = laggingDimensions.length > 1 ? '等方面' : '方面';
+
+    return `${normalText}${laggingText}落后于当前月龄宝宝的正常水平，需要特别关注并加强训练`;
+});
 // 通用阶段计算函数
 const getLevel = (score, ranges) => {
     if (score >= ranges[5]) return 6;
