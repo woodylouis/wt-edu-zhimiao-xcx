@@ -1,0 +1,154 @@
+{
+    "bsonType": "object",
+    "required": [
+        "evaluationId",
+        "assessmentId",
+        "userId",
+        "childInfo",
+        "scores"
+    ],
+    "properties": {
+        "evaluationId": {
+            "bsonType": "string",
+            "description": "评估唯一标识（建议使用UUIDv4）"
+        },
+        "assessmentId": {
+            "bsonType": "string",
+            "description": "量表唯一标识，如abc_scale_001"
+        },
+        "assessmentName": {
+            "bsonType": "string",
+            "description": "量表显示名称，如ABC儿童行为量表"
+        },
+        "userId": {
+            "bsonType": "string",
+            "description": "被评估儿童唯一标识"
+        },
+        "childInfo": {
+            "bsonType": "object",
+            "properties": {
+                "name": {
+                    "bsonType": "string",
+                    "description": "儿童姓名"
+                },
+                "className": {
+                    "bsonType": "string",
+                    "description": "班级名称"
+                },
+                "age": {
+                    "bsonType": "number",
+                    "description": "评估时月龄"
+                }
+            }
+        },
+        "evaluationInfo": {
+            "bsonType": "object",
+            "properties": {
+                "evaluatorName": {
+                    "bsonType": "string",
+                    "description": "评估人姓名"
+                },
+                "evaluatorId": {
+                    "bsonType": "string",
+                    "description": "评估人用户ID"
+                },
+                "evaluationTime": {
+                    "bsonType": "timestamp",
+                    "description": "评估时间（ISO 8601格式）"
+                },
+                "evaluationDuration": {
+                    "bsonType": "number",
+                    "description": "评估耗时（秒）"
+                }
+            }
+        },
+        "scores": {
+            "bsonType": "object",
+            "properties": {
+                "totalScore": {
+                    "bsonType": "number",
+                    "minimum": 0,
+                    "description": "量表总分"
+                },
+                "dimensionScores": {
+                    "bsonType": "object",
+                    "additionalProperties": {
+                        "bsonType": "number"
+                    },
+                    "description": "各维度得分，键为维度名称（如感知觉）"
+                },
+                "scoreRanges": {
+                    "bsonType": "object",
+                    "additionalProperties": {
+                        "bsonType": "string"
+                    },
+                    "description": "得分区间说明（如正常/异常）"
+                }
+            }
+        },
+        "rawAnswers": {
+            "bsonType": "array",
+            "description": "原始答题数据",
+            "items": {
+                "bsonType": "object",
+                "properties": {
+                    "evaluationId": {
+                        "bsonType": "string",
+                        "description": "关联评估ID"
+                    },
+                    "questionId": {
+                        "bsonType": "string",
+                        "description": "题目唯一标识"
+                    },
+                    "selectedOption": {
+                        "bsonType": "object",
+                        "properties": {
+                            "text": {
+                                "bsonType": "string"
+                            },
+                            "score": {
+                                "bsonType": "number"
+                            }
+                        }
+                    },
+                    "responseTime": {
+                        "bsonType": "number",
+                        "description": "答题耗时（毫秒）"
+                    }
+                }
+            }
+        },
+        "systemInfo": {
+            "bsonType": "object",
+            "properties": {
+                "createTime": {
+                    "bsonType": "timestamp",
+                    "description": "记录创建时间"
+                },
+                "updateTime": {
+                    "bsonType": "timestamp",
+                    "description": "最后更新时间"
+                },
+                "deviceInfo": {
+                    "bsonType": "object",
+                    "description": "评估设备信息"
+                }
+            }
+        }
+    },
+    "indexes": [
+        {
+            "name": "evaluationId_index",
+            "key": {
+                "evaluationId": 1
+            }
+        },
+        {
+            "name": "user_assessment_index",
+            "key": {
+                "userId": 1,
+                "assessmentId": 1
+            }
+        }
+    ]
+}
