@@ -11,7 +11,7 @@
 
                 </view>
                 <view>
-                    <image class="status-face" src="../images/serious-face.png" mode="scaleToFill" />
+                    <image class="status-face" :src="statusImages.face" mode="scaleToFill" />
                 </view>
             </view>
             <view class="progress-bar">
@@ -19,7 +19,7 @@
             </view>
             <view class="status-info">
                 <view class="status-text">
-                    <image class="status-icon" src="../images/serious-icon.png" mode="scaleToFill" />
+                    <image class="status-icon" :src="statusImages.icon" mode="scaleToFill" />
                     <span>达到了</span>
                     <span class="highlight" :style="{ color: statusColors.main }">
                         阶段{{ level }}
@@ -39,7 +39,28 @@ const statusIcon = ref('../images/serious-icon.png');
 const props = defineProps({
     totalScore: {
         type: Number,
-        default: 78
+        default: 45
+    }
+});
+
+// 新增图片路径计算
+const statusImages = computed(() => {
+    switch (developmentStatus.value) {
+        case '正常':
+            return {
+                face: '../../../static/report/normal-face.png',
+                icon: '../../../static/report/normal-icon.png'
+            };
+        case '需注意':
+            return {
+                face: '../../../static/report/warn-face.png',
+                icon: '../../../static/report/warn-icon.png'
+            };
+        default:
+            return {
+                face: '../../../static/report/serious-face.png',
+                icon: '../../../static/report/serious-icon.png'
+            };
     }
 });
 
