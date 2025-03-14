@@ -38,39 +38,33 @@
                 </view>
             </view>
             <div class="analysis-section">
-                <div class="strength-section">
+                <!-- 优势领域 -->
+                <div class="strength-section" v-if="strengthDimensions.length > 0">
                     <div class="section-header">
                         <span class="indicator strength"></span>
                         <span>优势领域</span>
                     </div>
-                    <div class="analysis-item">
-                        <h4 class="analysis-title">适应能力：</h4>
+                    <div class="analysis-item" v-for="dim in strengthDimensions" :key="dim">
+                        <h4 class="analysis-title">{{ dim }}能力：</h4>
                         <p class="analysis-text">
-                            xx的适应自理能力发育符合当前月龄宝宝的正常水平,语言能力落后于当前月龄宝宝的正常水平，需要注意
-                        </p>
-                    </div>
-                    <div class="analysis-item">
-                        <h4 class="analysis-title">大运动：</h4>
-                        <p class="analysis-text">
-                            xx的适应自理能力发育符合当前月龄宝宝的正常水平,语言能力落后于当前月龄宝宝的正常水平，需要注意
+                            {{ dimensionDetails[dim][1] }}（{{ dim }}1阶段）
                         </p>
                     </div>
                 </div>
-                <div class="concern-section">
+
+                <!-- 需要关注 -->
+                <div class="concern-section" v-if="concernDimensions.length > 0">
                     <div class="section-header">
                         <span class="indicator concern"></span>
                         <span>需要关注</span>
                     </div>
-                    <div class="analysis-item">
-                        <h4 class="analysis-title">社会行为：</h4>
+                    <div class="analysis-item" v-for="item in concernDimensions" :key="item.name">
+                        <h4 class="analysis-title">{{ item.name }}能力：</h4>
                         <p class="analysis-text">
-                            xx的适应自理能力发育符合当前月龄宝宝的正常水平,语言能力落后于当前月龄宝宝的正常水平，需要注意
-                        </p>
-                    </div>
-                    <div class="analysis-item">
-                        <h4 class="analysis-title">大运动：</h4>
-                        <p class="analysis-text">
-                            xx的适应自理能力发育符合当前月龄宝宝的正常水平,语言能力落后于当前月龄宝宝的正常水平，需要注意
+                            {{ dimensionDetails[item.name][item.level] }}
+                            <span class="professional-advice" v-if="professionalAdvice[item.name]?.[item.level]">
+                                （{{ professionalAdvice[item.name][item.level] }}）
+                            </span>
                         </p>
                     </div>
                 </div>
@@ -156,6 +150,90 @@ const shejiaoResult = computed(() => `${shejiaoLevel.value}阶段`);
 const yundongResult = computed(() => `${yundongLevel.value}阶段`);
 const yuyanResult = computed(() => `${yuyanLevel.value}阶段`);
 const ziliResult = computed(() => `${ziliLevel.value}阶段`);
+
+// 新增阶段分类逻辑
+const strengthDimensions = computed(() => {
+    return Object.entries({
+        '感知': ganzhijueLevel.value,
+        '社交': shejiaoLevel.value,
+        '运动': yundongLevel.value,
+        '语言': yuyanLevel.value,
+        '自理': ziliLevel.value
+    }).filter(([_, level]) => level === 1)
+        .map(([name]) => name);
+});
+
+const concernDimensions = computed(() => {
+    return Object.entries({
+        '感知': ganzhijueLevel.value,
+        '社交': shejiaoLevel.value,
+        '运动': yundongLevel.value,
+        '语言': yuyanLevel.value,
+        '自理': ziliLevel.value
+    }).filter(([_, level]) => level >= 3)
+        .map(([name, level]) => ({ name, level }));
+});
+
+// 阶段描述映射
+const levelDescriptions = {
+    1: {
+        type: '优势领域',
+        text: '表现优于同龄平均水平'
+    },
+    3: {
+        type: '需关注',
+        text: '略低于同龄平均水平'
+    },
+    4: {
+        type: '明显落后',
+        text: '明显低于同龄水平'
+    },
+    5: {
+        type: '严重落后',
+        text: '远低于发展里程碑'
+    }
+};
+
+const dimensionDetails = {
+    '感知': {
+        1: '能准确识别常见颜色、形状和声音',
+        3: '对复杂信息处理需要更多时间',
+        4: '偶尔会混淆相似形状或声音'
+    },
+    '社交': {
+        1: '能主动与人互动交流',
+        3: '社交互动时稍显被动',
+        4: '需要鼓励才会参与互动'
+    },
+    '运动': {
+        1: '动作协调性良好',
+        3: '复杂动作完成稍慢',
+        4: '需要指导完成精细动作'
+    },
+    '语言': {
+        1: '语言表达清晰流畅',
+        3: '词汇量正在发展中',
+        4: '使用简单句子表达需求'
+    },
+    '自理': {
+        1: '能独立完成日常事务',
+        3: '需要少量提醒帮助',
+        4: '需要较多生活协助'
+    }
+};
+
+// 新增专业建议映射
+// 简化专业建议
+const professionalAdvice = {
+    '感知': {
+        3: '建议多进行观察类游戏',
+        4: '可尝试拼图类益智玩具'
+    },
+    '社交': {
+        3: '建议增加亲子互动游戏',
+        4: '鼓励参与集体活动'
+    }
+};
 </script>
 
 
