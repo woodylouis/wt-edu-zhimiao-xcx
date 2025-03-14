@@ -3,12 +3,12 @@
         "assessment_id": "abc_scale_001",
         "order": 1,
         "type": "radio",
-        "content": "是否回避与他人目光接触？",
-        "section": "social",
+        "content": "喜欢长时间的自身旋转；",
+        "section": "运动",
         "options": [
             {
                 "text": "是",
-                "score": 0
+                "score": 4
             },
             {
                 "text": "否",
@@ -20,12 +20,12 @@
         "assessment_id": "abc_scale_001",
         "order": 2,
         "type": "radio",
-        "content": "对声音刺激反应是否异常？",
-        "section": "sensory",
+        "content": "学会做一些简单的事情，但是很快就忘记；",
+        "section": "生活自理",
         "options": [
             {
                 "text": "是",
-                "score": 0
+                "score": 2
             },
             {
                 "text": "否",
@@ -37,12 +37,930 @@
         "assessment_id": "abc_scale_001",
         "order": 3,
         "type": "radio",
-        "content": "是否有重复刻板动作？",
-        "section": "body_control",
+        "content": "经常没有接触环境和进行交往的要求；",
+        "section": "社交",
         "options": [
             {
                 "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
                 "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 4,
+        "type": "radio",
+        "content": "往往不能接受简单的指令（如坐下、来这等）；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 1
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 5,
+        "type": "radio",
+        "content": "不会玩玩具等（如每完没了地转动或乱仍、揉等）；",
+        "section": "运动",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 6,
+        "type": "radio",
+        "content": "视觉辨别能力差（如对一种物体的特征——其大小、颜色或位置等辨别能力差）；",
+        "section": "感知觉",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 7,
+        "type": "radio",
+        "content": "无交往性微笑（无社交性微笑，即不会与人点头、招呼、微笑）；",
+        "section": "社交",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 8,
+        "type": "radio",
+        "content": "代词运用的颠倒或混乱（如把“你”说成“我”等等）；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 9,
+        "type": "radio",
+        "content": "长时间的总拿着某件东西；",
+        "section": "运动",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 10,
+        "type": "radio",
+        "content": "似乎不在听人说话，以至于怀疑孩子听力有问题；",
+        "section": "感知觉",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 11,
+        "type": "radio",
+        "content": "话不合音调，无节奏；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 12,
+        "type": "radio",
+        "content": "长时间的摆弄身体；",
+        "section": "运动",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 13,
+        "type": "radio",
+        "content": "要去拿什么东西，但又不是身体所能达到的地方（即对自身与物体距离估计不足）；",
+        "section": "社交",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 14,
+        "type": "radio",
+        "content": "对环境和日常生活规律的改变产生强烈反应；",
+        "section": "生活自理",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 15,
+        "type": "radio",
+        "content": "当他和其他人在一起时，对呼唤他的名字无反应；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 16,
+        "type": "radio",
+        "content": "经常做出前冲、旋转、脚尖行走、手指轻弹等动作；",
+        "section": "运动",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 17,
+        "type": "radio",
+        "content": "对其他人的面部表情或情感没有反应；",
+        "section": "社交",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 18,
+        "type": "radio",
+        "content": "说话时很少用“是”或“我”等词；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 19,
+        "type": "radio",
+        "content": "在某一方面的特殊能力，似乎与智力低下不相符合；",
+        "section": "生活自理",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 20,
+        "type": "radio",
+        "content": "不能执行简单的含有介词语句的指令（如把球放在盒子上或把球放在盒子里）；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 1
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 21,
+        "type": "radio",
+        "content": "有时对很大的声音不产生吃惊反应（可能让人想到儿童是聋子）；",
+        "section": "感知觉",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 22,
+        "type": "radio",
+        "content": "经常拍打手；",
+        "section": "运动",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 23,
+        "type": "radio",
+        "content": "发大脾气或经常发点脾气；",
+        "section": "生活自理",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 24,
+        "type": "radio",
+        "content": "主动回避与别人的眼光进行接触；",
+        "section": "社交",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 25,
+        "type": "radio",
+        "content": "拒绝别人接触或拥抱；",
+        "section": "社交",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 26,
+        "type": "radio",
+        "content": "有时对很痛苦的刺激，如摔伤、割破或注射不引起反应；",
+        "section": "感知觉",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 27,
+        "type": "radio",
+        "content": "身体表现很僵硬很难抱住（如打挺）；",
+        "section": "社交",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 28,
+        "type": "radio",
+        "content": "当抱着他时，感到他肌肉松弛（即不紧贴着抱他的人）；",
+        "section": "社交",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 29,
+        "type": "radio",
+        "content": "以姿势、手势表示所渴望得到的东西（而不倾向用语言表示）；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 30,
+        "type": "radio",
+        "content": "常用脚尖走路；",
+        "section": "运动",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 31,
+        "type": "radio",
+        "content": "咬人、踢人、撞人等行为来伤害他人；",
+        "section": "生活自理",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 32,
+        "type": "radio",
+        "content": "不断地重复短句；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 33,
+        "type": "radio",
+        "content": "游戏时不模仿其他儿童；",
+        "section": "社交",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 34,
+        "type": "radio",
+        "content": "当强光直接照射眼睛时常常不眨眼；",
+        "section": "感知觉",
+        "options": [
+            {
+                "text": "是",
+                "score": 1
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 35,
+        "type": "radio",
+        "content": "以撞头、咬手等行为自伤；",
+        "section": "运动",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 36,
+        "type": "radio",
+        "content": "要什么东西不能等待（一想要什么就马上要得到什么）；",
+        "section": "生活自理",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 37,
+        "type": "radio",
+        "content": "不能提出5个以上物体的名称；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 1
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 38,
+        "type": "radio",
+        "content": "不能发展任何友谊（不会和小朋友来往交朋友）；",
+        "section": "社交",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 39,
+        "type": "radio",
+        "content": "有许多声音的时候常常盖着耳朵；",
+        "section": "感知觉",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 40,
+        "type": "radio",
+        "content": "经常旋转碰撞物体；",
+        "section": "运动",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 41,
+        "type": "radio",
+        "content": "在训练大小便方面有困难（不会控制大小便）；",
+        "section": "生活自理",
+        "options": [
+            {
+                "text": "是",
+                "score": 1
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 42,
+        "type": "radio",
+        "content": "一天只能提出5个以内的要求；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 43,
+        "type": "radio",
+        "content": "经常受到惊吓或非常焦虑、不安；",
+        "section": "社交",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 44,
+        "type": "radio",
+        "content": "在正常光线下斜眼、闭眼、皱眉；",
+        "section": "感知觉",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 45,
+        "type": "radio",
+        "content": "不是经常帮助的话，不会自己给自己穿衣服；",
+        "section": "生活自理",
+        "options": [
+            {
+                "text": "是",
+                "score": 1
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 46,
+        "type": "radio",
+        "content": "一遍一遍重复一些声音和词；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 47,
+        "type": "radio",
+        "content": "瞪着眼睛看人，好象要看穿似的；",
+        "section": "社交",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 48,
+        "type": "radio",
+        "content": "重复别人的问话和回答；",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 49,
+        "type": "radio",
+        "content": "经常不能意识所处的环境，并且可能对危险的情况不在意。",
+        "section": "生活自理",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 50,
+        "type": "radio",
+        "content": "特别喜欢摆弄并着迷于单调的东西或游戏、活动等（如来来回回的走和跑，没完没了地蹦、跳、拍敲）。",
+        "section": "生活自理",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 51,
+        "type": "radio",
+        "content": "对周围东西喜欢触摸、嗅和尝。",
+        "section": "运动",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 52,
+        "type": "radio",
+        "content": "对生人无视觉反应（对来人不看）。",
+        "section": "感知觉",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 53,
+        "type": "radio",
+        "content": "纠缠在一些复杂的仪式行为上，就像缠在魔圈内（如走路一定要走一定的路线，饭前或睡觉等活动前一定要把东西摆在什么地方或做一个什么动作，否则就不睡不吃等）。",
+        "section": "运动",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 54,
+        "type": "radio",
+        "content": "经常毁坏东西（如玩具、家里的一切用具很快就弄破了）。",
+        "section": "运动",
+        "options": [
+            {
+                "text": "是",
+                "score": 2
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 55,
+        "type": "radio",
+        "content": "在两岁半以前就发现该儿童发育延迟。",
+        "section": "生活自理",
+        "options": [
+            {
+                "text": "是",
+                "score": 1
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 56,
+        "type": "radio",
+        "content": "在日常生活中至少会用15个但又不超过30个短句来进行交往（注：不到15句也勾是）。",
+        "section": "语言",
+        "options": [
+            {
+                "text": "是",
+                "score": 3
+            },
+            {
+                "text": "否",
+                "score": 0
+            }
+        ]
+    },
+    {
+        "assessment_id": "abc_scale_001",
+        "order": 57,
+        "type": "radio",
+        "content": "长期凝视一个地方（呆呆地看一处）",
+        "section": "感知觉",
+        "options": [
+            {
+                "text": "是",
+                "score": 4
             },
             {
                 "text": "否",
