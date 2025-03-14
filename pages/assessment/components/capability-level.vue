@@ -49,8 +49,11 @@ const props = defineProps({
     socialScore: Number,       // 社交维度得分
     motorScore: Number,        // 运动维度得分
     languageScore: Number,     // 语言维度得分
-    selfcareScore: Number      // 自理维度得分
+    selfcareScore: Number,      // 自理维度得分
+    displayName: String
 });
+
+const analysisText = ref(`${props.displayName}的适应自理能力发育符合当前月龄宝宝的正常水平,语言能力落后于当前月龄宝宝的正常水平，需要注意`)
 
 // 通用阶段计算函数
 const getLevel = (score, ranges) => {

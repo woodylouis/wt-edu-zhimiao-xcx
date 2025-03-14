@@ -18,7 +18,7 @@
             <view class="report">
                 <view class="part">
                     <developmentLevel />
-                    <capability-level :perception-score="12" :social-score="18" :motor-score="22" :language-score="8" :selfcare-score="10" />
+                    <capability-level :displayName="displayName" :perception-score="12" :social-score="18" :motor-score="22" :language-score="8" :selfcare-score="10" />
                 </view>
             </view>
         </view>
@@ -32,7 +32,7 @@ import capabilityLevel from './components/capability-level';
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, onMounted, computed, onUnmounted } from "vue";
 
-let displayName = ref('李思思'); // 
+let displayName = ref('李思'); // 
 let classDisplay = ref('小班3班');
 let age = ref('36个月');
 let avatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png");
