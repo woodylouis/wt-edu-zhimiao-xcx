@@ -1,229 +1,101 @@
 <template>
     <view class="assessment">
         <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" :backHandler="handleNavBack" />
-
+        <view class="content">
+            <view class="user-profile">
+                <!-- 左侧内容容器 -->
+                <view class="profile-left">
+                    <image class="avatar-image" :src="avatarUrl" />
+                    <view class="info">
+                        <view class="name">{{ displayName }}的评估报告</view>
+                        <view class="class">
+                            <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{ classDisplay }}</view>
+                            <view><span style="font-weight: bold;">年龄：</span>{{ age }}</view>
+                        </view>
+                    </view>
+                </view>
+            </view>
+            <view class="report">
+                <view class="part">
+                    <developmentLevel />
+                </view>
+            </view>
+        </view>
     </view>
 </template>
 
 <script setup>
 import customNav from '@/components/customNav';
+import developmentLevel from './components/development-level';
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, onMounted, computed, onUnmounted } from "vue";
 
-let childId = ref('');
-let assessmentId = ref('');
-// let current = ref(3);
-// let count = ref(10);
-// let section = ref('运动');
-// let persentage = ref('30%');
-// let question = ref('喜欢长时间的自身旋转。');
-let buttonStyle1 = {
-    backgroundColor: "rgba(110, 221, 138, 1)",
-    color: "rgba(0, 33, 77, 1)",
-    borderRadius: "48rpx",
-    fontWeight: "500",
-    fontSize: "32rpx",
-    padding: "26rpx 0",
-    height: "48px",
-    marginTop: "40rpx"
-}
-let buttonStyle2 = {
-    backgroundColor: "#DEF2E3",
-    color: "rgba(0, 33, 77, 1)",
-    borderRadius: "48rpx",
-    fontWeight: "500",
-    fontSize: "32rpx",
-    padding: "26rpx 0",
-    height: "48px",
-    marginTop: "40rpx"
-}
+let displayName = ref('李思思'); // 
+let classDisplay = ref('小班3班');
+let age = ref('36个月');
+let avatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png");
+
+const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 
 
-const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 
-// 新增状态管理
-const questions = ref([]);          // 题目列表
-const currentIndex = ref(0);        // 当前题目索引
-const answers = ref({});            // 答案存储对象
-
-// 计算属性改造
-const persentage = computed(() => {
-    return ((currentIndex.value + 1) / questions.value.length * 100).toFixed(0);
-});
-
-const current = computed(() => currentIndex.value + 1);
-const count = computed(() => questions.value.length);
-const section = computed(() => questions.value[currentIndex.value]?.section || '');
-const question = computed(() => questions.value[currentIndex.value]?.content || '');
-
-// 新增数据加载逻辑
-const loadQuestions = async () => {
-    try {
-        const cacheKey = `assessment_${assessmentId.value}`;
-        const cachedData = uni.getStorageSync(cacheKey);
-
-        if (cachedData) {
-            questions.value = cachedData.questions;
-            answers.value = cachedData.answers;
-            currentIndex.value = cachedData.currentIndex;
-        } else {
-            const res = await uniCloud.callFunction({
-                name: 'wt-fetch-assessment',
-                data: { assessmentId: assessmentId.value }
-            });
-
-            questions.value = res.result.data;
-            uni.setStorageSync(cacheKey, {
-                questions: res.result.data,
-                answers: {},
-                currentIndex: 0
-            });
-        }
-    } catch (e) {
-        uni.showToast({ title: '题目加载失败', icon: 'none' });
-    }
-};
-
-// 改造提交处理
-const handleSubmit = (answer) => {
-    const cacheKey = `assessment_${assessmentId.value}`;
-    const currentQid = questions.value[currentIndex.value]._id;
-    // 记录答案
-    answers.value = {
-        ...answers.value,
-        [currentQid]: answer
-    };
-
-    // 更新缓存
-    uni.setStorageSync(cacheKey, {
-        questions: questions.value,
-        answers: answers.value,
-        currentIndex: currentIndex.value
-    });
-
-    // 跳转下一题或提交
-    if (currentIndex.value < questions.value.length - 1) {
-        currentIndex.value++;
-    } else {
-        // 提交逻辑
-        uni.showToast({ title: '评估完成', icon: 'success' });
-        uni.removeStorageSync(cacheKey);
-        uni.navigateBack();
-    }
-};
-
-// 新增样式计算逻辑
-const getButtonStyle = (isYes) => {
-    const currentQid = questions.value[currentIndex.value]?._id;
-    const isSelected = answers.value[currentQid] === isYes;
-
-    return isSelected ? {
-        ...buttonStyle1,
-        border: '2px solid #6EDE8A'
-    } : {
-        ...buttonStyle2,
-        border: 'none'
-    };
-};
-
-// 在handleSubmit后添加返回上一题逻辑
-const backToPrevious = () => {
-    if (currentIndex.value > 0) {
-        currentIndex.value--;
-    }
-};
-
-// 在loadQuestions后添加导航返回拦截
-const handleNavBack = () => {
-    if (Object.keys(answers.value).length > 0) {
-        uni.showModal({
-            title: '提示',
-            content: '评估进度将在30天后自动清除，确定要离开吗？',
-            success: (res) => {
-                if (res.confirm) {
-                    uni.navigateBack();
-                    // TODO-提交评估进度
-                }
-            }
-        });
-    } else {
-        uni.navigateBack();
-    }
-};
-
-// 新增生命周期处理
-onUnmounted(() => {
-    const cacheKey = `assessment_${assessmentId.value}`;
-    uni.removeStorageSync(cacheKey);
-});
-
-// 改造onLoad
-onLoad(async (options) => {
-    assessmentId.value = options.assessmentId;
-    childId.value = options.childId;
-    await loadQuestions();
-});
 </script>
 
 <style lang="scss" scoped>
 .assessment {
     .content {
-        padding: 0 40rpx;
-        background-color: #F2F7F6;
+        background-color: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);
         height: calc(100vh - 100vh / 8);
 
-        .progress {
-            margin-bottom: 36rpx;
+        .user-profile {
+            height: calc(100vh / 8);
+            background:
+                linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40rpx;
+            box-shadow: inset 0 -20rpx 30rpx rgba(255, 255, 255, 0.8);
 
-            .title {
-                color: #00214D;
-                font-size: 16px;
-                font-style: normal;
-                font-weight: 500;
-                line-height: 24px;
-                justify-content: space-between;
+            .profile-left {
                 display: flex;
-                margin-bottom: 30rpx;
+                gap: 24rpx;
+                height: 60%;
+                align-items: center;
             }
 
-            .progress-bar {
-                margin-bottom: 24rpx;
+            .avatar-image {
+                width: 120rpx;
+                height: 120rpx;
             }
 
-            .current {
-                color: #459C5C;
-                font-feature-settings: 'dlig' on;
-                font-family: "Plus Jakarta Sans";
-                font-size: 14px;
-                font-style: normal;
-                font-weight: 400;
-                line-height: 21px;
-                /* 150% */
-            }
-        }
+            .info {
+                display: flex;
+                flex-direction: column;
+                gap: 8rpx;
 
-        .question-part {
-            margin-bottom: 280rpx;
+                .name {
+                    color: #00214D;
+                    font-family: "PingFang SC";
+                    font-size: 18px;
+                    font-style: normal;
+                    font-weight: 600;
+                    line-height: 24px;
+                }
 
-            .section {
-                color: #00214D;
-                font-size: 24px;
-                font-style: normal;
-                font-weight: 700;
-                line-height: 30px;
-                margin-bottom: 24rpx;
-                /* 125% */
-            }
-
-            .question {
-                color: #0D1C12;
-                font-size: 16px;
-                font-style: normal;
-                font-weight: 400;
-                line-height: 24px;
-                /* 150% */
+                .class {
+                    display: flex;
+                    gap: 8rpx;
+                    color: #3D464A;
+                    font-family: "PingFang SC";
+                    font-size: 14px;
+                    font-style: normal;
+                    font-weight: 400;
+                    line-height: 20px;
+                    align-items: center;
+                }
             }
         }
+
 
     }
 }

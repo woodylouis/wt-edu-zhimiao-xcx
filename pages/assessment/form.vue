@@ -42,7 +42,8 @@ import customNav from '@/components/customNav';
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, onMounted, computed, onUnmounted } from "vue";
 
-let childId = ref('');
+let childId = ref(''); // 通过childId获取儿童名字以及年龄
+let classId = ref(''); // 通过班级id获取班级名字
 let assessmentId = ref('');
 // let current = ref(3);
 // let count = ref(10);

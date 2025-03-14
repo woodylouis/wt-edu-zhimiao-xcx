@@ -25,6 +25,11 @@ export const props = defineMixin({
         height: {
             type: [String, Number],
             default: () => defProps.lineProgress.height
+        },
+        borderRadius: {
+            type: [String, Number],
+            default: () => defProps.lineProgress.borderRadius
         }
+
     }
 })
