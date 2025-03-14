@@ -22,7 +22,7 @@
                     <image class="status-icon" :src="statusImages.icon" mode="scaleToFill" />
                     <span>达到了</span>
                     <span class="highlight" :style="{ color: statusColors.main }">
-                        阶段{{ level }}
+                        {{ level }}阶
                     </span>
                     <span>水平</span>
                 </view>
@@ -122,7 +122,7 @@ const statusColors = computed(() => {
 
 .card-title {
     color: #00214d;
-    font-size: 14px;
+    font-size: 36rpx;
     font-weight: 500;
     line-height: 20px;
     margin-bottom: 10px;

@@ -18,6 +18,7 @@
             <view class="report">
                 <view class="part">
                     <developmentLevel />
+                    <capabilityLevel />
                 </view>
             </view>
         </view>
@@ -27,6 +28,7 @@
 <script setup>
 import customNav from '@/components/customNav';
 import developmentLevel from './components/development-level';
+import capabilityLevel from './components/capability-level';
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, onMounted, computed, onUnmounted } from "vue";
 
