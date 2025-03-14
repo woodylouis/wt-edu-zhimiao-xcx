@@ -2,16 +2,20 @@
     <view class="development-section">
         <view class="development-card">
             <view class="card-title">整体发育水平</view>
-            <view class="development-status" :style="{ color: statusColor }">
+            <view class="development-status" :style="{ color: statusColors.main }">
                 {{ developmentStatus }}
             </view>
             <view class="result-label">评估结果</view>
             <view class="progress-bar">
-                <u-line-progress :percentage="percentage" activeColor="#00BF71" inactiveColor="#D9F5EA" :showText="false" :height="50" :borderRadius="12"></u-line-progress>
+                <u-line-progress :percentage="percentage" :activeColor="statusColors.progress[0]" :inactiveColor="statusColors.progress[1]" :showText="false" :height="50" :borderRadius="12"></u-line-progress>
             </view>
             <view class="status-info">
                 <view class="status-text">
-                    <span>本次评估达到了</span><span class="highlight"> {{ level }} </span><span>阶水平</span>
+                    <span>达到了</span>
+                    <span class="highlight" :style="{ color: statusColors.main }">
+                        阶段{{ level }}
+                    </span>
+                    <span>水平</span>
                 </view>
             </view>
         </view>
@@ -21,48 +25,55 @@
 <script setup>
 import { ref, onMounted, computed, onUnmounted } from "vue";
 
+
+
 const props = defineProps({
-    score: {
+    totalScore: {
         type: Number,
-        default: 55
+        default: 78
     }
 });
 
-// 阶段计算逻辑
+// 阶段计算
 const level = computed(() => {
-    if (props.score === 0) return 1;
-    if (props.score <= 32) return 2;
-    if (props.score <= 64) return 3;
-    if (props.score <= 77) return 4;
-    if (props.score <= 102) return 5;
-    return 6;
+    const s = props.totalScore;
+    if (s >= 158) return 6;
+    if (s >= 103) return 5;
+    if (s >= 77) return 4;
+    if (s >= 64) return 3;
+    if (s >= 31) return 2;
+    return 1; // 0-30分
 });
 
 // 进度百分比计算
 const percentage = computed(() => {
+    const s = props.totalScore;
     switch (level.value) {
-        case 1: return 100;
-        case 2: return (props.score / 31) * 100;
-        case 3: return ((props.score - 32) / 33) * 100; // 32-64分区间共33分
-        case 4: return ((props.score - 65) / 13) * 100; // 65-77分区间共13分
-        case 5: return ((props.score - 78) / 25) * 100; // 78-102分区间共25分
-        case 6: return ((props.score - 103) / 56) * 100; // 103-158分区间共56分
+        case 1: return 20;   // 阶段1固定100%
+        case 2: return 30;    // 阶段2固定80%
+        case 3: return 50;    // 阶段3固定60%
+        case 4: return 70;    // 阶段4固定40%
+        case 5: return 80;    // 阶段5固定20%
+        case 6: return 90;      // 阶段6固定0%
         default: return 0;
     }
 });
 
-// 发育状态及颜色
-// 拆分状态计算为独立函数
-const getStatusInfo = (score) => {
-    if (score <= 30) return ['正常', '#00BF71'];
-    if (score <= 53) return ['需注意', '#0C61F7'];
-    if (score <= 66) return ['警惕', '#FF0000'];
-    return ['严重', '#8B0000'];
-};
+// 状态及颜色计算
+const developmentStatus = computed(() => {
+    const s = props.totalScore;
+    if (s < 31) return '正常';
+    if (s <= 53) return '需注意';
+    return s <= 66 ? '警惕' : '严重';
+});
 
-// 调整计算属性
-const developmentStatus = computed(() => getStatusInfo(props.score)[0]);
-const statusColor = computed(() => getStatusInfo(props.score)[1]);
+const statusColors = computed(() => {
+    switch (developmentStatus.value) {
+        case '正常': return { main: '#00BF71', progress: ['#00BF71', '#D9F5EA'] };
+        case '需注意': return { main: '#0C61F7', progress: ['#0C61F7', '#DBE7FE'] };
+        default: return { main: '#FF5470', progress: ['#FF5470', '#FFE5EA'] };
+    }
+});
 </script>
 
 <style lang="scss" scoped>
