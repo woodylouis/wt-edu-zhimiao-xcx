@@ -18,7 +18,7 @@
             <view class="report">
                 <view class="part">
                     <developmentLevel />
-                    <capabilityLevel />
+                    <capability-level :perception-score="12" :social-score="18" :motor-score="22" :language-score="8" :selfcare-score="10" />
                 </view>
             </view>
         </view>

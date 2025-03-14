@@ -8,32 +8,32 @@
             <view class="capability-bar">
                 <view class="bar">
                     <view class="title">感知</view>
-                    <u-line-progress :percentage="30" activeColor="#02C3FF" height="16">
+                    <u-line-progress :percentage="ganzhijuePercentage" activeColor="#02C3FF" height="16">
                         <text class="u-percentage-slot"> {{ ganzhijueResult }} </text>
                     </u-line-progress>
                 </view>
                 <view class="bar">
                     <view class="title">社交</view>
-                    <u-line-progress :percentage="50" activeColor="#9265FD" height="16">
-                        <text class="u-percentage-slot"> {{ ganzhijueResult }} </text>
+                    <u-line-progress :percentage="shejiaoPercentage" activeColor="#9265FD" height="16">
+                        <text class="u-percentage-slot"> {{ shejiaoResult }} </text>
                     </u-line-progress>
                 </view>
                 <view class="bar">
                     <view class="title">运动</view>
-                    <u-line-progress :percentage="80" activeColor="#0071F1" height="16">
-                        <text class="u-percentage-slot"> {{ ganzhijueResult }} </text>
+                    <u-line-progress :percentage="yundongPercentage" activeColor="#0071F1" height="16">
+                        <text class="u-percentage-slot"> {{ yundongResult }} </text>
                     </u-line-progress>
                 </view>
                 <view class="bar">
                     <view class="title">语言</view>
-                    <u-line-progress :percentage="30" activeColor="#FF960C" height="16">
-                        <text class="u-percentage-slot"> {{ ganzhijueResult }} </text>
+                    <u-line-progress :percentage="yuyanPercentage" activeColor="#FF960C" height="16">
+                        <text class="u-percentage-slot"> {{ yuyanResult }} </text>
                     </u-line-progress>
                 </view>
                 <view class="bar">
                     <view class="title">自理</view>
-                    <u-line-progress :percentage="40" activeColor="#FF3ABB" height="16">
-                        <text class="u-percentage-slot"> {{ ganzhijueResult }} </text>
+                    <u-line-progress :percentage="ziliPercentage" activeColor="#FF3ABB" height="16">
+                        <text class="u-percentage-slot"> {{ ziliResult }} </text>
                     </u-line-progress>
                 </view>
             </view>
@@ -42,12 +42,59 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted } from "vue";
+import { ref, computed } from "vue";
 
-const analysisText = ref("李思思的适应自理能力发育符合当前月龄宝宝的正常水平,语言能力落后于当前月龄宝宝的正常水平，需要注意");
-const ganzhijueResult = '偏低';
+const props = defineProps({
+    perceptionScore: Number,   // 感知维度得分
+    socialScore: Number,       // 社交维度得分
+    motorScore: Number,        // 运动维度得分
+    languageScore: Number,     // 语言维度得分
+    selfcareScore: Number      // 自理维度得分
+});
 
+// 通用阶段计算函数
+const getLevel = (score, ranges) => {
+    if (score >= ranges[5]) return 6;
+    if (score >= ranges[4]) return 5;
+    if (score >= ranges[3]) return 4;
+    if (score >= ranges[2]) return 3;
+    if (score >= ranges[1]) return 2;
+    return 1;
+};
+
+// 各维度阶段计算
+const ganzhijueLevel = computed(() => getLevel(props.perceptionScore, [4, 5, 10, 12, 16, 26]));
+const shejiaoLevel = computed(() => getLevel(props.socialScore, [7, 8, 16, 19, 25, 38]));
+const yundongLevel = computed(() => getLevel(props.motorScore, [7, 8, 16, 19, 25, 38]));
+const yuyanLevel = computed(() => getLevel(props.languageScore, [4, 5, 10, 12, 16, 31]));
+const ziliLevel = computed(() => getLevel(props.selfcareScore, [4, 5, 10, 12, 16, 25]));
+
+// 阶段到百分比的映射
+const levelPercentage = {
+    1: 20,
+    2: 30,
+    3: 50,
+    4: 70,
+    5: 80,
+    6: 90
+};
+
+// 各维度百分比计算
+const ganzhijuePercentage = computed(() => levelPercentage[ganzhijueLevel.value]);
+const shejiaoPercentage = computed(() => levelPercentage[shejiaoLevel.value]);
+const yundongPercentage = computed(() => levelPercentage[yundongLevel.value]);
+const yuyanPercentage = computed(() => levelPercentage[yuyanLevel.value]);
+const ziliPercentage = computed(() => levelPercentage[ziliLevel.value]);
+
+// 结果文本
+const ganzhijueResult = computed(() => `${ganzhijueLevel.value}阶段`);
+const shejiaoResult = computed(() => `${shejiaoLevel.value}阶段`);
+const yundongResult = computed(() => `${yundongLevel.value}阶段`);
+const yuyanResult = computed(() => `${yuyanLevel.value}阶段`);
+const ziliResult = computed(() => `${ziliLevel.value}阶段`);
 </script>
+
+
 
 <style lang="scss" scoped>
 .development-section {
