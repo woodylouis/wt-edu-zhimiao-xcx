@@ -19,8 +19,8 @@
             </view>
         </view>
         <view class="assessment-option">
-            <view class="option" @click="clickAssessmentItem">
-                <view class="title">{{ $t('assessmentList.first') }}</view>
+            <view v-for="item in assessmentList" :key="item.id" class="option" @click="handleAssessmentClick(item)">
+                <view class="title">{{ item.title }}</view>
                 <image class="image" src="../../../static/assessment-list/child-assess.svg" />
             </view>
         </view>
@@ -32,7 +32,8 @@
 import customNav from '@/components/customNav'
 import { ref, onMounted, computed } from "vue";
 
-
+const assessmentList = ref([]);
+const pagination = ref({ page: 1, pageSize: 10, total: 0 });
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 let avatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
 const switchIconUrl = "../../../static/general/switch.png";
@@ -67,21 +68,39 @@ const classDisplay = computed(() => {
     return '暂无班级信息';
 });
 
+const loadAssessments = async () => {
+    try {
+        const res = await uniCloud.callFunction({
+            name: 'wt-fetch-assessment-list',
+            data: {
+                page: pagination.value.page,
+                pageSize: pagination.value.pageSize
+            }
+        });
+
+        if (res.result.code === 0) {
+            assessmentList.value = res.result.data.list;
+            pagination.value.total = res.result.data.total;
+        }
+    } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' });
+    }
+};
+
 // 在页面加载时触发
 onMounted(() => {
+    loadAssessments();
     // refreshClassCache();
 });
-const clickAssessmentItem = () => {
-    console.log('点击了评估选项');
-    // 确保班级ID存在
+
+const handleAssessmentClick = (item) => {
     if (!currentClass.value?.id) {
         uni.showToast({ title: '请先选择班级', icon: 'none' });
         return;
     }
 
-    // 跳转并携带参数（示例评估ID，根据实际业务替换）
     uni.navigateTo({
-        url: `/pages/assessment/chooseChild?classId=${currentClass.value.id}&assessmentId=abc_scale_001`
+        url: `/pages/assessment/chooseChild?classId=${currentClass.value.id}&assessmentId=${item.id}`
     });
 };
 
