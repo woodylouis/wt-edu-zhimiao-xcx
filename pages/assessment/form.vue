@@ -119,12 +119,17 @@ const loadQuestions = async () => {
             questions.value = cachedData.questions;
             answers.value = cachedData.answers;
             currentIndex.value = cachedData.currentIndex;
-            // 兼容旧缓存结构
-            if (!cachedData.sectionScores) {
-                uni.setStorageSync(cacheKey, {
-                    ...cachedData,
-                    sectionScores: calculateSectionScores()
-                });
+
+            // 兼容旧数据结构
+            if (typeof cachedData.answers === 'object' && !cachedData.answers[currentQid]?.question) {
+                answers.value = Object.entries(cachedData.answers).reduce((acc, [qid, value]) => {
+                    const question = questions.value.find(q => q._id === qid);
+                    acc[qid] = {
+                        score: value,
+                        question: question || null
+                    };
+                    return acc;
+                }, {});
             }
         } else {
             const res = await uniCloud.callFunction({
@@ -132,9 +137,12 @@ const loadQuestions = async () => {
                 data: { assessmentId: assessmentId.value }
             });
 
-            // 初始化答案存储结构
+            // 新的初始化结构
             const initialAnswers = res.result.data.reduce((acc, cur) => {
-                acc[cur._id] = null;
+                acc[cur._id] = {
+                    score: null,
+                    question: cur // 存储完整题目对象
+                };
                 return acc;
             }, {});
 
@@ -146,7 +154,7 @@ const loadQuestions = async () => {
                 answers: initialAnswers,
                 currentIndex: 0,
                 totalScore: 0,
-                sectionScores: {} // 初始化空维度分数
+                sectionScores: {}
             });
         }
     } catch (e) {
@@ -173,7 +181,10 @@ const handleSubmit = (score) => {
     // 更新答案存储方式
     answers.value = {
         ...answers.value,
-        [currentQid]: score
+        [currentQid]: {
+            score: score,
+            question: questions.value[currentIndex.value] // 存储当前题目
+        }
     };
 
     // 更新缓存结构
@@ -191,7 +202,7 @@ const handleSubmit = (score) => {
 
 // 新增分数计算逻辑
 const calculateTotalScore = () => {
-    return Object.values(answers.value).reduce((sum, score) => sum + (score || 0), 0);
+    return Object.values(answers.value).reduce((sum, item) => sum + (item?.score || 0), 0);
 };
 
 // 新增样式计算逻辑
@@ -199,7 +210,7 @@ const getButtonStyle = (score) => {
     const currentQid = questions.value[currentIndex.value]?._id;
     return {
         ...optionStyles.value.base,
-        ...(answers.value[currentQid] === score ?
+        ...(answers.value[currentQid]?.score === score ?
             optionStyles.value.selected :
             optionStyles.value.unselected)
     };
@@ -207,9 +218,11 @@ const getButtonStyle = (score) => {
 
 // 新增维度分数计算
 const calculateSectionScores = () => {
-    return questions.value.reduce((acc, question) => {
-        const score = answers.value[question._id] || 0;
-        acc[question.section] = (acc[question.section] || 0) + score;
+    return Object.values(answers.value).reduce((acc, item) => {
+        if (item?.score && item.question) {
+            const section = item.question.section;
+            acc[section] = (acc[section] || 0) + item.score;
+        }
         return acc;
     }, {});
 };
