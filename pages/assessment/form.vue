@@ -268,6 +268,7 @@ onUnmounted(() => {
 
 // 改造onLoad
 onLoad(async (options) => {
+    console.log("options", options)
     assessmentId.value = options.assessmentId;
     childId.value = options.childId;
 

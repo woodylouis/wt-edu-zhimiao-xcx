@@ -27,6 +27,7 @@ const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 // 新增班级学生相关状态
 const classId = ref('');        // 存储传入的班级ID
 const assessmentId = ref('');   // 存储评估ID
+const assessmentTitle = ref(''); // 存储评估标题
 const students = ref([]);        // 原始学生列表
 const filteredStudents = ref([]); // 过滤后的学生列表
 const searchKeyword = ref('');   // 搜索关键词
@@ -59,7 +60,7 @@ const loadStudents = async () => {
 let timeoutId = null
 const handleSelectChild = (id) => {
     uni.navigateTo({
-        url: `/pages/assessment/form?childId=${id}&assessmentId=${assessmentId.value}`
+        url: `/pages/assessment/form?childId=${id}&assessmentId=${assessmentId.value}&assessmentTitle=${assessmentTitle.value}`
     });
 };
 
@@ -68,6 +69,7 @@ onLoad((options) => {
     console.log(options)
     classId.value = options.classId;
     assessmentId.value = options.assessmentId;
+    assessmentTitle.value = options.assessmentTitle;
     loadStudents(); // 初始加载学生数据
 });
 

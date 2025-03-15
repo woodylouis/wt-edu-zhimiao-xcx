@@ -32,6 +32,8 @@
 import customNav from '@/components/customNav'
 import { ref, onMounted, computed } from "vue";
 
+const CACHE_KEY = 'teacher_assessment_list';
+const CACHE_EXPIRY = 3600 * 1000; // 1小时有效期
 const assessmentList = ref([]);
 const pagination = ref({ page: 1, pageSize: 10, total: 0 });
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
@@ -70,6 +72,13 @@ const classDisplay = computed(() => {
 
 const loadAssessments = async () => {
     try {
+        // 尝试读取缓存
+        const cachedData = uni.getStorageSync(CACHE_KEY);
+        if (cachedData && Date.now() - cachedData.timestamp < CACHE_EXPIRY) {
+            assessmentList.value = cachedData.list;
+            pagination.value.total = cachedData.total;
+            return;
+        }
         const res = await uniCloud.callFunction({
             name: 'wt-fetch-assessment-list',
             data: {
@@ -81,26 +90,40 @@ const loadAssessments = async () => {
         if (res.result.code === 0) {
             assessmentList.value = res.result.data.list;
             pagination.value.total = res.result.data.total;
+
+            // 更新缓存（包含时间戳）
+            uni.setStorageSync(CACHE_KEY, {
+                list: res.result.data.list,
+                total: res.result.data.total,
+                timestamp: Date.now()
+            });
         }
     } catch (e) {
         uni.showToast({ title: '加载失败', icon: 'none' });
     }
 };
 
-// 在页面加载时触发
+// 添加定时清理过期缓存的逻辑
+let cacheTimer = null;
 onMounted(() => {
     loadAssessments();
-    // refreshClassCache();
+    cacheTimer = setInterval(() => {
+        const cachedData = uni.getStorageSync(CACHE_KEY);
+        if (cachedData && Date.now() - cachedData.timestamp > CACHE_EXPIRY) {
+            uni.removeStorageSync(CACHE_KEY);
+        }
+    }, 60000); // 每分钟检查一次
 });
 
 const handleAssessmentClick = (item) => {
+    console.log("item", item)
     if (!currentClass.value?.id) {
         uni.showToast({ title: '请先选择班级', icon: 'none' });
         return;
     }
 
     uni.navigateTo({
-        url: `/pages/assessment/chooseChild?classId=${currentClass.value.id}&assessmentId=${item.id}`
+        url: `/pages/assessment/chooseChild?classId=${currentClass.value.id}&assessmentId=${item.id}&assessmentTitle=${item.title}`
     });
 };
 
