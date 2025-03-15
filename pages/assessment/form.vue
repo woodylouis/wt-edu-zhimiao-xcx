@@ -248,6 +248,28 @@ onLoad(async (options) => {
         background-color: #F2F7F6;
         height: calc(100vh - 100vh / 8);
 
+        .button-group {
+            position: fixed;
+            top: 50%; // 固定在屏幕中间位置
+            left: 40rpx;
+            right: 40rpx;
+            // gap: 32rpx; // 新增按钮间距
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-buttons {
+            position: fixed;
+            bottom: 160rpx; // 调整底部导航位置
+            left: 40rpx;
+            right: 40rpx;
+        }
+
+        .question-part {
+            margin-bottom: 0; // 移除原有底部间距
+            min-height: 40vh; // 确保题目区域最小高度
+        }
+
         .progress {
             margin-bottom: 36rpx;
 
