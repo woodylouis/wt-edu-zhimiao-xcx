@@ -61,9 +61,31 @@ const loadStudents = async () => {
 let timeoutId = null
 const handleSelectChild = (id) => {
     console.log("选择的学生", students.value.find(child => child._id === id))
-    const selectedChild = students.value.find(child => child._id === id).name;
+    const selectedChild = students.value.find(child => child._id === id);
+    // 添加安全校验和类型转换
+    const timestamp = parseInt(selectedChild.birthdate, 10);
+    if (isNaN(timestamp)) {
+        console.error('无效的生日时间戳:', selectedChild.birthdate);
+        return uni.showToast({ title: '学生数据异常', icon: 'none' });
+    }
+    const birthDate = new Date(timestamp);  // 修正：转换时间戳为数字
+    console.log(birthDate)
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    console.log("年龄", age)
     uni.navigateTo({
-        url: `/pages/assessment/form?classId=${classId.value}&className=${className.value}&childId=${id}&childName=${selectedChild}&assessmentId=${assessmentId.value}&assessmentTitle=${assessmentTitle.value}`
+        url: `/pages/assessment/form?classId=${classId.value}` +
+            `&className=${className.value}` +
+            `&childId=${id}` +
+            `&childName=${encodeURIComponent(selectedChild.name)}` +
+            `&childAge=${age}` +  // 新增年龄参数
+            `&assessmentId=${assessmentId.value}` +
+            `&assessmentTitle=${assessmentTitle.value}`
     });
 };
 
