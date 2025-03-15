@@ -26,6 +26,7 @@ import { onLoad } from '@dcloudio/uni-app'
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 // 新增班级学生相关状态
 const classId = ref('');        // 存储传入的班级ID
+const className = ref('');      // 存储传入的班级名称
 const assessmentId = ref('');   // 存储评估ID
 const assessmentTitle = ref(''); // 存储评估标题
 const students = ref([]);        // 原始学生列表
@@ -59,8 +60,10 @@ const loadStudents = async () => {
 // 处理搜索输入
 let timeoutId = null
 const handleSelectChild = (id) => {
+    console.log("选择的学生", students.value.find(child => child._id === id).name)
+    const selectedChild = students.value.find(child => child._id === id).name;
     uni.navigateTo({
-        url: `/pages/assessment/form?childId=${id}&assessmentId=${assessmentId.value}&assessmentTitle=${assessmentTitle.value}`
+        url: `/pages/assessment/form?classId=${classId.value}&className=${className.value}&childId=${id}&childName=${selectedChild}&assessmentId=${assessmentId.value}&assessmentTitle=${assessmentTitle.value}`
     });
 };
 
@@ -68,6 +71,7 @@ const handleSelectChild = (id) => {
 onLoad((options) => {
     console.log(options)
     classId.value = options.classId;
+    className.value = options.className;
     assessmentId.value = options.assessmentId;
     assessmentTitle.value = options.assessmentTitle;
     loadStudents(); // 初始加载学生数据

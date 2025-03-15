@@ -121,9 +121,9 @@ const handleAssessmentClick = (item) => {
         uni.showToast({ title: '请先选择班级', icon: 'none' });
         return;
     }
-
+    console.log("currentClass", currentClass)
     uni.navigateTo({
-        url: `/pages/assessment/chooseChild?classId=${currentClass.value.id}&assessmentId=${item.id}&assessmentTitle=${item.title}`
+        url: `/pages/assessment/chooseChild?classId=${currentClass.value.id}&className=${classDisplay.value}&assessmentId=${item.id}&assessmentTitle=${item.title}`
     });
 };
 
