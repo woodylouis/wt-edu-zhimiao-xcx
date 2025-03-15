@@ -110,27 +110,30 @@ const count = computed(() => questions.value.length);
 const section = computed(() => questions.value[currentIndex.value]?.section || '');
 const question = computed(() => questions.value[currentIndex.value]?.content || '');
 
+const assessmentMeta = ref({
+    assessmentId: '',
+    startTimestamp: 0,
+    duration: 0,
+    uuid: Date.now().toString(36) + Math.random().toString(36).substr(2) // 新增基于时间的UUID
+});
+
 const loadQuestions = async () => {
     try {
         const cacheKey = `assessment_${assessmentId.value}`;
         const cachedData = uni.getStorageSync(cacheKey);
 
         if (cachedData) {
-            questions.value = cachedData.questions;
-            answers.value = cachedData.answers;
-            currentIndex.value = cachedData.currentIndex;
+            // 合并所有元数据字段
+            assessmentMeta.value = {
+                ...assessmentMeta.value,
+                assessmentId: cachedData.assessmentId || assessmentId.value,
+                startTimestamp: cachedData.startTimestamp || Date.now(),
+                duration: cachedData.duration || 0,
+                uuid: cachedData.uuid || Date.now().toString(36) + Math.random().toString(36).substr(2)
+            };
 
-            // 兼容旧数据结构
-            if (typeof cachedData.answers === 'object' && !cachedData.answers[currentQid]?.question) {
-                answers.value = Object.entries(cachedData.answers).reduce((acc, [qid, value]) => {
-                    const question = questions.value.find(q => q._id === qid);
-                    acc[qid] = {
-                        score: value,
-                        question: question || null
-                    };
-                    return acc;
-                }, {});
-            }
+            // 更新缓存结构确保包含最新字段
+            updateCache();
         } else {
             const res = await uniCloud.callFunction({
                 name: 'wt-fetch-assessment',
@@ -174,29 +177,30 @@ const handleNextQuestion = () => {
     }
 };
 
-const handleSubmit = (score) => {
-    const cacheKey = `assessment_${assessmentId.value}`;
-    const currentQid = questions.value[currentIndex.value]._id;
-
-    // 更新答案存储方式
-    answers.value = {
-        ...answers.value,
-        [currentQid]: {
-            score: score,
-            question: questions.value[currentIndex.value] // 存储当前题目
-        }
-    };
-
-    // 更新缓存结构
+const updateCache = () => {
     const cacheData = {
+        ...assessmentMeta.value, // 包含所有元数据字段
         questions: questions.value,
         answers: answers.value,
         currentIndex: currentIndex.value,
         totalScore: calculateTotalScore(),
-        sectionScores: calculateSectionScores() // 新增维度分数
+        sectionScores: calculateSectionScores()
+    };
+    uni.setStorageSync(`assessment_${assessmentId.value}`, cacheData);
+};
+
+const handleSubmit = (score) => {
+    const currentQid = questions.value[currentIndex.value]._id;
+
+    answers.value = {
+        ...answers.value,
+        [currentQid]: {
+            score: score,
+            question: questions.value[currentIndex.value]
+        }
     };
 
-    uni.setStorageSync(cacheKey, cacheData);
+    updateCache(); // 统一使用缓存更新方法
     handleNextQuestion();
 };
 
@@ -266,6 +270,13 @@ onUnmounted(() => {
 onLoad(async (options) => {
     assessmentId.value = options.assessmentId;
     childId.value = options.childId;
+
+    assessmentMeta.value = {
+        assessmentId: assessmentId.value,
+        startTimestamp: Date.now(),
+        duration: 0,
+        uuid: Date.now().toString(36) + Math.random().toString(36).substr(2) // 生成唯一标识
+    };
     await loadQuestions();
 });
 </script>
