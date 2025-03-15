@@ -2,7 +2,8 @@
   "bsonType": "object",
   "required": [
     "name",
-    "class_id"
+    "class_id",
+    "birthdate"
   ],
   "permission": {
     "read": "auth.uid != null",

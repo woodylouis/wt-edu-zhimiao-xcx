@@ -127,6 +127,10 @@ const loadQuestions = async () => {
             assessmentMeta.value = {
                 ...assessmentMeta.value,
                 assessmentId: cachedData.assessmentId || assessmentId.value,
+                classId: cachedData.classId,         // 新增
+                className: cachedData.className,     // 新增
+                childId: cachedData.childId,         // 新增
+                childName: cachedData.childName,     // 新增
                 startTimestamp: cachedData.startTimestamp || Date.now(),
                 duration: cachedData.duration || 0,
                 uuid: cachedData.uuid || Date.now().toString(36) + Math.random().toString(36).substr(2)
@@ -179,7 +183,11 @@ const handleNextQuestion = () => {
 
 const updateCache = () => {
     const cacheData = {
-        ...assessmentMeta.value, // 包含所有元数据字段
+        ...assessmentMeta.value,
+        classId: assessmentMeta.value.classId,        // 新增班级ID
+        className: assessmentMeta.value.className,    // 新增班级名称
+        childId: assessmentMeta.value.childId,        // 新增儿童ID
+        childName: assessmentMeta.value.childName,    // 新增儿童姓名
         questions: questions.value,
         answers: answers.value,
         currentIndex: currentIndex.value,
@@ -274,9 +282,13 @@ onLoad(async (options) => {
 
     assessmentMeta.value = {
         assessmentId: assessmentId.value,
+        classId: options.classId,          // 新增
+        className: options.className,      // 新增
+        childId: options.childId,          // 新增
+        childName: options.childName,       // 新增
         startTimestamp: Date.now(),
         duration: 0,
-        uuid: Date.now().toString(36) + Math.random().toString(36).substr(2) // 生成唯一标识
+        uuid: Date.now().toString(36) + Math.random().toString(36).substr(2)
     };
     await loadQuestions();
 });

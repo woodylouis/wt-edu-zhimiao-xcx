@@ -60,7 +60,7 @@ const loadStudents = async () => {
 // 处理搜索输入
 let timeoutId = null
 const handleSelectChild = (id) => {
-    console.log("选择的学生", students.value.find(child => child._id === id).name)
+    console.log("选择的学生", students.value.find(child => child._id === id))
     const selectedChild = students.value.find(child => child._id === id).name;
     uni.navigateTo({
         url: `/pages/assessment/form?classId=${classId.value}&className=${className.value}&childId=${id}&childName=${selectedChild}&assessmentId=${assessmentId.value}&assessmentTitle=${assessmentTitle.value}`
