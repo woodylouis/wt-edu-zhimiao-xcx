@@ -119,6 +119,13 @@ const loadQuestions = async () => {
             questions.value = cachedData.questions;
             answers.value = cachedData.answers;
             currentIndex.value = cachedData.currentIndex;
+            // 兼容旧缓存结构
+            if (!cachedData.sectionScores) {
+                uni.setStorageSync(cacheKey, {
+                    ...cachedData,
+                    sectionScores: calculateSectionScores()
+                });
+            }
         } else {
             const res = await uniCloud.callFunction({
                 name: 'wt-fetch-assessment',
@@ -138,7 +145,8 @@ const loadQuestions = async () => {
                 questions: res.result.data,
                 answers: initialAnswers,
                 currentIndex: 0,
-                totalScore: 0
+                totalScore: 0,
+                sectionScores: {} // 初始化空维度分数
             });
         }
     } catch (e) {
@@ -158,7 +166,6 @@ const handleNextQuestion = () => {
     }
 };
 
-// 改造提交处理
 const handleSubmit = (score) => {
     const cacheKey = `assessment_${assessmentId.value}`;
     const currentQid = questions.value[currentIndex.value]._id;
@@ -174,11 +181,11 @@ const handleSubmit = (score) => {
         questions: questions.value,
         answers: answers.value,
         currentIndex: currentIndex.value,
-        totalScore: calculateTotalScore() // 新增总分计算
+        totalScore: calculateTotalScore(),
+        sectionScores: calculateSectionScores() // 新增维度分数
     };
 
     uni.setStorageSync(cacheKey, cacheData);
-
     handleNextQuestion();
 };
 
@@ -196,6 +203,15 @@ const getButtonStyle = (score) => {
             optionStyles.value.selected :
             optionStyles.value.unselected)
     };
+};
+
+// 新增维度分数计算
+const calculateSectionScores = () => {
+    return questions.value.reduce((acc, question) => {
+        const score = answers.value[question._id] || 0;
+        acc[question.section] = (acc[question.section] || 0) + score;
+        return acc;
+    }, {});
 };
 
 // 在handleSubmit后添加返回上一题逻辑
