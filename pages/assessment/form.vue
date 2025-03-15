@@ -18,8 +18,9 @@
             </view>
 
             <view class="button-group">
-                <u-button @click="handleSubmit(true)" :custom-style="getButtonStyle(true)">是</u-button>
-                <u-button @click="handleSubmit(false)" :custom-style="getButtonStyle(false)">否</u-button>
+                <u-button v-for="(option, index) in questions[currentIndex]?.options" :key="index" @click="handleSubmit(option.score)" :custom-style="getButtonStyle(option.score)">
+                    {{ option.text }}
+                </u-button>
             </view>
 
             <view class="nav-buttons">
@@ -70,6 +71,26 @@ let buttonStyle2 = {
     height: "48px",
     marginTop: "40rpx"
 }
+const optionStyles = ref({
+    selected: {
+        backgroundColor: "#6EDE8A",
+        color: "#00214D",
+        border: "2px solid #6EDE8A"
+    },
+    unselected: {
+        backgroundColor: "#DEF2E3",
+        color: "#00214D",
+        border: "none"
+    },
+    base: {
+        borderRadius: "48rpx",
+        fontSize: "32rpx",
+        padding: "26rpx 0",
+        height: "48px",
+        marginTop: "40rpx",
+        width: "100%"
+    }
+});
 
 
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
@@ -89,7 +110,6 @@ const count = computed(() => questions.value.length);
 const section = computed(() => questions.value[currentIndex.value]?.section || '');
 const question = computed(() => questions.value[currentIndex.value]?.content || '');
 
-// 新增数据加载逻辑
 const loadQuestions = async () => {
     try {
         const cacheKey = `assessment_${assessmentId.value}`;
@@ -105,11 +125,20 @@ const loadQuestions = async () => {
                 data: { assessmentId: assessmentId.value }
             });
 
+            // 初始化答案存储结构
+            const initialAnswers = res.result.data.reduce((acc, cur) => {
+                acc[cur._id] = null;
+                return acc;
+            }, {});
+
             questions.value = res.result.data;
+            answers.value = initialAnswers;
+
             uni.setStorageSync(cacheKey, {
                 questions: res.result.data,
-                answers: {},
-                currentIndex: 0
+                answers: initialAnswers,
+                currentIndex: 0,
+                totalScore: 0
             });
         }
     } catch (e) {
@@ -117,45 +146,55 @@ const loadQuestions = async () => {
     }
 };
 
-// 改造提交处理
-const handleSubmit = (answer) => {
-    const cacheKey = `assessment_${assessmentId.value}`;
-    const currentQid = questions.value[currentIndex.value]._id;
-    // 记录答案
-    answers.value = {
-        ...answers.value,
-        [currentQid]: answer
-    };
-
-    // 更新缓存
-    uni.setStorageSync(cacheKey, {
-        questions: questions.value,
-        answers: answers.value,
-        currentIndex: currentIndex.value
-    });
-
-    // 跳转下一题或提交
+// 重构跳转逻辑
+const handleNextQuestion = () => {
     if (currentIndex.value < questions.value.length - 1) {
         currentIndex.value++;
     } else {
-        // 提交逻辑
-        uni.showToast({ title: '评估完成', icon: 'success' });
+        const totalScore = calculateTotalScore();
+        uni.showToast({ title: `评估完成 总分：${totalScore}`, icon: 'none' });
         uni.removeStorageSync(cacheKey);
         uni.navigateBack();
     }
 };
 
-// 新增样式计算逻辑
-const getButtonStyle = (isYes) => {
-    const currentQid = questions.value[currentIndex.value]?._id;
-    const isSelected = answers.value[currentQid] === isYes;
+// 改造提交处理
+const handleSubmit = (score) => {
+    const cacheKey = `assessment_${assessmentId.value}`;
+    const currentQid = questions.value[currentIndex.value]._id;
 
-    return isSelected ? {
-        ...buttonStyle1,
-        border: '2px solid #6EDE8A'
-    } : {
-        ...buttonStyle2,
-        border: 'none'
+    // 更新答案存储方式
+    answers.value = {
+        ...answers.value,
+        [currentQid]: score
+    };
+
+    // 更新缓存结构
+    const cacheData = {
+        questions: questions.value,
+        answers: answers.value,
+        currentIndex: currentIndex.value,
+        totalScore: calculateTotalScore() // 新增总分计算
+    };
+
+    uni.setStorageSync(cacheKey, cacheData);
+
+    handleNextQuestion();
+};
+
+// 新增分数计算逻辑
+const calculateTotalScore = () => {
+    return Object.values(answers.value).reduce((sum, score) => sum + (score || 0), 0);
+};
+
+// 新增样式计算逻辑
+const getButtonStyle = (score) => {
+    const currentQid = questions.value[currentIndex.value]?._id;
+    return {
+        ...optionStyles.value.base,
+        ...(answers.value[currentQid] === score ?
+            optionStyles.value.selected :
+            optionStyles.value.unselected)
     };
 };
 
