@@ -43,8 +43,16 @@ const completionTime = ref('');
 const formattedAge = ref('');
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
+// 在setup中添加卸载生命周期
+const assessmentId = ref('');
+
+const handleNavBack = () => {
+    uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
+
+};
 
 onLoad((options) => {
+    assessmentId.value = options.assessmentId; // 存储assessmentId
     const cacheKey = `assessment_${options.assessmentId}`;
     const cachedData = uni.getStorageSync(cacheKey);
 
@@ -72,6 +80,13 @@ onLoad((options) => {
 
     // 添加调试日志
     console.log('缓存数据:', cachedData);
+});
+
+onUnmounted(() => {
+    // 清除当前量表的缓存
+    const cacheKey = `assessment_${assessmentId.value}`;
+    uni.removeStorageSync(cacheKey);
+    console.log('已清除评估缓存:', cacheKey);
 });
 
 </script>
