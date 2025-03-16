@@ -68,7 +68,7 @@ export default {
         this.xcxNameMarginTopStyle = `top:${menuButtonInfo.top + menuButtonInfo.height / 2}px;`
     },
     onShow() {
-        this.checkLoginStatus();
+        // this.checkLoginStatus();
     },
     methods: {
         onClickCreate() {

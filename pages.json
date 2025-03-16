@@ -9,14 +9,14 @@
 	},
 	"pages": [
 		{
-			"path": "pages/dashboard/teacher/teacher",
+			"path": "pages/enter-class/index",
 			"style": {
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "知苗成长"
 			}
 		},
 		{
-			"path": "pages/enter-class/index",
+			"path": "pages/dashboard/teacher/teacher",
 			"style": {
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "知苗成长"

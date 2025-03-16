@@ -54,7 +54,7 @@ export default {
 	},
 	enterClassMethod: {
 		create: "创建班级",
-		apply: "进入班级"
+		apply: "申请加入班级"
 	},
 	assessmentList: {
 		first: "儿童成长评估",
