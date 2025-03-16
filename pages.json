@@ -9,6 +9,13 @@
 	},
 	"pages": [
 		{
+			"path": "pages/dashboard/teacher/teacher",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "知苗成长"
+			}
+		},
+		{
 			"path": "pages/enter-class/index",
 			"style": {
 				"navigationStyle": "custom",
@@ -45,13 +52,6 @@
 			"style": {
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "创建班级-选择年级"
-			}
-		},
-		{
-			"path": "pages/dashboard/teacher/teacher",
-			"style": {
-				"navigationStyle": "custom",
-				"navigationBarTitleText": "知苗成长"
 			}
 		},
 		{
@@ -294,7 +294,7 @@
 		},
 		// #endif
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-starter",
+		"navigationBarTitleText": "知苗成长",
 		"navigationBarBackgroundColor": "#FFFFFF",
 		"backgroundColor": "#F8F8F8",
 		"enablePullDownRefresh": false,

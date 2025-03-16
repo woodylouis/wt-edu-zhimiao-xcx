@@ -31,6 +31,7 @@
 <script setup>
 import customNav from '@/components/customNav'
 import { ref, onMounted, computed } from "vue";
+import { onShow } from '@dcloudio/uni-app'
 
 const CACHE_KEY = 'teacher_assessment_list';
 const CACHE_EXPIRY = 3600 * 1000; // 1小时有效期
@@ -105,6 +106,36 @@ const loadAssessments = async () => {
 
 // 添加定时清理过期缓存的逻辑
 let cacheTimer = null;
+
+onShow(() => {
+    checkLoginStatus();
+
+})
+
+const checkLoginStatus = () => {
+    try {
+        // 获取本地存储的登录信息
+        const token = uni.getStorageSync('uni_id_token');
+        const userInfo = uni.getStorageSync('uni-id-pages-userInfo');
+        const tokenExpired = uni.getStorageSync('uni_id_token_expired');
+
+        // 三重校验条件
+        const isValid = token &&
+            userInfo?._id &&
+            tokenExpired > Date.now();
+
+        if (!isValid) {
+            this.navigateToLogin();
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.error('登录状态检查失败:', e);
+        this.navigateToLogin();
+        return false;
+    }
+}
+
 onMounted(() => {
     loadAssessments();
     cacheTimer = setInterval(() => {
