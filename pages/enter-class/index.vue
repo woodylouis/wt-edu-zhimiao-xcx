@@ -20,12 +20,12 @@
 
         </view>
         <view class="enter-class-option">
-            <view class="option" @click="onClickCreate">
+            <view class="option" @click="onClickButton(0)">
                 <view class="title">{{ $t('enterClassMethod.create') }}</view>
                 <image class="image" src="../../static/enter-class/create.svg" />
 
             </view>
-            <view class="option">
+            <view class="option" @click="onClickButton(1)">
                 <view class="title"> {{ $t('enterClassMethod.apply') }}</view>
                 <image class="image" src="../../static/enter-class/apply.svg" />
 
@@ -33,7 +33,7 @@
         </view>
         <up-overlay :show="show">
             <view class="warp">
-                <modal-box-mcq :confirmText="'立即创建'" :list="modalOptionsList" @cancel="show = false" @create="onConfirm" />
+                <modal-box-mcq :confirmText="confirmText" :list="modalOptionsList" @cancel="show = false" @create="onConfirm" />
             </view>
         </up-overlay>
 
@@ -60,6 +60,8 @@ export default {
             xcxNameMarginTopStyle: '',
             show: false,
             modalOptionsList: ['我是老师'],
+            confirmText: '立即创建',
+            isJoinClass: false
         }
     },
     onLoad() {
@@ -71,17 +73,18 @@ export default {
         // this.checkLoginStatus();
     },
     methods: {
-        onClickCreate() {
-            // 点击创建按钮的逻辑
-            this.show = true;
-            // console.log('创建按钮被点击 show', show.value);
-        },
         onConfirm() {
             console.log('确认按钮被点击');
             this.show = false;
-            uni.navigateTo({
-                url: '/pages/enter-class/createClassForm1'
-            })
+            if (this.isJoinClass) {
+                console.log('加入班级')
+
+
+            } else {
+                uni.navigateTo({
+                    url: '/pages/enter-class/createClassForm1'
+                })
+            }
         },
         async checkLoginStatus() {
             try {
@@ -111,10 +114,17 @@ export default {
                 url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
             });
         },
-        onClickCreate() {
+        onClickButton(item) {
+            console.log(item)
             this.checkLoginStatus().then(valid => {
                 if (valid) {
                     this.show = true;
+                    if (item === 1) {
+                        this.isJoinClass = true;
+                        this.modalOptionsList = ['我是老师', '我是家长'];
+                        this.confirmText = "立即加入";
+
+                    }
                 }
             });
         }
