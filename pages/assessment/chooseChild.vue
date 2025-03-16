@@ -60,30 +60,43 @@ const loadStudents = async () => {
 // 处理搜索输入
 let timeoutId = null
 const handleSelectChild = (id) => {
-    console.log("选择的学生", students.value.find(child => child._id === id))
     const selectedChild = students.value.find(child => child._id === id);
-    // 添加安全校验和类型转换
     const timestamp = parseInt(selectedChild.birthdate, 10);
     if (isNaN(timestamp)) {
         console.error('无效的生日时间戳:', selectedChild.birthdate);
         return uni.showToast({ title: '学生数据异常', icon: 'none' });
     }
-    const birthDate = new Date(timestamp);  // 修正：转换时间戳为数字
-    console.log(birthDate)
+    const birthDate = new Date(timestamp);
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
 
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
+    // 计算总月数
+    let years = today.getFullYear() - birthDate.getFullYear();
+    let months = today.getMonth() - birthDate.getMonth();
+    if (today.getDate() < birthDate.getDate()) months--;
+    if (months < 0) {
+        years--;
+        months += 12;
     }
-    console.log("年龄", age)
+    const totalMonths = years * 12 + months;
+
+    // 格式化年龄显示
+    let ageDisplay;
+    if (totalMonths >= 24) { // 2岁以上显示岁+月
+        const displayYears = Math.floor(totalMonths / 12);
+        const displayMonths = totalMonths % 12;
+        ageDisplay = displayMonths === 0 ?
+            `${displayYears}.0` :
+            `${displayYears}.${Math.round(displayMonths / 1.2)}`; // 将月份转换为0-9的小数位
+    } else { // 2岁以下显示月数
+        ageDisplay = (totalMonths / 10).toFixed(1); // 保留一位小数
+    }
+
     uni.navigateTo({
         url: `/pages/assessment/form?classId=${classId.value}` +
             `&className=${className.value}` +
             `&childId=${id}` +
             `&childName=${encodeURIComponent(selectedChild.name)}` +
-            `&childAge=${age}` +  // 新增年龄参数
+            `&childAge=${ageDisplay}` +  // 修改后的年龄参数
             `&assessmentId=${assessmentId.value}` +
             `&assessmentTitle=${assessmentTitle.value}`
     });
