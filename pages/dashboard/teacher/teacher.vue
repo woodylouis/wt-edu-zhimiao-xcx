@@ -15,7 +15,7 @@
 
             <!-- 右侧切换按钮 -->
             <view class="switch-class">
-                <image class="switch-class-image" :src="switchIconUrl"></image>
+                <!-- <image class="switch-class-image" :src="switchIconUrl"></image> -->
             </view>
         </view>
         <view class="assessment-option">
@@ -60,8 +60,9 @@ const currentClass = ref(uni.getStorageSync('currentClass') || {});
 
 // 修改用户信息显示部分
 const displayName = computed(() => {
-    return userInfo.value.nickname || userInfo.value.username || '老师';
+    return userInfo.value.nickname || userInfo.value.username || '小程序用户';
 });
+
 
 // 修改班级显示逻辑
 const classDisplay = computed(() => {
@@ -79,16 +80,23 @@ const loadAssessments = async () => {
         });
 
         if (classRes.result.code === 200 && classRes.result.data.length > 0) {
-            const currentClass = classRes.result.data[0]; // 取第一个班级
+            const currentClassData = classRes.result.data[0];
             uni.setStorageSync('currentClass', {
-                id: currentClass._id,
-                grade: currentClass.grade,
-                class: currentClass.class,
-                role: currentClass.memberStatus,
-                code: currentClass.code,
-                nickname: currentClass.nickname
+                id: currentClassData._id,
+                grade: currentClassData.grade,
+                class: currentClassData.class,
+                role: currentClassData.memberStatus,
+                code: currentClassData.code,
+                nickname: currentClassData.nickname
 
             });
+            // 新增：手动更新响应式数据
+            currentClass.value = {
+                ...currentClass.value,
+                ...currentClassData,
+                grade: currentClassData.grade,
+                class: currentClassData.class
+            };
         } else {
             uni.showToast({ title: '您尚未加入任何班级', icon: 'none' });
         }
