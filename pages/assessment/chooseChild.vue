@@ -95,7 +95,7 @@ const handleSelectChild = (id) => {
         url: `/pages/assessment/form?classId=${classId.value}` +
             `&className=${className.value}` +
             `&childId=${id}` +
-            `&childName=${encodeURIComponent(selectedChild.name)}` +
+            `&childName=${selectedChild.name}` +
             `&childAge=${ageDisplay}` +  // 修改后的年龄参数
             `&assessmentId=${assessmentId.value}` +
             `&assessmentTitle=${assessmentTitle.value}`

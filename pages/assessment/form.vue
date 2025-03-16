@@ -126,6 +126,7 @@ const loadQuestions = async () => {
             // 合并所有元数据字段
             assessmentMeta.value = {
                 ...assessmentMeta.value,
+                childAge: cachedData.childAge, // 恢复年龄数据
                 assessmentId: cachedData.assessmentId || assessmentId.value,
                 classId: cachedData.classId,         // 新增
                 className: cachedData.className,     // 新增
@@ -175,24 +176,42 @@ const handleNextQuestion = () => {
         currentIndex.value++;
     } else {
         const totalScore = calculateTotalScore();
-        uni.showToast({ title: `评估完成 总分：${totalScore}`, icon: 'none' });
-        uni.removeStorageSync(cacheKey);
-        uni.navigateBack();
+
+        uni.showModal({
+            title: '评估完成',
+            content: `总得分：${totalScore}，确定要查看报告吗？`,
+            success: (res) => {
+                if (res.confirm) {
+                    // 添加完成时间到缓存
+                    const cacheKey = `assessment_${assessmentId.value}`;
+                    const cachedData = uni.getStorageSync(cacheKey);
+                    cachedData.completionTime = Date.now();
+                    uni.setStorageSync(cacheKey, cachedData);
+
+                    // 仅传递assessmentId即可
+                    uni.navigateTo({
+                        url: `/pages/assessment/report?assessmentId=${assessmentId.value}`
+                    });
+                }
+            }
+        });
     }
 };
 
 const updateCache = () => {
     const cacheData = {
         ...assessmentMeta.value,
-        classId: assessmentMeta.value.classId,        // 新增班级ID
-        className: assessmentMeta.value.className,    // 新增班级名称
-        childId: assessmentMeta.value.childId,        // 新增儿童ID
-        childName: assessmentMeta.value.childName,    // 新增儿童姓名
+        classId: assessmentMeta.value.classId,
+        className: assessmentMeta.value.className,
+        childId: assessmentMeta.value.childId,
+        childName: assessmentMeta.value.childName,
+        childAge: assessmentMeta.value.childAge, // 新增年龄存储
         questions: questions.value,
         answers: answers.value,
         currentIndex: currentIndex.value,
         totalScore: calculateTotalScore(),
-        sectionScores: calculateSectionScores()
+        sectionScores: calculateSectionScores(),
+        completionTime: Date.now()
     };
     uni.setStorageSync(`assessment_${assessmentId.value}`, cacheData);
 };
@@ -282,10 +301,11 @@ onLoad(async (options) => {
 
     assessmentMeta.value = {
         assessmentId: assessmentId.value,
-        classId: options.classId,          // 新增
-        className: options.className,      // 新增
-        childId: options.childId,          // 新增
-        childName: options.childName,       // 新增
+        classId: options.classId,
+        className: options.className,
+        childId: options.childId,
+        childName: options.childName,
+        childAge: Number(options.childAge), // 新增年龄参数
         startTimestamp: Date.now(),
         duration: 0,
         uuid: Date.now().toString(36) + Math.random().toString(36).substr(2)

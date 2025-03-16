@@ -10,15 +10,15 @@
                         <view class="name">{{ displayName }}的评估报告</view>
                         <view class="class">
                             <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{ classDisplay }}</view>
-                            <view><span style="font-weight: bold;">年龄：</span>{{ age }}</view>
+                            <view><span style="font-weight: bold;">年龄：</span>{{ formattedAge }}</view>
                         </view>
                     </view>
                 </view>
             </view>
             <view class="report">
                 <view class="part">
-                    <developmentLevel :totalScore="78" />
-                    <capability-level :displayName="displayName" :perception-score="2" :social-score="18" :motor-score="22" :language-score="8" :selfcare-score="10" />
+                    <developmentLevel :totalScore="totalScore" />
+                    <capability-level :displayName="displayName" :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交 || 0" :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0" :selfcare-score="sectionScores.生活自理 || 0" />
                 </view>
             </view>
         </view>
@@ -37,9 +37,42 @@ let classDisplay = ref('小班3班');
 let age = ref('36个月');
 let avatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png");
 
+const totalScore = ref(0);
+const sectionScores = ref({});
+const completionTime = ref('');
+const formattedAge = ref('');
+
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 
+onLoad((options) => {
+    const cacheKey = `assessment_${options.assessmentId}`;
+    const cachedData = uni.getStorageSync(cacheKey);
 
+    // 初始化数据绑定
+    if (cachedData) {
+        displayName.value = cachedData.childName || '未知姓名';
+        classDisplay.value = cachedData.className || '未知班级';
+        totalScore.value = cachedData.totalScore || 0;
+        sectionScores.value = cachedData.sectionScores || {};
+
+        // 格式化年龄显示
+        if (cachedData.childAge >= 2) {
+            const years = Math.floor(cachedData.childAge);
+            const months = Math.round((cachedData.childAge - years) * 10 * 1.2);
+            formattedAge.value = months === 0 ?
+                `${years}岁` :
+                `${years}岁${months}个月`;
+        } else {
+            formattedAge.value = `${Math.round(cachedData.childAge * 10 * 1.2)}个月`;
+        }
+
+        // 格式化完成时间
+        completionTime.value = new Date(cachedData.completionTime).toLocaleString();
+    }
+
+    // 添加调试日志
+    console.log('缓存数据:', cachedData);
+});
 
 </script>
 
