@@ -183,13 +183,17 @@ const handleNextQuestion = () => {
             content: `总得分：${totalScore}，确定要查看报告吗？`,
             success: (res) => {
                 if (res.confirm) {
-                    // 添加完成时间到缓存
                     const cacheKey = `assessment_${assessmentId.value}`;
                     const cachedData = uni.getStorageSync(cacheKey);
-                    cachedData.completionTime = Date.now();
-                    uni.setStorageSync(cacheKey, cachedData);
 
-                    // 仅传递assessmentId即可
+                    // 仅在最终确认时设置完成时间
+                    const finalData = {
+                        ...cachedData,
+                        completionTime: Date.now()
+                    };
+
+                    uni.setStorageSync(cacheKey, finalData);
+
                     uni.navigateTo({
                         url: `/pages/assessment/report?assessmentId=${assessmentId.value}`
                     });
@@ -212,7 +216,7 @@ const updateCache = () => {
         currentIndex: currentIndex.value,
         totalScore: calculateTotalScore(),
         sectionScores: calculateSectionScores(),
-        completionTime: Date.now()
+        lastUpdated: Date.now()
     };
     uni.setStorageSync(`assessment_${assessmentId.value}`, cacheData);
 };

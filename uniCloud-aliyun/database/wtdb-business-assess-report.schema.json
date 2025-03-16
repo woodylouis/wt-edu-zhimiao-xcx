@@ -50,6 +50,10 @@
             "bsonType": "timestamp",
             "description": "评估开始时间"
         },
+        "lastUpdated": {
+            "bsonType": "timestamp",
+            "description": "最后修改时间"
+        },
         "currentIndex": {
             "bsonType": "int",
             "description": "当前题目"
