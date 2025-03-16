@@ -1,4 +1,5 @@
 <template>
+    // abc 量表报告
     <view class="assessment">
         <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" :backHandler="handleNavBack" />
         <view class="content">
@@ -216,7 +217,7 @@ const updateCache = () => {
     uni.setStorageSync(`assessment_${assessmentId.value}`, cacheData);
 };
 
-const handleSubmit = (score) => {
+const handleSubmit = async (score) => {
     const currentQid = questions.value[currentIndex.value]._id;
 
     answers.value = {
@@ -228,6 +229,26 @@ const handleSubmit = (score) => {
     };
 
     updateCache(); // 统一使用缓存更新方法
+
+    // 新增云函数调用
+    try {
+        const cacheKey = `assessment_${assessmentId.value}`;
+        const cachedData = uni.getStorageSync(cacheKey);
+
+        const res = await uniCloud.callFunction({
+            name: 'wt-business-report-gen',
+            data: {
+                uuid: assessmentMeta.value.uuid,
+                assessmentData: cachedData
+            }
+        });
+
+        if (res.result.code) {
+            console.error('保存失败:', res.result.message);
+        }
+    } catch (e) {
+        console.error('云函数调用失败:', e);
+    }
     handleNextQuestion();
 };
 
