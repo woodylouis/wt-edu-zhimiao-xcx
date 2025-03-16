@@ -8,7 +8,8 @@
                 <image class="avatar-image" :src="avatarUrl" />
                 <view class="info">
                     <view class="name">{{ displayName }}</view>
-                    <view class="class">{{ classDisplay }}<view class="invite">邀请加入本班</view>
+                    <view class="class">{{ classDisplay }}
+                        <!-- <view class="invite">邀请加入本班</view> -->
                     </view>
                 </view>
             </view>
