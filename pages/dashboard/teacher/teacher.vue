@@ -73,6 +73,26 @@ const classDisplay = computed(() => {
 
 const loadAssessments = async () => {
     try {
+        // 先检查班级成员状态
+        const classRes = await uniCloud.callFunction({
+            name: 'wtdb-business-class-list'
+        });
+
+        if (classRes.result.code === 200 && classRes.result.data.length > 0) {
+            const currentClass = classRes.result.data[0]; // 取第一个班级
+            uni.setStorageSync('currentClass', {
+                id: currentClass._id,
+                grade: currentClass.grade,
+                class: currentClass.class,
+                role: currentClass.memberStatus,
+                code: currentClass.code,
+                nickname: currentClass.nickname
+
+            });
+        } else {
+            uni.showToast({ title: '您尚未加入任何班级', icon: 'none' });
+        }
+
         // 尝试读取缓存
         const cachedData = uni.getStorageSync(CACHE_KEY);
         if (cachedData && Date.now() - cachedData.timestamp < CACHE_EXPIRY) {
@@ -125,15 +145,21 @@ const checkLoginStatus = () => {
             tokenExpired > Date.now();
 
         if (!isValid) {
-            this.navigateToLogin();
+            navigateToLogin();
             return false;
         }
         return true;
     } catch (e) {
         console.error('登录状态检查失败:', e);
-        this.navigateToLogin();
+        navigateToLogin();
         return false;
     }
+}
+
+const navigateToLogin = () => {
+    uni.navigateTo({
+        url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
+    });
 }
 
 onMounted(() => {
