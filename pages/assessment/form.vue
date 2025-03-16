@@ -181,7 +181,7 @@ const handleNextQuestion = () => {
         uni.showModal({
             title: '评估完成',
             content: `总得分：${totalScore}，确定要查看报告吗？`,
-            success: (res) => {
+            success: async (res) => { // 改为async函数
                 if (res.confirm) {
                     // 强制提交最后一次答案
                     updateCache();
@@ -195,6 +195,23 @@ const handleNextQuestion = () => {
                     };
 
                     uni.setStorageSync(cacheKey, finalData);
+
+                    // 新增云函数调用保存最终数据
+                    try {
+                        const res = await uniCloud.callFunction({
+                            name: 'wt-business-report-gen',
+                            data: {
+                                uuid: assessmentMeta.value.uuid,
+                                assessmentData: finalData // 使用包含完成时间的最新数据
+                            }
+                        });
+
+                        if (res.result.code) {
+                            console.error('最终保存失败:', res.result.message);
+                        }
+                    } catch (e) {
+                        console.error('最终云函数调用失败:', e);
+                    }
 
                     uni.navigateTo({
                         url: `/pages/assessment/report?assessmentId=${assessmentId.value}`
