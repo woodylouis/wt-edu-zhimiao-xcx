@@ -1,5 +1,5 @@
 <template>
-    // abc 量表报告
+    <!-- // abc 量表报告 -->
     <view class="assessment">
         <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" :backHandler="handleNavBack" />
         <view class="content">
@@ -183,10 +183,12 @@ const handleNextQuestion = () => {
             content: `总得分：${totalScore}，确定要查看报告吗？`,
             success: (res) => {
                 if (res.confirm) {
+                    // 强制提交最后一次答案
+                    updateCache();
+
                     const cacheKey = `assessment_${assessmentId.value}`;
                     const cachedData = uni.getStorageSync(cacheKey);
 
-                    // 仅在最终确认时设置完成时间
                     const finalData = {
                         ...cachedData,
                         completionTime: Date.now()
@@ -221,7 +223,12 @@ const updateCache = () => {
     uni.setStorageSync(`assessment_${assessmentId.value}`, cacheData);
 };
 
+const debounce = ref(false); // 新增防抖状态
+
 const handleSubmit = async (score) => {
+    if (debounce.value) return; // 防抖拦截
+    debounce.value = true;      // 开启防抖
+
     const currentQid = questions.value[currentIndex.value]._id;
 
     answers.value = {
@@ -234,7 +241,6 @@ const handleSubmit = async (score) => {
 
     updateCache(); // 统一使用缓存更新方法
 
-    // 新增云函数调用
     try {
         const cacheKey = `assessment_${assessmentId.value}`;
         const cachedData = uni.getStorageSync(cacheKey);
@@ -253,7 +259,12 @@ const handleSubmit = async (score) => {
     } catch (e) {
         console.error('云函数调用失败:', e);
     }
-    handleNextQuestion();
+
+    // 200ms后释放防抖
+    setTimeout(() => {
+        debounce.value = false;
+        handleNextQuestion();
+    }, 200);
 };
 
 // 新增分数计算逻辑
