@@ -65,38 +65,15 @@ const classDisplay = computed(() => {
 const onClickProfile = () => {
     uni.navigateTo({
         url: '/uni_modules/uni-id-pages/pages/userinfo/userinfo'
+    }).then(() => {
+        // 新增返回后强制更新
+        userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
+        currentClass.value = uni.getStorageSync('currentClass') || {};
     });
 }
 
 const loadAssessments = async () => {
     try {
-        // 先检查班级成员状态
-        // const classRes = await uniCloud.callFunction({
-        //     name: 'wtdb-business-class-list'
-        // });
-
-        // if (classRes.result.code === 200 && classRes.result.data.length > 0) {
-        //     const currentClassData = classRes.result.data[0];
-        //     uni.setStorageSync('currentClass', {
-        //         id: currentClassData._id,
-        //         grade: currentClassData.grade,
-        //         class: currentClassData.class,
-        //         role: currentClassData.memberStatus,
-        //         code: currentClassData.code,
-        //         nickname: currentClassData.nickname
-
-        //     });
-        //     // 新增：手动更新响应式数据
-        //     currentClass.value = {
-        //         ...currentClass.value,
-        //         ...currentClassData,
-        //         grade: currentClassData.grade,
-        //         class: currentClassData.class
-        //     };
-        // } else {
-        //     uni.showToast({ title: '您尚未加入任何班级', icon: 'none' });
-        // }
-
         // 尝试读取缓存
         const cachedData = uni.getStorageSync(CACHE_KEY);
         if (cachedData && Date.now() - cachedData.timestamp < CACHE_EXPIRY) {
@@ -132,8 +109,10 @@ const loadAssessments = async () => {
 let cacheTimer = null;
 
 onShow(() => {
+    // 新增用户信息更新逻辑
+    userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
+    currentClass.value = uni.getStorageSync('currentClass') || {};
     checkLoginStatus();
-
 })
 
 const checkLoginStatus = () => {
