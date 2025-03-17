@@ -41,24 +41,10 @@ const pagination = ref({ page: 1, pageSize: 10, total: 0 });
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 let avatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
 const switchIconUrl = "../../../static/general/switch.png";
-const reports = [
-    {
-        date: "2025年02月21日",
-        teacher: "何嘉琪老师",
-    },
-    {
-        date: "2025年02月21日",
-        teacher: "何嘉琪老师",
-    },
-    {
-        date: "2025年02月21日",
-        teacher: "何嘉琪老师",
-    },
-];
+
 // 新增用户信息获取
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
 const currentClass = ref(uni.getStorageSync('currentClass') || {});
-
 // 修改用户信息显示部分
 const displayName = computed(() => {
     return userInfo.value.nickname || userInfo.value.username || '小程序用户';
@@ -76,31 +62,31 @@ const classDisplay = computed(() => {
 const loadAssessments = async () => {
     try {
         // 先检查班级成员状态
-        const classRes = await uniCloud.callFunction({
-            name: 'wtdb-business-class-list'
-        });
+        // const classRes = await uniCloud.callFunction({
+        //     name: 'wtdb-business-class-list'
+        // });
 
-        if (classRes.result.code === 200 && classRes.result.data.length > 0) {
-            const currentClassData = classRes.result.data[0];
-            uni.setStorageSync('currentClass', {
-                id: currentClassData._id,
-                grade: currentClassData.grade,
-                class: currentClassData.class,
-                role: currentClassData.memberStatus,
-                code: currentClassData.code,
-                nickname: currentClassData.nickname
+        // if (classRes.result.code === 200 && classRes.result.data.length > 0) {
+        //     const currentClassData = classRes.result.data[0];
+        //     uni.setStorageSync('currentClass', {
+        //         id: currentClassData._id,
+        //         grade: currentClassData.grade,
+        //         class: currentClassData.class,
+        //         role: currentClassData.memberStatus,
+        //         code: currentClassData.code,
+        //         nickname: currentClassData.nickname
 
-            });
-            // 新增：手动更新响应式数据
-            currentClass.value = {
-                ...currentClass.value,
-                ...currentClassData,
-                grade: currentClassData.grade,
-                class: currentClassData.class
-            };
-        } else {
-            uni.showToast({ title: '您尚未加入任何班级', icon: 'none' });
-        }
+        //     });
+        //     // 新增：手动更新响应式数据
+        //     currentClass.value = {
+        //         ...currentClass.value,
+        //         ...currentClassData,
+        //         grade: currentClassData.grade,
+        //         class: currentClassData.class
+        //     };
+        // } else {
+        //     uni.showToast({ title: '您尚未加入任何班级', icon: 'none' });
+        // }
 
         // 尝试读取缓存
         const cachedData = uni.getStorageSync(CACHE_KEY);
@@ -179,17 +165,21 @@ onMounted(() => {
             uni.removeStorageSync(CACHE_KEY);
         }
     }, 60000); // 每分钟检查一次
+    // try {
+    //     currentClass = uni.getStorageSync('currentClass');
+    // } catch(e) {
+
+    // }
 });
 
 const handleAssessmentClick = (item) => {
-    console.log("item", item)
-    if (!currentClass.value?.id) {
+    let classId = currentClass.value?._id ? currentClass.value?._id : currentClass.value?.id;
+    if (!classId) {
         uni.showToast({ title: '请先选择班级', icon: 'none' });
         return;
     }
-    console.log("currentClass", currentClass)
     uni.navigateTo({
-        url: `/pages/assessment/chooseChild?classId=${currentClass.value.id}&className=${classDisplay.value}&assessmentId=${item.id}&assessmentTitle=${item.title}`
+        url: `/pages/assessment/chooseChild?classId=${classId}&className=${classDisplay.value}&assessmentId=${item.id}&assessmentTitle=${item.title}`
     });
 };
 

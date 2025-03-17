@@ -65,7 +65,6 @@ export default {
         }
     },
     onLoad() {
-        // console.log('hasLogin', getApp().hasLogin)
         const menuButtonInfo = uni.getMenuButtonBoundingClientRect();
         this.xcxNameMarginTopStyle = `top:${menuButtonInfo.top + menuButtonInfo.height / 2}px;`
     },
@@ -74,7 +73,6 @@ export default {
     },
     methods: {
         async onConfirm() {
-            console.log('确认按钮被点击');
             this.show = false;
             if (this.isJoinClass) {
                 try {
@@ -86,9 +84,15 @@ export default {
                         }
                     });
 
-                    if (res.result.code === 200) {
-                        uni.showToast({ title: '加入班级成功' });
-                        // 可以跳转到班级页面
+                    if (res.result.code === 200 || res.result.code === 409) {
+                        // 统一处理成功和已存在的两种情况
+                        uni.showToast({ title: res.result.msg });
+                        const classData = res.result.data;
+                        uni.setStorageSync('currentClass', {
+                            ...classData
+                        });
+
+                        // 统一跳转逻辑
                         uni.redirectTo({
                             url: '/pages/dashboard/teacher/teacher'
                         });
@@ -133,7 +137,6 @@ export default {
             });
         },
         onClickButton(item) {
-            console.log(item)
             this.checkLoginStatus().then(valid => {
                 if (valid) {
                     this.show = true;

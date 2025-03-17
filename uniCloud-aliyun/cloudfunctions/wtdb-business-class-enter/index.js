@@ -19,7 +19,6 @@ exports.main = async (event, context) => {
 	try {
 		// 通过code查询班级
 		const classRes = await classCollection.where({ code }).get();
-		console.log(classRes);
 		if (!classRes.data[0]) {
 			return { code: 404, msg: '班级不存在或邀请码错误' };
 		}
@@ -32,7 +31,7 @@ exports.main = async (event, context) => {
 		}).get();
 
 		if (memberRes.data.length > 0) {
-			return { code: 409, msg: '您已加入该班级' };
+			return { code: 409, msg: '您已加入该班级', data: classRes.data[0] };
 		}
 
 		// 插入成员表
@@ -44,7 +43,7 @@ exports.main = async (event, context) => {
 		});
 
 		return insertRes.id ?
-			{ code: 200, msg: '加入成功' } :
+			{ code: 200, msg: '加入成功', data: classRes.data[0] } :
 			{ code: 500, msg: '加入失败' };
 
 	} catch (e) {

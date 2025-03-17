@@ -104,7 +104,6 @@ const handleSelectChild = (id) => {
 
 // 新增路由参数接收
 onLoad((options) => {
-    console.log(options)
     classId.value = options.classId;
     className.value = options.className;
     assessmentId.value = options.assessmentId;
