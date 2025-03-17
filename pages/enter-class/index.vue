@@ -73,17 +73,35 @@ export default {
         // this.checkLoginStatus();
     },
     methods: {
-        onConfirm() {
+        async onConfirm() {
             console.log('确认按钮被点击');
             this.show = false;
             if (this.isJoinClass) {
-                console.log('加入班级')
+                try {
+                    const res = await uniCloud.callFunction({
+                        name: 'wtdb-business-class-enter',
+                        data: {
+                            classId: '67d2841d8a5c78c37ff0b54b',
+                            role: 'teacher'
+                        }
+                    });
 
-
+                    if (res.result.code === 200) {
+                        uni.showToast({ title: '加入班级成功' });
+                        // 可以跳转到班级页面
+                        uni.redirectTo({ url: '/pages/' })({
+                            url: '/pages/dashboard/teacher/teacher'
+                        });
+                    } else {
+                        uni.showToast({ title: res.result.msg || '加入失败', icon: 'none' });
+                    }
+                } catch (e) {
+                    uni.showToast({ title: '请求失败，请重试', icon: 'none' });
+                }
             } else {
                 uni.navigateTo({
                     url: '/pages/enter-class/createClassForm1'
-                })
+                });
             }
         },
         async checkLoginStatus() {
