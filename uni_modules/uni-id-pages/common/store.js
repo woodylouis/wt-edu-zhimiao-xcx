@@ -143,7 +143,7 @@ export const mutations = {
 		}
 
 		// 异步更新用户信息
-		this.updateUserInfo()
+		await this.updateUserInfo()
 
 		// 新增：检查班级信息
 		try {
