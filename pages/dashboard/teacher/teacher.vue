@@ -50,7 +50,10 @@ const displayName = computed(() => {
     return userInfo.value.nickname || userInfo.value.username || '小程序用户';
 });
 const avatarUrl = computed(() => {
-    return userInfo.value.avatar_file.url || defaultAvatarUrl;
+    // 添加双重保护逻辑
+    return (userInfo.value.avatar_file && userInfo.value.avatar_file.url)
+        ? userInfo.value.avatar_file.url
+        : defaultAvatarUrl.value;
 });
 
 
@@ -147,6 +150,8 @@ const navigateToLogin = () => {
 
 onMounted(() => {
     loadAssessments();
+    userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
+    currentClass.value = uni.getStorageSync('currentClass') || {};
     cacheTimer = setInterval(() => {
         const cachedData = uni.getStorageSync(CACHE_KEY);
         if (cachedData && Date.now() - cachedData.timestamp > CACHE_EXPIRY) {
