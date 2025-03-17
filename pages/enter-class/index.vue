@@ -81,7 +81,7 @@ export default {
                     const res = await uniCloud.callFunction({
                         name: 'wtdb-business-class-enter',
                         data: {
-                            classId: '67d2841d8a5c78c37ff0b54b',
+                            code: '537264',
                             role: 'teacher'
                         }
                     });
@@ -89,7 +89,7 @@ export default {
                     if (res.result.code === 200) {
                         uni.showToast({ title: '加入班级成功' });
                         // 可以跳转到班级页面
-                        uni.redirectTo({ url: '/pages/' })({
+                        uni.redirectTo({
                             url: '/pages/dashboard/teacher/teacher'
                         });
                     } else {

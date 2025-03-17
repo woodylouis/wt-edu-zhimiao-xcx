@@ -1,43 +1,49 @@
 'use strict';
 const db = uniCloud.database();
+// 修改为两个集合引用
 const classCollection = db.collection('wtdb-business-class-list');
+const memberCollection = db.collection('wtdb-business-class-member'); // 新增成员表
 const uniID = require('uni-id-common')
-exports.main = async (event, context) => {
-	const uniIdInstance = uniID.createInstance({
-		context
-	})
-	// 获取请求参数
-	const { classId, role = 'teacher' } = event;
-	const { uid } = await uniIdInstance.checkToken(event.uniIdToken)
 
-	// 参数校验
-	if (!classId) {
-		return { code: 400, msg: '班级ID不能为空' };
+exports.main = async (event, context) => {
+	const uniIdInstance = uniID.createInstance({ context });
+	// 参数改为接收code
+	const { code, role = 'teacher' } = event;
+	const { uid } = await uniIdInstance.checkToken(event.uniIdToken);
+
+	// 参数校验code
+	if (!code) {
+		return { code: 400, msg: '班级邀请码不能为空' };
 	}
 
 	try {
-		// 查询班级信息
-		const classRes = await classCollection.doc(classId).get();
+		// 通过code查询班级
+		const classRes = await classCollection.where({ code }).get();
+		console.log(classRes);
 		if (!classRes.data[0]) {
-			return { code: 404, msg: '班级不存在' };
+			return { code: 404, msg: '班级不存在或邀请码错误' };
 		}
+		const classId = classRes.data[0]._id;
 
-		// 检查是否已加入
-		const existingMember = classRes.data[0].members?.find(m => m.user_id === uid);
-		if (existingMember) {
+		// 检查成员表是否已存在
+		const memberRes = await memberCollection.where({
+			class_id: classId,
+			user_id: uid
+		}).get();
+
+		if (memberRes.data.length > 0) {
 			return { code: 409, msg: '您已加入该班级' };
 		}
 
-		// 更新班级成员
-		const updateRes = await classCollection.doc(classId).update({
-			members: db.command.push({
-				user_id: uid,
-				member_status: role,
-				join_time: Date.now()
-			})
+		// 插入成员表
+		const insertRes = await memberCollection.add({
+			class_id: classId,
+			user_id: uid,
+			role: role,
+			join_time: Date.now()
 		});
 
-		return updateRes.updated ?
+		return insertRes.id ?
 			{ code: 200, msg: '加入成功' } :
 			{ code: 500, msg: '加入失败' };
 
