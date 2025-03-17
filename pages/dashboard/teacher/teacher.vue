@@ -47,7 +47,6 @@ const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
 const currentClass = ref(uni.getStorageSync('currentClass') || {});
 // 修改用户信息显示部分
 const displayName = computed(() => {
-    console.log("userInfo", userInfo.value)
     return userInfo.value.nickname || userInfo.value.username || '小程序用户';
 });
 const avatarUrl = computed(() => {

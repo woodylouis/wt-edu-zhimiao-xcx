@@ -93,7 +93,7 @@ export default {
                         });
 
                         // 统一跳转逻辑
-                        uni.redirectTo({
+                        uni.reLaunch({
                             url: '/pages/dashboard/teacher/teacher'
                         });
                     } else {
