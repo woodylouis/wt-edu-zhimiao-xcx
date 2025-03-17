@@ -4,7 +4,7 @@
         <view class="user-profile">
             <!-- 左侧内容容器 -->
 
-            <view class="profile-left">
+            <view class="profile-left" @click="onClickProfile">
                 <image class="avatar-image" :src="avatarUrl" />
                 <view class="info">
                     <view class="name">{{ displayName }}</view>
@@ -39,7 +39,7 @@ const CACHE_EXPIRY = 3600 * 1000; // 1小时有效期
 const assessmentList = ref([]);
 const pagination = ref({ page: 1, pageSize: 10, total: 0 });
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
-let avatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
+const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
 const switchIconUrl = "../../../static/general/switch.png";
 
 // 新增用户信息获取
@@ -48,6 +48,9 @@ const currentClass = ref(uni.getStorageSync('currentClass') || {});
 // 修改用户信息显示部分
 const displayName = computed(() => {
     return userInfo.value.nickname || userInfo.value.username || '小程序用户';
+});
+const avatarUrl = computed(() => {
+    return userInfo.value.avatar_file.url || defaultAvatarUrl;
 });
 
 
@@ -58,6 +61,12 @@ const classDisplay = computed(() => {
     }
     return '暂无班级信息';
 });
+
+const onClickProfile = () => {
+    uni.navigateTo({
+        url: '/uni_modules/uni-id-pages/pages/userinfo/userinfo'
+    });
+}
 
 const loadAssessments = async () => {
     try {
