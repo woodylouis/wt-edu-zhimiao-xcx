@@ -137,15 +137,29 @@ export default {
             });
         },
         onClickButton(item) {
-            this.checkLoginStatus().then(valid => {
+            this.checkLoginStatus().then(async valid => { // 改为 async
                 if (valid) {
-                    this.show = true;
+                    if (item === 0) {
+                        const res = await uniCloud.callFunction({
+                            name: 'wt-fetch-admin-user'
+                        });
+
+                        if (res.result.code !== 200) {
+                            return uni.showModal({
+                                title: '提示',
+                                content: '您暂时没有权限创建班级',
+                                showConfirm: true,
+                                showCancel: false,
+
+                            })
+                        }
+                    }
                     if (item === 1) {
                         this.isJoinClass = true;
                         this.modalOptionsList = ['我是老师', '我是家长'];
                         this.confirmText = "立即加入";
-
                     }
+                    this.show = true;
                 }
             });
         }
