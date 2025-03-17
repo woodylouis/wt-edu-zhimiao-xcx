@@ -154,10 +154,14 @@ export const mutations = {
 			if (classRes.result.code === 200 && classRes.result.data.length > 0) {
 				// 如果已有班级，跳转到班级主页
 				const firstClass = classRes.result.data[0];
+
+				console.log("autoBack1", autoBack)
+
 				uni.setStorageSync('currentClass', firstClass);
 				uni.reLaunch({
 					url: '/pages/dashboard/teacher/teacher'
 				});
+				return
 			}
 		} catch (e) {
 			console.error('班级查询失败:', e);
@@ -176,6 +180,7 @@ export const mutations = {
 		}
 
 		if (autoBack) {
+			console.log("autoBack2", autoBack)
 			this.loginBack({ uniIdRedirectUrl })
 		}
 	}
