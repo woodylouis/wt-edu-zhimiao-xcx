@@ -3,7 +3,7 @@
         <custom-nav :xcxName="'信息填写'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" />
         <view class="content">
             <view class="header-info">
-                <view class="hello">Hi, {{ displayName }}老师 !</view>
+                <view class="hello">Hi, {{ displayName }} !</view>
                 <view class="class"> {{ currentClass }} </view>
             </view>
             <view class="info">
@@ -29,7 +29,7 @@ const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
 
 // 修改为计算属性
 const currentClass = computed(() => className.value || '暂无班级信息');
-const displayName = computed(() => userInfo.value.nickname || '老师');
+const displayName = computed(() => userInfo.value.nickname ? userInfo.value.nickname + '老师' : '老师');
 
 const classId = ref('');        // 存储传入的班级ID
 const className = ref('');      // 存储传入的班级名称
