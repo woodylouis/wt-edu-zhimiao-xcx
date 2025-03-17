@@ -24,7 +24,13 @@ import { ref, onMounted, computed } from "vue";
 import { onLoad } from '@dcloudio/uni-app'
 
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
-// 新增班级学生相关状态
+// 新增用户信息引用
+const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
+
+// 修改为计算属性
+const currentClass = computed(() => className.value || '暂无班级信息');
+const displayName = computed(() => userInfo.value.nickname || '老师');
+
 const classId = ref('');        // 存储传入的班级ID
 const className = ref('');      // 存储传入的班级名称
 const assessmentId = ref('');   // 存储评估ID
@@ -32,8 +38,7 @@ const assessmentTitle = ref(''); // 存储评估标题
 const students = ref([]);        // 原始学生列表
 const filteredStudents = ref([]); // 过滤后的学生列表
 const searchKeyword = ref('');   // 搜索关键词
-let currentClass = '小班8班'
-let displayName = '李萍萍'
+
 // 更新模板绑定（修改search组件使用方式）
 const formValue = ref({
     // ... 其他字段保持不变 ...
