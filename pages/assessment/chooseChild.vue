@@ -10,11 +10,11 @@
                 <view class="title">个人信息</view>
                 <view class="instruction">请输入您要进行儿童量表评估的小朋友姓名，系统将根据您的选择进入相应的评估流程。</view>
             </view>
-            <view class="search">
+            <view class="search" style="z-index:999">
                 <search :list="filteredStudents" labelName="name" valueName="_id" placeholder="请输入小朋友姓名" @input="handleSearch" @select="handleSelectChild"></search>
             </view>
-            <view class="searchHistory" v-for="(item, key) in  searchHistory">
-                <u-tag :text="item" size="mini" closable :show="close1" @close="close1 = false"></u-tag>
+            <view class="searchHistory" v-if="searchHistory.length">
+                <u-tag v-for="(item, index) in searchHistory" :key="index" :text="item" size="mini" @click="handleClickTag(item)" style="margin-right: 24rpx;"></u-tag>
             </view>
         </view>
     </view>
@@ -62,6 +62,7 @@ const loadStudents = async () => {
 
         students.value = res.result.data;
         filteredStudents.value = res.result.data;
+        console.log(filteredStudents.value)
     } catch (e) {
         console.error('加载失败:', e);
     }
@@ -79,6 +80,11 @@ onLoad((options) => {
     // 新增加载本地历史
     searchHistory.value = uni.getStorageSync('childSearchHistory') || [];
 });
+
+const handleClickTag = (tag) => {
+    searchKeyword.value = tag;
+
+};
 
 // 新增搜索历史管理方法
 const updateSearchHistory = (name) => {
@@ -217,6 +223,7 @@ onMounted((params) => {
 
         .searchHistory {
             display: flex;
+            margin-top: 36rpx
         }
     }
 }
