@@ -124,12 +124,12 @@ const analysisText = computed(() => {
 });
 // 通用阶段计算函数
 const getLevel = (score, ranges) => {
-    if (score >= ranges[5]) return 6;
-    if (score >= ranges[4]) return 5;
-    if (score >= ranges[3]) return 4;
-    if (score >= ranges[2]) return 3;
-    if (score >= ranges[1]) return 2;
-    return 1;
+    if (score >= ranges[5]) return 1;
+    if (score >= ranges[4]) return 2;
+    if (score >= ranges[3]) return 3;
+    if (score >= ranges[2]) return 4;
+    if (score >= ranges[1]) return 5;
+    return 6;
 };
 
 // 各维度阶段计算
@@ -141,12 +141,12 @@ const ziliLevel = computed(() => getLevel(props.selfcareScore, [4, 5, 10, 12, 16
 
 // 阶段到百分比的映射
 const levelPercentage = {
-    1: 20,
-    2: 30,
-    3: 50,
-    4: 70,
+    1: 16,
+    2: 32,
+    3: 48,
+    4: 64,
     5: 80,
-    6: 90
+    6: 100
 };
 
 // 各维度百分比计算
@@ -157,11 +157,11 @@ const yuyanPercentage = computed(() => levelPercentage[yuyanLevel.value]);
 const ziliPercentage = computed(() => levelPercentage[ziliLevel.value]);
 
 // 结果文本
-const ganzhijueResult = computed(() => `${ganzhijueLevel.value}阶段`);
-const shejiaoResult = computed(() => `${shejiaoLevel.value}阶段`);
-const yundongResult = computed(() => `${yundongLevel.value}阶段`);
-const yuyanResult = computed(() => `${yuyanLevel.value}阶段`);
-const ziliResult = computed(() => `${ziliLevel.value}阶段`);
+const ganzhijueResult = computed(() => `${ganzhijueLevel.value}阶`);
+const shejiaoResult = computed(() => `${shejiaoLevel.value}阶`);
+const yundongResult = computed(() => `${yundongLevel.value}阶`);
+const yuyanResult = computed(() => `${yuyanLevel.value}阶`);
+const ziliResult = computed(() => `${ziliLevel.value}阶`);
 
 // 新增阶段分类逻辑
 const strengthDimensions = computed(() => {
@@ -344,8 +344,8 @@ const professionalAdvice = {
     background-color: $u-warning;
     color: #fff;
     border-radius: 100px;
-    font-size: 10px;
-    margin-right: -5px;
+    font-size: 12px;
+    // margin-right: -1px;
     height: 17px;
     z-index: 999;
 }
