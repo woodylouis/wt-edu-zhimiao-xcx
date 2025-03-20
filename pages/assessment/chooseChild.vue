@@ -11,17 +11,10 @@
                 <view class="instruction">请输入您要进行儿童量表评估的小朋友姓名，系统将根据您的选择进入相应的评估流程。</view>
             </view>
             <view class="search" style="z-index:999">
-                <search 
-                    v-model="searchKeyword"
-                    :list="filteredStudents" 
-                    labelName="name" 
-                    valueName="_id" 
-                    placeholder="请输入小朋友姓名" 
-                    @select="handleSelectChild"
-                ></search>
+                <search v-model="searchKeyword" :list="filteredStudents" labelName="name" valueName="_id" placeholder="请输入小朋友姓名" @select="handleSelectChild"></search>
             </view>
             <view class="searchHistory" v-if="searchHistory.length">
-                <u-tag v-for="(item, index) in searchHistory" :key="index" :text="item" size="mini" @click="handleClickTag(item)" style="margin-right: 24rpx;"></u-tag>
+                <u-tag v-for="(item, index) in searchHistory" :key="index" :text="item" size="mini" @click="handleClickTag(item)" borderColor="#8696A3" bgColor="#FFFFFF" color="#8696A3" style="margin-right: 24rpx;"></u-tag>
             </view>
         </view>
     </view>
@@ -69,7 +62,15 @@ const loadStudents = async () => {
 
         students.value = res.result.data;
         filteredStudents.value = res.result.data;
-        console.log(filteredStudents.value)
+
+        // 新增加载时同步学生姓名到搜索历史
+        students.value.forEach(child => {
+            const existing = searchHistory.value.find(name => name === child.name);
+            if (!existing) {
+                searchHistory.value.unshift(child.name);
+            }
+        });
+        uni.setStorageSync('childSearchHistory', searchHistory.value);
     } catch (e) {
         console.error('加载失败:', e);
     }
@@ -86,12 +87,13 @@ onLoad((options) => {
 
     // 新增加载本地历史
     searchHistory.value = uni.getStorageSync('childSearchHistory') || [];
+
 });
 
 const handleClickTag = (tag) => {
     searchKeyword.value = tag;
     // 新增：手动触发搜索组件过滤
-    filteredStudents.value = students.value.filter(child => 
+    filteredStudents.value = students.value.filter(child =>
         child.name.includes(tag)
     );
 };
@@ -108,9 +110,9 @@ const updateSearchHistory = (name) => {
     searchHistory.value.unshift(name);
 
     // 限制最多10条（修改为删除最后一条）
-    if (searchHistory.value.length > 10) {
-        searchHistory.value.pop();
-    }
+    // if (searchHistory.value.length > 10) {
+    //     searchHistory.value.pop();
+    // }
 
     // 保存到本地
     uni.setStorageSync('childSearchHistory', searchHistory.value);
