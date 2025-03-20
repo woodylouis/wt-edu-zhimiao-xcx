@@ -11,7 +11,14 @@
                 <view class="instruction">请输入您要进行儿童量表评估的小朋友姓名，系统将根据您的选择进入相应的评估流程。</view>
             </view>
             <view class="search" style="z-index:999">
-                <search :list="filteredStudents" labelName="name" valueName="_id" placeholder="请输入小朋友姓名" @input="handleSearch" @select="handleSelectChild"></search>
+                <search 
+                    v-model="searchKeyword"
+                    :list="filteredStudents" 
+                    labelName="name" 
+                    valueName="_id" 
+                    placeholder="请输入小朋友姓名" 
+                    @select="handleSelectChild"
+                ></search>
             </view>
             <view class="searchHistory" v-if="searchHistory.length">
                 <u-tag v-for="(item, index) in searchHistory" :key="index" :text="item" size="mini" @click="handleClickTag(item)" style="margin-right: 24rpx;"></u-tag>
@@ -83,7 +90,10 @@ onLoad((options) => {
 
 const handleClickTag = (tag) => {
     searchKeyword.value = tag;
-
+    // 新增：手动触发搜索组件过滤
+    filteredStudents.value = students.value.filter(child => 
+        child.name.includes(tag)
+    );
 };
 
 // 新增搜索历史管理方法

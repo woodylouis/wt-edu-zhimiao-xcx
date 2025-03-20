@@ -48,19 +48,32 @@ export default {
 			type: String,
 			default: '请输入'
 		},
+		// 新增modelValue支持双向绑定
+		modelValue: {
+			type: String,
+			default: ''
+		},
 	},
 	data() {
 		return {
-			keyword: '', // 输入框的关键词
+			keyword: this.modelValue, // 初始值来自prop
 			showList: false, // 控制下拉框显示
 			filteredList: [] // 初始化过滤后的列表为所有列表
 		};
+	},
+	watch: {
+		// 新增监听modelValue变化
+		modelValue(newVal) {
+			this.keyword = newVal;
+			this.filterList();
+		}
 	},
 	methods: {
 		/** 筛选list数据 */
 		filterList() {
 			if (this.keyword === '') {
 				this.showList = false; // 如果输入框为空，关闭下拉框
+				this.$emit('update:modelValue', ''); // 新增同步空值
 			} else {
 				if (this.list && this.keyword) {
 					const keyword = this.keyword.toString().toLowerCase();
@@ -75,6 +88,7 @@ export default {
 			this.keyword = item[this.labelName]; // 将选中的label赋值给input
 			this.showList = false; // 关闭下拉框
 			this.$emit('select', item[this.valueName]); //将值传承父页面
+			this.$emit('update:modelValue', this.keyword); // 新增同步值
 		},
 	}
 };
