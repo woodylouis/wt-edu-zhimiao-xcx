@@ -281,7 +281,7 @@ const handleSubmit = async (score) => {
     setTimeout(() => {
         debounce.value = false;
         handleNextQuestion();
-    }, 200);
+    }, 50);
 };
 
 // 新增分数计算逻辑
@@ -349,21 +349,35 @@ onUnmounted(() => {
 // 改造onLoad
 onLoad(async (options) => {
     console.log("options", options)
-    assessmentId.value = options.assessmentId;
-    childId.value = options.childId;
 
-    assessmentMeta.value = {
-        assessmentId: assessmentId.value,
-        classId: options.classId,
-        className: options.className,
-        childId: options.childId,
-        childName: options.childName,
-        childAge: Number(options.childAge), // 新增年龄参数
-        startTimestamp: Date.now(),
-        duration: 0,
-        uuid: Date.now().toString(36) + Math.random().toString(36).substr(2)
-    };
-    await loadQuestions();
+    // 新增加载提示
+    uni.showLoading({
+        title: '题目加载中...',
+        mask: true
+    });
+
+    try {
+        assessmentId.value = options.assessmentId;
+        childId.value = options.childId;
+
+        assessmentMeta.value = {
+            assessmentId: assessmentId.value,
+            classId: options.classId,
+            className: options.className,
+            childId: options.childId,
+            childName: options.childName,
+            childAge: Number(options.childAge),
+            startTimestamp: Date.now(),
+            duration: 0,
+            uuid: Date.now().toString(36) + Math.random().toString(36).substr(2)
+        };
+
+        await loadQuestions();
+    } catch (e) {
+        uni.showToast({ title: '加载失败，请返回重试', icon: 'none' });
+    } finally {
+        uni.hideLoading(); // 无论成功失败都关闭加载
+    }
 });
 </script>
 

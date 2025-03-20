@@ -17,8 +17,8 @@
             </view>
             <view class="report">
                 <view class="part">
-                    <developmentLevel :totalScore="51" />
-                    <capability-level :displayName="displayName" :perception-score="4" :social-score="15" :motor-score="8" :language-score="18" :selfcare-score="6" />
+                    <developmentLevel :totalScore="totalScore" />
+                    <capability-level :displayName="displayName" :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交 || 0" :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0" :selfcare-score="sectionScores.生活自理 || 0" />
                 </view>
             </view>
         </view>
