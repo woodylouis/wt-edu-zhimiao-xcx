@@ -20,11 +20,9 @@
             <view class="status-info">
                 <view class="status-text">
                     <image class="status-icon" :src="statusImages.icon" mode="scaleToFill" />
-                    <span>达到了</span>
-                    <span class="highlight" :style="{ color: statusColors.main }">
-                        {{ level }}阶
+                    <span>
+                        {{ tips }}
                     </span>
-                    <span>水平</span>
                 </view>
             </view>
         </view>
@@ -67,24 +65,32 @@ const statusImages = computed(() => {
 // 阶段计算
 const level = computed(() => {
     const s = props.totalScore;
-    if (s >= 158) return 6;
-    if (s >= 103) return 5;
-    if (s >= 77) return 4;
-    if (s >= 64) return 3;
-    if (s >= 31) return 2;
-    return 1; // 0-30分
+    if (s >= 67) return 4;    // 严重
+    if (s >= 54) return 3;    // 警告
+    if (s >= 31) return 2;    // 需注意
+    return 1;                 // 正常
+});
+
+const tips = computed(() => {
+    const score = props.totalScore;
+    if (score <= 30) {
+        return `请保持对孩子心理的行为发育的积极关注。`;
+    } else if (score <= 53) {
+        return `建议尽快做进一步检查。`;
+    } else if (score <= 66) {
+        return `建议尽快向专业人士进行专业咨询。`;
+    } else {
+        return `建议尽快向专业人士咨询，并在指导下进行相应的干预治疗。`;
+    }
 });
 
 // 进度百分比计算
 const percentage = computed(() => {
-    const s = props.totalScore;
     switch (level.value) {
-        case 1: return 20;   // 阶段1固定100%
-        case 2: return 30;    // 阶段2固定80%
-        case 3: return 50;    // 阶段3固定60%
-        case 4: return 70;    // 阶段4固定40%
-        case 5: return 80;    // 阶段5固定20%
-        case 6: return 90;      // 阶段6固定0%
+        case 1: return 25;   // 正常
+        case 2: return 50;    // 需注意
+        case 3: return 75;   // 警告 
+        case 4: return 100;    // 严重
         default: return 0;
     }
 });
@@ -92,9 +98,10 @@ const percentage = computed(() => {
 // 状态及颜色计算
 const developmentStatus = computed(() => {
     const s = props.totalScore;
-    if (s < 31) return '正常';
+    if (s <= 30) return '正常';
     if (s <= 53) return '需注意';
-    return s <= 66 ? '警惕' : '严重';
+    if (s <= 66) return '警告';
+    return '严重';
 });
 
 const statusColors = computed(() => {

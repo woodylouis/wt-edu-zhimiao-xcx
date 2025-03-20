@@ -17,7 +17,7 @@
             </view>
             <view class="report">
                 <view class="part">
-                    <developmentLevel :totalScore="totalScore" />
+                    <developmentLevel :totalScore="51" />
                     <capability-level :displayName="displayName" :perception-score="4" :social-score="15" :motor-score="8" :language-score="18" :selfcare-score="6" />
                 </view>
             </view>
