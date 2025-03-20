@@ -13,6 +13,9 @@
             <view class="search">
                 <search :list="filteredStudents" labelName="name" valueName="_id" placeholder="请输入小朋友姓名" @input="handleSearch" @select="handleSelectChild"></search>
             </view>
+            <view class="searchHistory" v-for="(item, key) in  searchHistory">
+                <u-tag :text="item" size="mini" closable :show="close1" @close="close1 = false"></u-tag>
+            </view>
         </view>
     </view>
 </template>
@@ -38,6 +41,7 @@ const assessmentTitle = ref(''); // 存储评估标题
 const students = ref([]);        // 原始学生列表
 const filteredStudents = ref([]); // 过滤后的学生列表
 const searchKeyword = ref('');   // 搜索关键词
+const searchHistory = ref(['杨浩宇', '李文津']);   // 搜索历史
 
 // 更新模板绑定（修改search组件使用方式）
 const formValue = ref({
@@ -64,8 +68,45 @@ const loadStudents = async () => {
 };
 // 处理搜索输入
 let timeoutId = null
+// 在onLoad中初始化搜索历史
+onLoad((options) => {
+    classId.value = options.classId;
+    className.value = options.className;
+    assessmentId.value = options.assessmentId;
+    assessmentTitle.value = options.assessmentTitle;
+    loadStudents();
+
+    // 新增加载本地历史
+    searchHistory.value = uni.getStorageSync('childSearchHistory') || [];
+});
+
+// 新增搜索历史管理方法
+const updateSearchHistory = (name) => {
+    // 去重处理
+    const index = searchHistory.value.indexOf(name);
+    if (index > -1) {
+        searchHistory.value.splice(index, 1);
+    }
+
+    // 新增：将最新记录插入到数组开头
+    searchHistory.value.unshift(name);
+
+    // 限制最多10条（修改为删除最后一条）
+    if (searchHistory.value.length > 10) {
+        searchHistory.value.pop();
+    }
+
+    // 保存到本地
+    uni.setStorageSync('childSearchHistory', searchHistory.value);
+};
+
 const handleSelectChild = (id) => {
     const selectedChild = students.value.find(child => child._id === id);
+
+    // 新增加入搜索历史
+    if (selectedChild?.name) {
+        updateSearchHistory(selectedChild.name);
+    }
     const timestamp = parseInt(selectedChild.birthdate, 10);
     if (isNaN(timestamp)) {
         console.error('无效的生日时间戳:', selectedChild.birthdate);
@@ -107,14 +148,11 @@ const handleSelectChild = (id) => {
     });
 };
 
-// 新增路由参数接收
-onLoad((options) => {
-    classId.value = options.classId;
-    className.value = options.className;
-    assessmentId.value = options.assessmentId;
-    assessmentTitle.value = options.assessmentTitle;
-    loadStudents(); // 初始加载学生数据
-});
+// 修改标签关闭事件处理
+const handleCloseTag = (index) => {
+    searchHistory.value.splice(index, 1);
+    uni.setStorageSync('childSearchHistory', searchHistory.value);
+};
 
 onMounted((params) => {
     // TODO: 查询数据
@@ -175,6 +213,10 @@ onMounted((params) => {
                 line-height: 24px;
                 /* 150% */
             }
+        }
+
+        .searchHistory {
+            display: flex;
         }
     }
 }
