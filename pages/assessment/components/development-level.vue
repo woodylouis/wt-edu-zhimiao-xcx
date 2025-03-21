@@ -87,10 +87,10 @@ const tips = computed(() => {
 // 进度百分比计算
 const percentage = computed(() => {
     switch (level.value) {
-        case 1: return 25;   // 正常
-        case 2: return 50;    // 需注意
-        case 3: return 75;   // 警告 
-        case 4: return 100;    // 严重
+        case 1: return 100;   // 正常
+        case 2: return 75;    // 需注意
+        case 3: return 50;   // 警告 
+        case 4: return 25;    // 严重
         default: return 0;
     }
 });

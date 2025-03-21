@@ -2,12 +2,6 @@
     <view class="development-section">
         <view class="development-card">
             <view class="card-title">能力达标情况</view>
-            <view class="analysis-text-overall">
-                <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
-                <template v-else>
-                    {{ analysisText }}
-                </template>
-            </view>
             <view class="capability-bar">
                 <view class="bar">
                     <view class="title">感知</view>
@@ -40,9 +34,15 @@
                     </u-line-progress>
                 </view>
             </view>
-            <div class="analysis-section">
-                <!-- 优势领域 -->
-                <div class="strength-section" v-if="strengthDimensions.length > 0">
+            <view class="analysis-text-overall">
+                <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
+                <template v-else>
+                    {{ analysisText }}
+                </template>
+            </view>
+            <!-- <div class="analysis-section"> -->
+            <!-- 优势领域 -->
+            <!-- <div class="strength-section" v-if="strengthDimensions.length > 0">
                     <div class="section-header">
                         <span class="indicator strength"></span>
                         <span>优势领域</span>
@@ -53,10 +53,10 @@
                             {{ dimensionDetails[dim][1] }}（{{ dim }}1阶段）
                         </p>
                     </div>
-                </div>
+                </div> -->
 
-                <!-- 需要关注 -->
-                <div class="concern-section" v-if="concernDimensions.length > 0">
+            <!-- 需要关注 -->
+            <!-- <div class="concern-section" v-if="concernDimensions.length > 0">
                     <div class="section-header">
                         <span class="indicator concern"></span>
                         <span>需要关注</span>
@@ -70,8 +70,8 @@
                             </span>
                         </p>
                     </div>
-                </div>
-            </div>
+                </div> -->
+            <!-- </div> -->
         </view>
     </view>
 </template>
