@@ -18,7 +18,7 @@
             <view class="report">
                 <view class="part">
                     <developmentLevel :totalScore="totalScore" />
-                    <capability-level :displayName="displayName" :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交 || 0" :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0" :selfcare-score="sectionScores.生活自理 || 0" />
+                    <capability-level :displayName="displayName" :analysisTextAI="analysisTextAI" :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交 || 0" :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0" :selfcare-score="sectionScores.生活自理 || 0" />
                 </view>
             </view>
         </view>
@@ -45,7 +45,7 @@ const formattedAge = ref('');
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 // 在setup中添加卸载生命周期
 const assessmentId = ref('');
-
+const analysisTextAI = ref('');
 const handleNavBack = () => {
     uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
 
@@ -53,6 +53,7 @@ const handleNavBack = () => {
 
 onLoad((options) => {
     assessmentId.value = options.assessmentId; // 存储assessmentId
+    analysisTextAI.value = options.analysisTextAI;
     const cacheKey = `assessment_${options.assessmentId}`;
     const cachedData = uni.getStorageSync(cacheKey);
 

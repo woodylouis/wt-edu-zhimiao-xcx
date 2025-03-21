@@ -3,7 +3,10 @@
         <view class="development-card">
             <view class="card-title">能力达标情况</view>
             <view class="analysis-text-overall">
-                {{ analysisText }}
+                <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
+                <template v-else>
+                    {{ analysisText }}
+                </template>
             </view>
             <view class="capability-bar">
                 <view class="bar">
@@ -74,7 +77,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watchEffect } from "vue";
+import { MarkdownIt, parseTokens } from "@/uni_modules/wtto-markdown/js_sdk/index";
+import "@/uni_modules/wtto-markdown/js_sdk/markdown.css";
 
 const props = defineProps({
     perceptionScore: Number,   // 感知维度得分
@@ -82,9 +87,32 @@ const props = defineProps({
     motorScore: Number,        // 运动维度得分
     languageScore: Number,     // 语言维度得分
     selfcareScore: Number,      // 自理维度得分
-    displayName: String
+    displayName: String,
+    analysisTextAI: String,
 });
 
+const nodes = ref(null);
+
+const markdownIt = MarkdownIt({
+    typographer: true,
+    linkify: true,
+    html: true // 添加HTML支持
+});
+
+watchEffect(() => {
+    if (props.analysisTextAI) {
+        try {
+            const tokens = markdownIt.parse(props.analysisTextAI, {}); // 移除.value
+            nodes.value = parseTokens(tokens, markdownIt.options);
+        } catch (e) {
+            console.error('Markdown解析失败:', e);
+            nodes.value = null;
+        }
+    }
+});
+// 根据报错信息，将analysisTextAI改为analysisText
+const tokens = markdownIt.parse(props.analysisTextAI, {});
+nodes.value = parseTokens(tokens, markdownIt.options);
 const analysisText = computed(() => {
     // 获取各维度阶段值
     const levels = {
@@ -316,6 +344,25 @@ const professionalAdvice = {
     border-radius: 13px;
     padding: 12px;
     margin-top: 16px;
+
+    h3,
+    h4 {
+        color: #00214d;
+        margin: 12px 0;
+    }
+
+    ul,
+    ol {
+        padding-left: 20px;
+    }
+
+    li {
+        margin: 6px 0;
+    }
+
+    strong {
+        color: #0071F1;
+    }
 }
 
 .capability-bar {

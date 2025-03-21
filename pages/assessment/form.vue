@@ -118,6 +118,48 @@ const assessmentMeta = ref({
     uuid: Date.now().toString(36) + Math.random().toString(36).substr(2) // 新增基于时间的UUID
 });
 
+const testAI = async (answers) => {
+    // 新增Deepseek API调用
+    uni.showLoading({ title: 'AI分析中...' }); // 新增加载提示
+    let aiResponse = '' // 新增AI响应存储
+    let loadingAI = false // 新增加载状态
+    try {
+        const res = await uni.request({
+            url: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+            method: 'POST',
+            header: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer 005aeb28-621e-425f-8540-14503fe172a6'
+            },
+            data: {
+                model: "deepseek-v3-241226",
+                messages: [
+                    {
+                        role: "system",
+                        content: "你是BACB的专家，现在需要分析量表评估结果。得分大于0表示选择'是'。不要再把每个题目在写一遍。请以精简的语言给出专业分析，并给出明确的方向行建议。" // 直接使用字符串
+                    },
+                    {
+                        role: "user",
+                        content: JSON.stringify(answers)  // 直接使用序列化字符串，无需嵌套对象
+                    }
+                ]
+            }
+        });
+        if (res.statusCode === 200 && res.data?.choices?.[0]?.message?.content) {
+            aiResponse = res.data.choices[0].message.content;
+            return aiResponse;
+        }
+        return '';
+
+    } catch (e) {
+        uni.showToast({ title: 'AI服务异常', icon: 'none' });
+        return ''; // 明确返回空字符串
+    } finally {
+        uni.hideLoading(); // 关闭加载提示
+    }
+
+}
+
 const loadQuestions = async () => {
     try {
         const cacheKey = `assessment_${assessmentId.value}`;
@@ -195,8 +237,6 @@ const handleNextQuestion = () => {
                     };
 
                     uni.setStorageSync(cacheKey, finalData);
-
-                    // 新增云函数调用保存最终数据
                     try {
                         const res = await uniCloud.callFunction({
                             name: 'wt-business-report-gen',
@@ -213,8 +253,19 @@ const handleNextQuestion = () => {
                         console.error('最终云函数调用失败:', e);
                     }
 
+                    // 整理答案数据
+                    const answersArray = Object.values(finalData.answers).map(answer => ({
+                        question: answer.question?.content || '未知题目',
+                        answer: answer.score > 0 ? '是' : '否'
+                    }));
+                    uni.showLoading({ title: '生成报告中...' }); // 新增加载提示
+                    const analysisTextAIRes = await testAI(answersArray);
+                    console.log('analysisTextAIRes:', analysisTextAIRes);
+                    uni.hideLoading();
+
+                    // 这里需要加一个uni.loading.hide()，因为testAI是一个异步函数，它可能会在一段时间后才返回结果
                     uni.navigateTo({
-                        url: `/pages/assessment/report?assessmentId=${assessmentId.value}`
+                        url: `/pages/assessment/report?assessmentId=${assessmentId.value}&analysisTextAI=${analysisTextAIRes}`
                     });
                 }
             }

@@ -30,6 +30,9 @@
                 <image class="image" src="../../static/enter-class/apply.svg" />
 
             </view>
+            <view class="ai-response" v-if="aiResponse">
+                <text>{{ aiResponse }}</text>
+            </view>
         </view>
         <up-overlay :show="show">
             <view class="warp">
@@ -61,7 +64,7 @@ export default {
             show: false,
             modalOptionsList: ['我是老师'],
             confirmText: '立即创建',
-            isJoinClass: false
+            isJoinClass: false,
         }
     },
     onLoad() {
