@@ -14,7 +14,7 @@
                 <search v-model="searchKeyword" :list="filteredStudents" labelName="name" valueName="_id" placeholder="请输入小朋友姓名" @select="handleSelectChild"></search>
             </view>
             <view class="searchHistory" v-if="searchHistory.length">
-                <u-tag v-for="(item, index) in searchHistory" :key="index" :text="item" size="mini" @click="handleClickTag(item)" borderColor="#8696A3" bgColor="#FFFFFF" color="#8696A3" style="margin-right: 24rpx;"></u-tag>
+                <u-tag v-for="(item, index) in searchHistory" :key="index" :text="item" size="medium" @click="handleClickTag(item)" borderColor="#8696A3" bgColor="#FFFFFF" color="#8696A3" style="margin:20rpx;box-sizing: border-box;"></u-tag>
             </view>
         </view>
     </view>
@@ -24,7 +24,7 @@
 import customNav from '@/components/customNav';
 import search from '../../uni_modules/z-search/components/z-search/z-search'
 import { ref, onMounted, computed } from "vue";
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 // 新增用户信息引用
@@ -79,6 +79,7 @@ const loadStudents = async () => {
 let timeoutId = null
 // 在onLoad中初始化搜索历史
 onLoad((options) => {
+    uni.removeStorageSync('childSearchHistory')
     classId.value = options.classId;
     className.value = options.className;
     assessmentId.value = options.assessmentId;
@@ -89,6 +90,13 @@ onLoad((options) => {
     searchHistory.value = uni.getStorageSync('childSearchHistory') || [];
 
 });
+
+onUnload(() => {
+    // 清空本地缓存
+    uni.removeStorageSync('childSearchHistory')
+    // 清空当前页面数据
+    searchHistory.value = []
+})
 
 const handleClickTag = (tag) => {
     searchKeyword.value = tag;
@@ -234,7 +242,8 @@ onMounted((params) => {
         }
 
         .searchHistory {
-            display: flex;
+            // display: flex;
+            justify-content: space-between;
             margin-top: 36rpx
         }
     }

@@ -136,7 +136,7 @@ const testAI = async (answers) => {
                 messages: [
                     {
                         role: "system",
-                        content: "你是BACB的专家，现在需要分析量表评估结果。得分大于0表示选择'是'。不要再把每个题目在写一遍。请以精简的语言针对感知、社交、运动、语言、自己给出专业分析，并给出明确的可行性方向性建议。" // 直接使用字符串
+                        content: "你是BACB的专家，现在需要分析量表评估结果。得分大于0表示选择'是'。不要再把每个题目在写一遍。针对个体的年龄，请以精简的语言针对感知、社交、运动、语言、自己给出专业分析，必要时在报告里可以提个体的年龄。报告的标题为分析报告，最后给出明确的可行性方向性建议。" // 直接使用字符串
                     },
                     {
                         role: "user",
@@ -255,8 +255,10 @@ const handleNextQuestion = () => {
 
                     // 整理答案数据
                     const answersArray = Object.values(finalData.answers).map(answer => ({
+                        childName: assessmentMeta.value.childName, // 新增儿童姓名
+                        childAge: assessmentMeta.value.childAge,   // 新增儿童年龄
                         question: answer.question?.content || '未知题目',
-                        answer: answer.score > 0 ? '是' : '否'
+                        answer: answer.score > 0 ? '是' : '否',
                     }));
                     uni.showLoading({ title: '生成报告中...' }); // 新增加载提示
                     const analysisTextAIRes = await testAI(answersArray);
