@@ -24,7 +24,7 @@
         </view>
         <up-overlay :show="show">
             <view class="warp">
-                <modal-box v-if="show" :className="formData.className" :nickname="formData.nickname" :teacherName="formData.teacherName" confirmText="立即创建" @cancel="show = false" @create="handleConfirm" />
+                <modal-box v-if="show" :items="confirmInfo" confirmText="确定" @cancel="show = false" @create="handleConfirm" />
             </view>
         </up-overlay>
     </view>
@@ -32,7 +32,7 @@
 
 <script>
 // 导入modlBox组件
-import modalBox from '../../components/modalBox/modalBox';
+import modalBox from '../../components/modalBox-v2/modalBox';
 export default {
     components: {
         modalBox,
@@ -44,6 +44,20 @@ export default {
             formData: {
                 code: ''
             },
+            confirmInfo: [
+                {
+                    label: "您正在申请加入：",
+                    name: "【小班12班】",
+                },
+                {
+                    label: "班级码：",
+                    name: "329083",
+                },
+                {
+                    label: "创建者：",
+                    name: "丽丽妈妈",
+                },
+            ],
             rules: {
                 code: [
                     {
