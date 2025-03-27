@@ -172,24 +172,33 @@ export default {
         onConfirmDate(e) {
             console.log('onConfirmDate', e);
             this.showDatetimePicker = false;
-
+            // 新增：手动更新birthdate值
+            this.formData.birthdate = e.value;
+            const date = new Date(this.formData.birthdate);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // 补零
+            const day = String(date.getDate()).padStart(2, '0');       // 补零
+            this.showDateStr = `${year}-${month}-${day}`;
         },
         onChangeDatechange(e) {
-            console.log('change', e)
-            this.formData.birthdate = e.value;
+            // 移除旧的赋值逻辑，避免重复更新
+            // this.formData.birthdate = e.value; 
         },
     },  // methods结束
     watch: {
         // 这里需要监听formData的变化
         formData: {
             handler(newVal, oldVal) {
-                console.log('formData变化', newVal, oldVal);
+                // console.log('formData变化', newVal, oldVal);
                 // 需要检查birthdate是否有没有改动
                 if (newVal.birthdate !== oldVal.birthdate) {
-                    // 如果有改动，需要格式化日期，并更新showDateStr
+                    // 修改日期格式化逻辑
                     const date = new Date(newVal.birthdate);
-                    this.showDateStr = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-                    console.log('showDateStr', this.showDateStr);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0'); // 补零
+                    const day = String(date.getDate()).padStart(2, '0');       // 补零
+                    this.showDateStr = `${year}-${month}-${day}`;
+                    // console.log('showDateStr', this.showDateStr);
                 }
             },
             deep: true
