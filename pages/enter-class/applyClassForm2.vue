@@ -23,7 +23,7 @@
                         <text class="input-label">出生年月</text>
                         <u-form-item prop="childName" :borderBottom="false">
                             <view @click="onClickDatetime"><u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled /></view>
-                            <u-datetime-picker :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCloseDate" @cancel="onCloseDate" v-model="formData.birthdate" @confirm="onConfirmDate" @change="onChangeDatechange" mode="date"></u-datetime-picker>
+                            <u-datetime-picker v-model="formData.birthdate" :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCloseDate" @cancel="onCloseDate" @confirm="onConfirmDate" @change="onChangeDatechange" :minDate="minDate" :maxDate="maxDate" mode="date"></u-datetime-picker>
                         </u-form-item>
                     </view>
 
@@ -80,6 +80,12 @@ export default {
                     new Date(new Date().setFullYear(new Date().getFullYear() - 4))
                 )
             },
+            minDate: Number(
+                new Date(new Date().setFullYear(new Date().getFullYear() - 10))
+            ),
+            maxDate: Number(
+                new Date(new Date().setFullYear(new Date().getFullYear() - 1))
+            ),
             role: [{
                 name: '家长',
                 role: 'parent'
