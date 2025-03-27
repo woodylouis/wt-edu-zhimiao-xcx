@@ -68,6 +68,13 @@
 			}
 		},
 		{
+			"path": "pages/enter-class/applyClassForm2",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "申请加入-填写班级码"
+			}
+		},
+		{
 			"path": "pages/list/list",
 			"style": {
 				// #ifndef APP
