@@ -22,16 +22,16 @@
                     <view class="input-group">
                         <text class="input-label">出生年月</text>
                         <u-form-item prop="childName" :borderBottom="false">
-                            <view @click="onClickRelationship"><u--input v-model="formData.relationship" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled /></view>
-                            <u-datetime-picker :show="showDatetimePickeer" closeOnClickOverlay v-model="formData.birthdate" @confirm="onConfirmDate" mode="date"></u-datetime-picker>
+                            <view @click="onClickDatetime"><u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled /></view>
+                            <u-datetime-picker :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCloseDate" @cancel="onCloseDate" v-model="formData.birthdate" @confirm="onConfirmDate" @change="onChangeDatechange" mode="date"></u-datetime-picker>
                         </u-form-item>
                     </view>
 
                     <view class="input-group">
                         <text class="input-label">我是孩子的</text>
                         <u-form-item prop="relationship" :borderBottom="false">
-                            <view @click="onClickRelationship"><u--input v-model="formData.relationship" placeholder="请输入您和孩子的关系" border="false" :custom-style="inputStyle" disabled /></view>
-                            <u--picker :show="showRelationship" :columns="columns" @confirm="confirm"></u--picker>
+                            <view @click="onChooseRelationship"><u--input v-model="formData.relationship" placeholder="请输入您和孩子的关系" border="false" :custom-style="inputStyle" disabled /></view>
+                            <u--picker :show="showRelationship" :columns="columns" @confirm="onConfirmRelationship"></u--picker>
                         </u-form-item>
                     </view>
 
@@ -69,13 +69,16 @@ export default {
         return {
             show: false,  // 移动到顶层
             showRelationship: false,
-            showDatetimePickeer: false,
+            showDatetimePicker: false,
+            showDateStr: '',
             formData: {
                 role: "parent",
                 className: "小班三班",
                 childName: "",
                 mobile: "",
-                birthdate: ""
+                birthdate: Number(
+                    new Date(new Date().setFullYear(new Date().getFullYear() - 4))
+                )
             },
             role: [{
                 name: '家长',
@@ -146,12 +149,15 @@ export default {
     },
     // 修正handleSubmit中的逻辑
     methods: {
-        onClickRelationship() {
-            console.log('点击了关系');
+        onClickDatetime() {
+            this.showDatetimePicker = true;
+        },
+        onChooseRelationship() {
+            // console.log('点击了选择关系');
             this.showRelationship = true;
         },
-        confirm(e) {
-            console.log('选择了关系', e.value[0]);
+        onConfirmRelationship(e) {
+            // console.log('选择了关系', e.value[0]);
             this.showRelationship = false;
             this.formData.relationship = e.value[0];
         },
@@ -159,18 +165,35 @@ export default {
             console.log('radioChange', n);
         },
         onCloseDate() {
-
+            this.showDatetimePicker = false;
         },
         onCancelDate() {
         },
         onConfirmDate(e) {
+            console.log('onConfirmDate', e);
+            this.showDatetimePicker = false;
 
         },
         onChangeDatechange(e) {
-            // console.log('change', e)
+            console.log('change', e)
+            this.formData.birthdate = e.value;
         },
     },  // methods结束
     watch: {
+        // 这里需要监听formData的变化
+        formData: {
+            handler(newVal, oldVal) {
+                console.log('formData变化', newVal, oldVal);
+                // 需要检查birthdate是否有没有改动
+                if (newVal.birthdate !== oldVal.birthdate) {
+                    // 如果有改动，需要格式化日期，并更新showDateStr
+                    const date = new Date(newVal.birthdate);
+                    this.showDateStr = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+                    console.log('showDateStr', this.showDateStr);
+                }
+            },
+            deep: true
+        }
 
     },
     // 删除重复的methods声明块
