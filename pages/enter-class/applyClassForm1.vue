@@ -8,8 +8,8 @@
                 <view class="form-content">
                     <view class="input-group">
                         <text class="input-label">班级码</text>
-                        <u-form-item prop="nickname" :borderBottom="false">
-                            <u--input v-model="formData.code" placeholder="输入班级码" border="false" :custom-style="inputStyle" />
+                        <u-form-item prop="code" :borderBottom="false">
+                            <u--input v-model="formData.code" placeholder="输入班级码" border="false" :custom-style="inputStyle" @input="handleCodeInput" @blur="handleCodeBlur" />
                         </u-form-item>
                     </view>
                     <text class="help-link">*如何获得班级码？</text>
@@ -40,9 +40,10 @@ export default {
     // 在data中修正show定义位置
     data() {
         return {
-            show: false,  // 移动到顶层
+            show: false,
             formData: {
-                code: ''
+                role: '',      // 新增身份字段
+                code: ''       // 原有班级码字段
             },
             confirmInfo: [
                 {
@@ -89,6 +90,10 @@ export default {
     },
     // 修正handleSubmit中的逻辑
     methods: {
+        handleCodeInput(value) {
+            // 过滤非数字字符
+            this.formData.code = value.replace(/\D/g, '');
+        },
         async handleSubmit() {
             try {
                 const valid = await this.$refs.uForm.validate()
@@ -110,69 +115,17 @@ export default {
         },  // 注意这里需要逗号分隔
 
         async handleConfirm() {
-            uni.showLoading({ title: "提交中..." });
-            try {
-                const cacheData = uni.getStorageSync('classFormData') || {};
-                // 新增用户信息获取
-                const userInfo = uni.getStorageSync('uni-id-pages-userInfo') || {};
 
-                const postData = {
-                    grade: cacheData.grade,
-                    class: cacheData.class,
-                    nickname: this.formData.nickname,
-                    teacherName: this.formData.teacherName,
-                    section: cacheData.section || '小学',
-                    userId: userInfo._id // 添加用户ID字段
-                };
-
-                // 调用云函数
-                const { result } = await uniCloud.callFunction({
-                    name: 'wtdb-business-class-create',
-                    data: postData
-                });
-
-                if (result.code === 200) {
-                    // 第一步：缓存完整班级信息
-                    uni.setStorageSync('currentClass', {
-                        id: result.data.classId,
-                        code: result.data.classCode,
-                        grade: cacheData.grade,
-                        class: cacheData.class,
-                        nickname: this.formData.nickname
-                    });
-
-                    uni.showToast({
-                        title: `创建成功！班级码：${result.data.classCode}`,
-                        icon: "none",
-                        duration: 3000
-                    });
-                    uni.removeStorageSync('classFormData');
-                    setTimeout(() => {
-                        uni.reLaunch({
-                            url: "/pages/dashboard/teacher/teacher"
-                        });
-                    }, 1500);
-                } else {
-                    throw new Error(result.msg);
-                }
-            } catch (error) {
-                uni.showToast({
-                    title: `创建失败: ${error.errMsg || error.message}`,
-                    icon: "none"
-                });
-            } finally {
-                uni.hideLoading();
-            }
         },  // 注意这里需要逗号分隔
 
+
+
+        // 新增缓存更新方法
         updateLocalStorage() {
-            const cacheData = uni.getStorageSync('classFormData') || {};
-            const newData = {
-                ...cacheData,
-                nickname: this.formData.nickname,
-                teacherName: this.formData.teacherName
-            };
-            uni.setStorageSync('classFormData', newData);
+            uni.setStorageSync('formData', {
+                role: this.formData.role,
+                code: this.formData.code
+            });
         },
 
         handleHelp() {
@@ -182,23 +135,21 @@ export default {
         }
     },  // methods结束
     watch: {
-        'formData.nickname'(newVal) {
+        'formData.code'(newVal) {  // 新增code字段监听
             this.updateLocalStorage();
         },
-        'formData.teacherName'(newVal) {
-            this.updateLocalStorage();
-        }
     },
-    // 删除重复的methods声明块
-    onShow() {
-        const cacheData = uni.getStorageSync('classFormData');
-        if (cacheData) {
-            // 仅初始化本页字段
-            this.formData.className = `${cacheData.grade}${cacheData.class}班`;
-            this.formData.nickname = this.formData.className;
-            this.formData.teacherName = cacheData.teacherName || "";
+
+    // 在script部分添加onLoad生命周期
+    onLoad(options) {
+        // 接收身份参数并初始化表单
+        if (options.role) {
+            this.formData.role = options.role;
+            // 初始化本地缓存
+            uni.setStorageSync('formData', this.formData);
         }
-    }
+        console.log('初始化表单数据:', this.formData);
+    },
 }
 </script>
 

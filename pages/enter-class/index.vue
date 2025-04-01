@@ -36,7 +36,7 @@
         </view>
         <up-overlay :show="show">
             <view class="warp">
-                <modal-box-mcq :tips="tips" :confirmText="confirmText" :list="modalOptionsList" @cancel="show = false" @create="onConfirm" />
+                <modal-box-mcq :tips="tips" :confirmText="confirmText" :list="modalOptionsList" @cancel="show = false" @create="onConfirm($event)" /> <!-- 传递选中值 -->
             </view>
         </up-overlay>
 
@@ -76,35 +76,16 @@ export default {
         // this.checkLoginStatus();
     },
     methods: {
-        async onConfirm() {
+        async onConfirm(selectedRole) {
+            const role = selectedRole === 0 ? 'teacher' : 'parent';
             this.show = false;
             if (this.isJoinClass) {
                 try {
-                    const res = await uniCloud.callFunction({
-                        name: 'wtdb-business-class-enter',
-                        data: {
-                            code: '537264',
-                            role: 'teacher'
-                        }
+                    uni.navigateTo({
+                        url: `/pages/enter-class/applyClassForm1?role=${role}`
                     });
-
-                    if (res.result.code === 200 || res.result.code === 409) {
-                        // 统一处理成功和已存在的两种情况
-                        uni.showToast({ title: res.result.msg });
-                        const classData = res.result.data;
-                        uni.setStorageSync('currentClass', {
-                            ...classData
-                        });
-
-                        // 统一跳转逻辑
-                        uni.reLaunch({
-                            url: '/pages/dashboard/teacher/teacher'
-                        });
-                    } else {
-                        uni.showToast({ title: res.result.msg || '加入失败', icon: 'none' });
-                    }
                 } catch (e) {
-                    uni.showToast({ title: '请求失败，请重试', icon: 'none' });
+                    uni.showToast({ title: '跳转失败，请重试', icon: 'none' });
                 }
             } else {
                 uni.navigateTo({
