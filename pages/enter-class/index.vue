@@ -36,7 +36,7 @@
         </view>
         <up-overlay :show="show">
             <view class="warp">
-                <modal-box-mcq :confirmText="confirmText" :list="modalOptionsList" @cancel="show = false" @create="onConfirm" />
+                <modal-box-mcq :tips="tips" :confirmText="confirmText" :list="modalOptionsList" @cancel="show = false" @create="onConfirm" />
             </view>
         </up-overlay>
 
@@ -63,6 +63,7 @@ export default {
             xcxNameMarginTopStyle: '',
             show: false,
             modalOptionsList: ['我是老师'],
+            tips: '创建班级',
             confirmText: '立即创建',
             isJoinClass: false,
         }
@@ -140,6 +141,7 @@ export default {
             });
         },
         onClickButton(item) {
+            console.log(item);
             this.checkLoginStatus().then(async valid => { // 改为 async
                 if (valid) {
                     if (item === 0) {
@@ -159,6 +161,7 @@ export default {
                     }
                     if (item === 1) {
                         this.isJoinClass = true;
+                        this.tips = '加入班级';
                         this.modalOptionsList = ['我是老师', '我是家长'];
                         this.confirmText = "立即加入";
                     }

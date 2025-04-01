@@ -2,7 +2,7 @@
 <template>
     <view class="create-class-card">
         <view class="create-class-header">
-            <text class="header-text">创建班级</text>
+            <text class="header-text"> {{ tips }}</text>
         </view>
 
         <view class="options-list">
@@ -46,6 +46,10 @@ export default {
             type: String,
             default: "确定",
         },
+        tips: {
+            type: String,
+            default: "创建班级",
+        }
     },
     data() {
         return {
