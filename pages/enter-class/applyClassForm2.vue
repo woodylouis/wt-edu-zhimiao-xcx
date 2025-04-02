@@ -14,6 +14,7 @@
                         </u-radio-group>
                     </view>
                     <view v-if="formData.role === 'parent'">
+
                         <view class="input-group">
                             <text class="input-label">孩子称呼</text>
                             <u-form-item prop="childName" :borderBottom="false">
@@ -21,8 +22,16 @@
                             </u-form-item>
                         </view>
                         <view class="input-group">
+                            <text class="input-label">孩子性别</text>
+                            <u-form-item prop="gender" :borderBottom="false">
+                                <view @click="onChooseRelationship"><u--input v-model="formData.gender" placeholder="请选择孩子的性别" border="false" :custom-style="inputStyle" disabled /></view>
+                                <u--picker :show="showRelationship" :columns="genderColumns" @confirm="onConfirmRelationship"></u--picker>
+                            </u-form-item>
+                        </view>
+
+                        <view class="input-group">
                             <text class="input-label">出生年月</text>
-                            <u-form-item prop="childName" :borderBottom="false">
+                            <u-form-item prop="birthday" :borderBottom="false">
                                 <view @click="onClickDatetime"><u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled /></view>
                                 <u-datetime-picker v-model="formData.birthdate" :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCloseDate" @cancel="onCloseDate" @confirm="onConfirmDate" @change="onChangeDatechange" :minDate="minDate" :maxDate="maxDate" mode="date"></u-datetime-picker>
                             </u-form-item>
@@ -102,7 +111,9 @@ export default {
             {
                 name: '老师',
                 role: 'teacher'
-            },
+            }],
+            genderColumns: [
+                ['男孩', '女孩']
             ],
             columns: [
                 ['父亲', '母亲', '爷爷', '奶奶', '其他']
