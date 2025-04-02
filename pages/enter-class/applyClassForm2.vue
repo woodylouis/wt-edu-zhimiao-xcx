@@ -24,8 +24,10 @@
                         <view class="input-group">
                             <text class="input-label">孩子性别</text>
                             <u-form-item prop="gender" :borderBottom="false">
-                                <view @click="onChooseRelationship"><u--input v-model="formData.gender" placeholder="请选择孩子的性别" border="false" :custom-style="inputStyle" disabled /></view>
-                                <u--picker :show="showRelationship" :columns="genderColumns" @confirm="onConfirmRelationship"></u--picker>
+                                <view @click="onChooseGender"> <!-- 修改点击方法 -->
+                                    <u--input v-model="formData.gender" placeholder="请选择孩子的性别" border="false" :custom-style="inputStyle" disabled />
+                                </view>
+                                <u--picker :show="showGenderPicker" :columns="genderColumns" @confirm="onConfirmGender" @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker> <!-- 使用新状态和列数据 -->
                             </u-form-item>
                         </view>
 
@@ -41,7 +43,7 @@
                             <text class="input-label">我是孩子的</text>
                             <u-form-item prop="relationship" :borderBottom="false">
                                 <view @click="onChooseRelationship"><u--input v-model="formData.relationship" placeholder="请输入您和孩子的关系" border="false" :custom-style="inputStyle" disabled /></view>
-                                <u--picker :show="showRelationship" :columns="columns" @confirm="onConfirmRelationship"></u--picker>
+                                <u--picker :show="showRelationship" :columns="columns" @confirm="onConfirmRelationship" @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker>
                             </u-form-item>
                         </view>
                     </view>
@@ -86,7 +88,8 @@ export default {
     data() {
         return {
             show: false,  // 移动到顶层
-            showRelationship: false,
+            showRelationship: false,  // 重命名为关系选择器状态
+            showGenderPicker: false,   // 新增性别选择器状态
             showDatetimePicker: false,
             showDateStr: '',
             formData: {
@@ -178,9 +181,22 @@ export default {
         onClickDatetime() {
             this.showDatetimePicker = true;
         },
+        // 性别选择方法
+        onChooseGender() {
+            this.showGenderPicker = true;
+        },
         onChooseRelationship() {
             // console.log('点击了选择关系');
             this.showRelationship = true;
+        },
+        // 性别确认回调
+        onConfirmGender(e) {
+            this.showGenderPicker = false;
+            this.formData.gender = e.value[0];
+        },
+        onCancel() {
+            this.showRelationship = false;
+            this.showGenderPicker = false; // 关闭性别选择器
         },
         onConfirmRelationship(e) {
             // console.log('选择了关系', e.value[0]);
@@ -199,8 +215,6 @@ export default {
         onCloseDate() {
             this.showDatetimePicker = false;
         },
-        onCancelDate() {
-        },
         onConfirmDate(e) {
             console.log('onConfirmDate', e);
             this.showDatetimePicker = false;
@@ -211,10 +225,6 @@ export default {
             const month = String(date.getMonth() + 1).padStart(2, '0'); // 补零
             const day = String(date.getDate()).padStart(2, '0');       // 补零
             this.showDateStr = `${year}-${month}-${day}`;
-        },
-        onChangeDatechange(e) {
-            // 移除旧的赋值逻辑，避免重复更新
-            // this.formData.birthdate = e.value; 
         },
     },
 
@@ -282,6 +292,7 @@ export default {
     display: flex;
     flex-direction: column;
     gap: 24rpx;
+    margin-bottom: 10rpx;
 }
 
 .input-label {
