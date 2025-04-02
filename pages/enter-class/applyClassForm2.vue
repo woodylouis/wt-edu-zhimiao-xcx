@@ -13,28 +13,37 @@
                             <u-radio :customStyle="{ marginBottom: '8px' }" v-for="(item, index) in role" :key="index" :label="item.name" :name="item.role" @change="radioChange" />
                         </u-radio-group>
                     </view>
-                    <view class="input-group">
-                        <text class="input-label">孩子称呼</text>
-                        <u-form-item prop="childName" :borderBottom="false">
-                            <u--input placeholder="请输入孩子名称" border="false" :custom-style="inputStyle" />
-                        </u-form-item>
-                    </view>
-                    <view class="input-group">
-                        <text class="input-label">出生年月</text>
-                        <u-form-item prop="childName" :borderBottom="false">
-                            <view @click="onClickDatetime"><u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled /></view>
-                            <u-datetime-picker v-model="formData.birthdate" :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCloseDate" @cancel="onCloseDate" @confirm="onConfirmDate" @change="onChangeDatechange" :minDate="minDate" :maxDate="maxDate" mode="date"></u-datetime-picker>
-                        </u-form-item>
-                    </view>
+                    <view v-if="formData.role === 'parent'">
+                        <view class="input-group">
+                            <text class="input-label">孩子称呼</text>
+                            <u-form-item prop="childName" :borderBottom="false">
+                                <u--input placeholder="请输入孩子名称" border="false" :custom-style="inputStyle" />
+                            </u-form-item>
+                        </view>
+                        <view class="input-group">
+                            <text class="input-label">出生年月</text>
+                            <u-form-item prop="childName" :borderBottom="false">
+                                <view @click="onClickDatetime"><u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled /></view>
+                                <u-datetime-picker v-model="formData.birthdate" :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCloseDate" @cancel="onCloseDate" @confirm="onConfirmDate" @change="onChangeDatechange" :minDate="minDate" :maxDate="maxDate" mode="date"></u-datetime-picker>
+                            </u-form-item>
+                        </view>
 
-                    <view class="input-group">
-                        <text class="input-label">我是孩子的</text>
-                        <u-form-item prop="relationship" :borderBottom="false">
-                            <view @click="onChooseRelationship"><u--input v-model="formData.relationship" placeholder="请输入您和孩子的关系" border="false" :custom-style="inputStyle" disabled /></view>
-                            <u--picker :show="showRelationship" :columns="columns" @confirm="onConfirmRelationship"></u--picker>
-                        </u-form-item>
+                        <view class="input-group">
+                            <text class="input-label">我是孩子的</text>
+                            <u-form-item prop="relationship" :borderBottom="false">
+                                <view @click="onChooseRelationship"><u--input v-model="formData.relationship" placeholder="请输入您和孩子的关系" border="false" :custom-style="inputStyle" disabled /></view>
+                                <u--picker :show="showRelationship" :columns="columns" @confirm="onConfirmRelationship"></u--picker>
+                            </u-form-item>
+                        </view>
                     </view>
-
+                    <view v-if="formData.role === 'teacher'">
+                        <view class="input-group">
+                            <text class="input-label">我的姓名</text>
+                            <u-form-item prop="user_name" :borderBottom="false">
+                                <u--input placeholder="请输入姓名" border="false" :custom-style="inputStyle" />
+                            </u-form-item>
+                        </view>
+                    </view>
 
                     <view class="input-group">
                         <text class="input-label">我的手机号码</text>
