@@ -178,6 +178,12 @@ export default {
         },
         radioChange(n) {
             console.log('radioChange', n);
+            // 新增缓存更新逻辑
+            const cacheData = uni.getStorageSync('tempFormData') || {};
+            uni.setStorageSync('tempFormData', {
+                ...cacheData,
+                role: n // n 是当前选中的角色值
+            });
         },
         onCloseDate() {
             this.showDatetimePicker = false;
