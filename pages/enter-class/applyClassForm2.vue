@@ -17,15 +17,15 @@
 
                         <view class="input-group">
                             <text class="input-label">孩子称呼</text>
-                            <u-form-item prop="childName" :borderBottom="false">
-                                <u--input placeholder="请输入孩子名称" border="false" :custom-style="inputStyle" />
+                            <u-form-item prop="parentData.childName" :borderBottom="false">
+                                <u--input v-model="formData.parentData.childName" placeholder="请输入孩子名称" border="false" :custom-style="inputStyle" />
                             </u-form-item>
                         </view>
                         <view class="input-group">
                             <text class="input-label">孩子性别</text>
-                            <u-form-item prop="gender" :borderBottom="false">
+                            <u-form-item prop="parentData.gender" :borderBottom="false">
                                 <view @click="onChooseGender"> <!-- 修改点击方法 -->
-                                    <u--input v-model="formData.gender" placeholder="请选择孩子的性别" border="false" :custom-style="inputStyle" disabled />
+                                    <u--input v-model="formData.parentData.gender" placeholder="请选择孩子的性别" border="false" :custom-style="inputStyle" disabled />
                                 </view>
                                 <u--picker :show="showGenderPicker" :columns="genderColumns" @confirm="onConfirmGender" @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker> <!-- 使用新状态和列数据 -->
                             </u-form-item>
@@ -33,16 +33,16 @@
 
                         <view class="input-group">
                             <text class="input-label">出生年月</text>
-                            <u-form-item prop="birthday" :borderBottom="false">
+                            <u-form-item prop="formData.parentData.birthdate" :borderBottom="false">
                                 <view @click="onClickDatetime"><u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled /></view>
-                                <u-datetime-picker v-model="formData.birthdate" :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCloseDate" @cancel="onCloseDate" @confirm="onConfirmDate" @change="onChangeDatechange" :minDate="minDate" :maxDate="maxDate" mode="date"></u-datetime-picker>
+                                <u-datetime-picker v-model="formData.parentData.birthdate" :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCloseDate" @cancel="onCloseDate" @confirm="onConfirmDate" @change="onChangeDatechange" :minDate="minDate" :maxDate="maxDate" mode="date"></u-datetime-picker>
                             </u-form-item>
                         </view>
 
                         <view class="input-group">
                             <text class="input-label">我是孩子的</text>
-                            <u-form-item prop="relationship" :borderBottom="false">
-                                <view @click="onChooseRelationship"><u--input v-model="formData.relationship" placeholder="请输入您和孩子的关系" border="false" :custom-style="inputStyle" disabled /></view>
+                            <u-form-item prop="formData.parentData.relationship" :borderBottom="false">
+                                <view @click="onChooseRelationship"><u--input v-model="formData.parentData.relationship" placeholder="请输入您和孩子的关系" border="false" :custom-style="inputStyle" disabled /></view>
                                 <u--picker :show="showRelationship" :columns="columns" @confirm="onConfirmRelationship" @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker>
                             </u-form-item>
                         </view>
@@ -50,8 +50,8 @@
                     <view v-if="formData.role === 'teacher'">
                         <view class="input-group">
                             <text class="input-label">我的姓名</text>
-                            <u-form-item prop="user_name" :borderBottom="false">
-                                <u--input placeholder="请输入姓名" border="false" :custom-style="inputStyle" />
+                            <u-form-item prop="formData.teacherData.user_name" :borderBottom="false">
+                                <u--input v-model="formData.teacherData.user_name" placeholder="请输入姓名" border="false" :custom-style="inputStyle" />
                             </u-form-item>
                         </view>
                     </view>
@@ -95,11 +95,19 @@ export default {
             formData: {
                 role: "parent",
                 className: "小班三班",
-                childName: "",
+                // 公共字段
                 mobile: "",
-                birthdate: Number(
-                    new Date(new Date().setFullYear(new Date().getFullYear() - 4))
-                )
+                // 家长专属字段
+                parentData: {
+                    childName: "",
+                    gender: "",
+                    birthdate: Number(new Date().setFullYear(new Date().getFullYear() - 4)),
+                    relationship: ""
+                },
+                // 老师专属字段
+                teacherData: {
+                    user_name: ""
+                }
             },
             minDate: Number(
                 new Date(new Date().setFullYear(new Date().getFullYear() - 10))
@@ -192,24 +200,42 @@ export default {
         // 性别确认回调
         onConfirmGender(e) {
             this.showGenderPicker = false;
-            this.formData.gender = e.value[0];
+            this.formData.parentData.gender = e.value[0];
         },
         onCancel() {
             this.showRelationship = false;
             this.showGenderPicker = false; // 关闭性别选择器
         },
         onConfirmRelationship(e) {
-            // console.log('选择了关系', e.value[0]);
             this.showRelationship = false;
-            this.formData.relationship = e.value[0];
+            this.formData.parentData.relationship = e.value[0];
+            // 自动更新家长用户名
+            this.formData.parentData.user_name = `${this.formData.parentData.childName}${e.value[0]}`;
         },
         radioChange(n) {
-            console.log('radioChange', n);
-            // 新增缓存更新逻辑
+            // 保留已有数据
+            const oldData = { ...this.formData };
+
+            // 重置表单结构
+            this.formData = {
+                role: n,
+                className: oldData.className,
+                mobile: oldData.mobile,
+                parentData: n === 'parent' ? {
+                    ...oldData.parentData,
+                    // 自动生成家长user_name
+                    user_name: `${oldData.parentData.childName}${oldData.parentData.relationship}`
+                } : oldData.parentData,
+                teacherData: n === 'teacher' ? oldData.teacherData : { user_name: "" }
+            };
+
+            // 更新缓存
             const cacheData = uni.getStorageSync('tempFormData') || {};
             uni.setStorageSync('tempFormData', {
                 ...cacheData,
-                role: n // n 是当前选中的角色值
+                role: n,
+                // 保留所有数据
+                ...this.formData
             });
         },
         onCloseDate() {
@@ -219,8 +245,8 @@ export default {
             console.log('onConfirmDate', e);
             this.showDatetimePicker = false;
             // 新增：手动更新birthdate值
-            this.formData.birthdate = e.value;
-            const date = new Date(this.formData.birthdate);
+            this.formData.parentData.birthdate = e.value;
+            const date = new Date(this.formData.parentData.birthdate);
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0'); // 补零
             const day = String(date.getDate()).padStart(2, '0');       // 补零
@@ -242,7 +268,9 @@ export default {
         // 这里需要监听formData的变化
         formData: {
             handler(newVal, oldVal) {
-                // console.log('formData变化', newVal, oldVal);
+                console.log('formData变化, 新值', newVal);
+                console.log('formData变化, 旧值', oldVal);
+
                 // 需要检查birthdate是否有没有改动
                 if (newVal.birthdate !== oldVal.birthdate) {
                     // 修改日期格式化逻辑
@@ -255,7 +283,8 @@ export default {
                 }
             },
             deep: true
-        }
+        },
+
 
     },
     // 删除重复的methods声明块
