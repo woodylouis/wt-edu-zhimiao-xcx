@@ -41,9 +41,11 @@ export default {
     data() {
         return {
             show: false,
-            formData: {
-                role: '',      // 新增身份字段
-                code: ''       // 原有班级码字段
+            formData: {  // 增加classInfo字段定义
+                role: '',
+                code: '',
+                nickname: '',
+                classInfo: null  // 初始化班级信息字段
             },
             confirmInfo: [
                 {
@@ -112,8 +114,11 @@ export default {
                         data: { code: this.formData.code }
                     });
 
+                    // 统一更新班级信息
+                    this.formData.nickname = result.data.nickname
+                    this.formData.classInfo = result.code === 200 ? result.data : null
+
                     if (result.code === 200) {
-                        // 显示查询到的班级信息
                         this.show = true;
                         this.confirmInfo = [
                             { label: "您正在申请加入：", name: result.data.nickname },
@@ -147,9 +152,11 @@ export default {
 
         // 新增缓存更新方法
         updateLocalStorage() {
-            uni.setStorageSync('formData', {
+            uni.setStorageSync('tempFormData', {
                 role: this.formData.role,
-                code: this.formData.code
+                code: this.formData.code,
+                nickname: this.formData.nickname || '',  // 新增nickname存储
+                classInfo: this.formData.classInfo || null
             });
         },
 
@@ -167,11 +174,17 @@ export default {
 
     // 在script部分添加onLoad生命周期
     onLoad(options) {
-        // 接收身份参数并初始化表单
+        const cacheData = uni.getStorageSync('tempFormData') || {};
+        this.formData = {
+            role: '',
+            code: '',
+            nickname: '',
+            classInfo: null,
+            ...cacheData // 现在会合并nickname字段
+        };
+
         if (options.role) {
             this.formData.role = options.role;
-            // 初始化本地缓存
-            uni.setStorageSync('formData', this.formData);
         }
         console.log('初始化表单数据:', this.formData);
     },
