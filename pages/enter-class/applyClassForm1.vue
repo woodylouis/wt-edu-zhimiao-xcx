@@ -1,7 +1,7 @@
 <template>
     <view class="growth-assessment">
         <u-sticky>
-            <custom-nav :xcxName="'申请加入'" :needBack="true" />
+            <custom-nav :xcxName="'申请加入'" :needBack="true" :backHandler="handleNavBack" />
         </u-sticky>
         <view class="form-container">
             <u--form :model="formData" :rules="rules" ref="uForm" errorType="message" :borderBottom="false">
@@ -92,6 +92,12 @@ export default {
     },
     // 修正handleSubmit中的逻辑
     methods: {
+        handleNavBack() {
+            uni.navigateBack({
+                delta: 1
+            });
+            uni.removeStorageSync('tempFormData');
+        },
         handleCodeInput(value) {
             // 过滤非数字字符
             this.formData.code = value.replace(/\D/g, '');
