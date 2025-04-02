@@ -1,7 +1,7 @@
 <template>
     <view class="growth-assessment">
         <u-sticky>
-            <custom-nav :needBack="true" />
+            <custom-nav :needBack="true" :xcxName="'申请加入'" />
         </u-sticky>
         <view class="form-container">
             <view class="form-description">您正在加入<span style="font-weight: bold;">【{{ formData.className }}】</span>，请填写以下信息</view>
@@ -190,6 +190,17 @@ export default {
             // 移除旧的赋值逻辑，避免重复更新
             // this.formData.birthdate = e.value; 
         },
+    },
+
+    onLoad() {
+        // 新增缓存读取逻辑
+        const cacheData = uni.getStorageSync('tempFormData') || {};
+        console.log('缓存数据', cacheData);
+        this.formData = {
+            ...this.formData,
+            className: cacheData.nickname || '',  // 将nickname映射为className
+            role: cacheData.role || 'parent'      // 初始化身份选项
+        };
     },  // methods结束
     watch: {
         // 这里需要监听formData的变化
