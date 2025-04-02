@@ -9,7 +9,7 @@
                     <view class="input-group">
                         <text class="input-label">班级码</text>
                         <u-form-item prop="code" :borderBottom="false">
-                            <u--input v-model="formData.code" placeholder="输入班级码" border="false" :custom-style="inputStyle" @input="handleCodeInput" @blur="handleCodeBlur" />
+                            <u--input v-model="formData.code" placeholder="输入班级码" border="false" :custom-style="inputStyle" type="number" @blur="handleCodeBlur" />
                         </u-form-item>
                     </view>
                     <text class="help-link">*如何获得班级码？</text>
@@ -94,15 +94,40 @@ export default {
             // 过滤非数字字符
             this.formData.code = value.replace(/\D/g, '');
         },
+        // Add this method
+        handleCodeBlur(e) {
+            const filtered = e.value.replace(/\D/g, '')
+            this.formData.code = filtered
+            this.$forceUpdate()
+        },
+
+        // Remove the handleCodeInput method and @input binding
         async handleSubmit() {
             try {
                 const valid = await this.$refs.uForm.validate()
                 if (valid) {
-                    this.updateLocalStorage()
-                    // 添加强制更新确保DOM刷新
-                    this.$nextTick(() => {
-                        this.show = true
-                    })
+                    // 调用云函数查询班级
+                    const { result } = await uniCloud.callFunction({
+                        name: 'wtdb-business-class-detail',
+                        data: { code: this.formData.code }
+                    });
+
+                    if (result.code === 200) {
+                        // 显示查询到的班级信息
+                        this.show = true;
+                        this.confirmInfo = [
+                            { label: "您正在申请加入：", name: result.data.nickname },
+                            { label: "班级码：", name: result.data.code },
+                            { label: "创建者：", name: `${result.data.teacherName} 老师` }
+                        ];
+                    } else {
+                        uni.showToast({
+                            title: result.msg,
+                            icon: "none"
+                        });
+                    }
+
+                    this.updateLocalStorage();
                 }
             } catch (error) {
                 // 处理数组类型的错误对象
