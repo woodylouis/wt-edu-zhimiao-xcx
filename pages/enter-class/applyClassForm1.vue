@@ -145,8 +145,12 @@ export default {
         },  // 注意这里需要逗号分隔
 
         async handleConfirm() {
-
-        },  // 注意这里需要逗号分隔
+            // 新增跳转逻辑
+            uni.navigateTo({
+                url: `/pages/enter-class/applyClassForm2`
+            });
+            this.show = false;
+        },
 
 
 
