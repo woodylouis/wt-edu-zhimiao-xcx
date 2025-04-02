@@ -108,11 +108,16 @@ export default {
             try {
                 const valid = await this.$refs.uForm.validate()
                 if (valid) {
-                    // 调用云函数查询班级
+                    // 添加加载提示
+                    uni.showLoading({ title: '查询中...', mask: true });
+
                     const { result } = await uniCloud.callFunction({
                         name: 'wtdb-business-class-detail',
                         data: { code: this.formData.code }
                     });
+
+                    // 关闭加载提示
+                    uni.hideLoading();
 
                     // 统一更新班级信息
                     this.formData.nickname = result.data.nickname
