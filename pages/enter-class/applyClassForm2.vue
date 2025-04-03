@@ -32,7 +32,7 @@
 
                         <view class="input-group">
                             <text class="input-label">出生年月</text>
-                            <u-form-item prop="parentData.birthdate" :borderBottom="false">
+                            <u-form-item :borderBottom="false">
                                 <view @click="onClickDatetime">
                                     <u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled clearable />
                                 </view>
@@ -167,13 +167,6 @@ export default {
                         trigger: ["change", "blur"],
                     }
                 ],
-                // 'parentData.birthdate': [
-                //     {
-                //         required: true,
-                //         message: "请选择出生年月",
-                //         trigger: ["blur"],
-                //     }
-                // ],
                 'parentData.relationship': [
                     {
                         required: true,
@@ -318,7 +311,6 @@ export default {
             this.showDatetimePicker = false;
             this.showGenderPicker = false; // 关闭性别选择器
             this.$refs.uForm.validateField('parentData.gender');
-            this.$refs.uForm.validateField('parentData.birthdate');
             this.$refs.uForm.validateField('parentData.relationship');
         },
         onConfirmRelationship(e) {
@@ -366,8 +358,6 @@ export default {
         onConfirmDate(e) {
             this.showDatetimePicker = false;
             this.formData.parentData.birthdate = e.value;
-            this.$refs.uForm.validateField('parentData.birthdate');
-            console.log('onConfirmDate', this.formData.parentData.birthdate);
             const date = new Date(this.formData.parentData.birthdate);
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -378,7 +368,6 @@ export default {
         onChangeDatechange(e) {
             console.log('onChangeDatechange', e);
             this.formData.parentData.birthdate = e.value;
-            this.$refs.uForm.validateField('parentData.birthdate');
         },
     },
 
