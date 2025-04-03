@@ -214,7 +214,13 @@ export default {
         },
         radioChange(n) {
             // 保留已有数据
-            const oldData = { ...this.formData };
+            const currentData = this.formData;
+            const oldData = {
+                ...currentData,
+                teacherData: currentData.role === 'teacher'
+                    ? currentData.teacherData
+                    : this.formData.teacherData
+            };
 
             // 重置表单结构
             this.formData = {
@@ -223,10 +229,11 @@ export default {
                 mobile: oldData.mobile,
                 parentData: n === 'parent' ? {
                     ...oldData.parentData,
-                    // 自动生成家长user_name
                     user_name: `${oldData.parentData.childName}${oldData.parentData.relationship}`
                 } : oldData.parentData,
-                teacherData: n === 'teacher' ? oldData.teacherData : { user_name: "" }
+                teacherData: n === 'teacher'
+                    ? { ...oldData.teacherData }
+                    : currentData.teacherData  // 使用当前老师数据
             };
 
             // 更新缓存
