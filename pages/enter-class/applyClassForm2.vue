@@ -14,11 +14,10 @@
                         </u-radio-group>
                     </view>
                     <view v-if="formData.role === 'parent'">
-
                         <view class="input-group">
                             <text class="input-label">孩子称呼</text>
                             <u-form-item prop="parentData.childName" :borderBottom="false">
-                                <u--input v-model="formData.parentData.childName" placeholder="请输入孩子的真实名字" border="false" :custom-style="inputStyle" />
+                                <u--input v-model="formData.parentData.childName" placeholder="请输入孩子的真实名字" border="false" :custom-style="inputStyle" clearable />
                             </u-form-item>
                         </view>
                         <view class="input-group">
@@ -33,15 +32,15 @@
 
                         <view class="input-group">
                             <text class="input-label">出生年月</text>
-                            <u-form-item prop="formData.parentData.birthdate" :borderBottom="false">
+                            <u-form-item prop="parentData.birthdate" :borderBottom="false">
                                 <view @click="onClickDatetime"><u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled /></view>
-                                <u-datetime-picker v-model="formData.parentData.birthdate" :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCloseDate" @cancel="onCloseDate" @confirm="onConfirmDate" @change="onChangeDatechange" :minDate="minDate" :maxDate="maxDate" mode="date"></u-datetime-picker>
+                                <u-datetime-picker v-model="formData.parentData.birthdate" :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCancel" @cancel="onCancel" @confirm="onConfirmDate" @change="onChangeDatechange" :minDate="minDate" :maxDate="maxDate" mode="date"></u-datetime-picker>
                             </u-form-item>
                         </view>
 
                         <view class="input-group">
                             <text class="input-label">我是孩子的</text>
-                            <u-form-item prop="formData.parentData.relationship" :borderBottom="false">
+                            <u-form-item prop="parentData.relationship" :borderBottom="false">
                                 <view @click="onChooseRelationship"><u--input v-model="formData.parentData.relationship" placeholder="请输入您和孩子的关系" border="false" :custom-style="inputStyle" disabled /></view>
                                 <u--picker :show="showRelationship" :columns="columns" @confirm="onConfirmRelationship" @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker>
                             </u-form-item>
@@ -50,7 +49,7 @@
                     <view v-if="formData.role === 'teacher'">
                         <view class="input-group">
                             <text class="input-label">我的姓名</text>
-                            <u-form-item prop="formData.teacherData.user_name" :borderBottom="false">
+                            <u-form-item prop="teacherData.user_name" :borderBottom="false">
                                 <u--input v-model="formData.teacherData.user_name" placeholder="请输入姓名" border="false" :custom-style="inputStyle" />
                             </u-form-item>
                         </view>
@@ -58,7 +57,7 @@
 
                     <view class="input-group">
                         <text class="input-label">我的手机号码</text>
-                        <u-form-item prop="mobile" :borderBottom="false" @click="bindMobile">
+                        <u-form-item prop="formData.mobile" :borderBottom="false" @click="bindMobile">
                             <u--input v-model="userInfo.mobile" placeholder="绑定手机号码" border="false" :custom-style="inputStyle" disabled />
                         </u-form-item>
                     </view>
@@ -142,20 +141,40 @@ export default {
                 ['父亲', '母亲', '爷爷', '奶奶', '其他']
             ],
             rules: {
-                childName: [
+                'parentData.childName': [
                     {
                         required: true,
                         message: "请输入孩子名字",
                         trigger: ["change", "blur"],
                     },
                     {
-                        min: 2,
+                        min: 1,
                         max: 10,
-                        message: "姓名长度在2-10个字符之间",
+                        message: "姓名长度在1-10个字符之间",
                         trigger: ["change", "blur"],
                     },
+                    {
+                        pattern: /^(?!.*(老师|小朋友|儿童|学生)).+$/,
+                        message: "姓名不能包含老师、小朋友、儿童、学生等词语",
+                        trigger: ["change", "blur"],
+                    }
                 ],
-                relationship: [
+                // 新增性别和生日的必填规则
+                'parentData.gender': [
+                    {
+                        required: true,
+                        message: "请选择孩子性别",
+                        trigger: ["change", "blur"],
+                    }
+                ],
+                'parentData.birthdate': [
+                    {
+                        required: true,
+                        message: "请选择出生年月",
+                        trigger: ["change", "blur"],
+                    }
+                ],
+                'parentData.relationship': [
                     {
                         required: true,
                         message: "请输入你和孩子的关系",
@@ -165,7 +184,7 @@ export default {
                 mobile: [
                     {
                         required: true,
-                        message: "请输入你的手机号码",
+                        message: "请绑定你的手机号码",
                         trigger: ["change", "blur"],
                     },
                     {
@@ -212,17 +231,39 @@ export default {
     },
     // 修正handleSubmit中的逻辑
     methods: {
+        handleCodeBlur(e) {
+            console.log('handleCodeBlur', e);
+            this.$forceUpdate()
+        },
         handleSubmit() {
-            this.show = true;
+            // 校验是否已填写
+
+            // this.show = true;
             if (this.formData.role === 'parent') {
-                this.confirmInfo = [
-                    { label: "您正在申请加入：", name: this.formData.className },
-                    { label: "孩子称呼：", name: this.formData.parentData.childName },
-                    { label: "孩子性别：", name: this.formData.parentData.gender },
-                    { label: "出生年月：", name: this.showDateStr },
-                    { label: "我是孩子的：", name: this.formData.parentData.relationship },
-                    { label: "我的手机号码：", name: this.userInfo.mobile }
-                ];
+                // 校验
+                console.log('formData', this.formData.role);
+                this.$refs.uForm.validate((valid) => {
+                    if (valid) {
+                        console.log('表单数据校验', valid);
+                        // this.show = true;
+                        this.confirmInfo = [
+                            { label: "您正在申请加入：", name: this.formData.className },
+                            { label: "孩子称呼：", name: this.formData.parentData.childName },
+                            { label: "孩子性别：", name: this.formData.parentData.gender },
+                            { label: "出生年月：", name: this.showDateStr },
+                            { label: "我是孩子的：", name: this.formData.parentData.relationship },
+                            // 修正手机号绑定
+                            { label: "我的手机号码：", name: this.formData.mobile }
+                        ];
+                    } else {
+                        console.log('表单数据校验', valid);
+                        uni.showToast({
+                            title: '请完善家长信息',
+                            icon: 'none'
+                        });
+                    }
+                });
+
             } else if (this.formData.role === 'teacher') {
                 this.confirmInfo = [
                     { label: "您正在申请加入：", name: this.formData.className },
@@ -268,16 +309,22 @@ export default {
         onConfirmGender(e) {
             this.showGenderPicker = false;
             this.formData.parentData.gender = e.value[0];
+            // 新增性别字段验证触发
+            this.$refs.uForm.validateField('parentData.gender');
         },
         onCancel() {
             this.showRelationship = false;
+            this.showDatetimePicker = false;
             this.showGenderPicker = false; // 关闭性别选择器
+            this.$refs.uForm.validateField('parentData.gender');
+            this.$refs.uForm.validateField('parentData.birthdate');
+            this.$refs.uForm.validateField('parentData.relationship');
         },
         onConfirmRelationship(e) {
             this.showRelationship = false;
             this.formData.parentData.relationship = e.value[0];
-            // 自动更新家长用户名
-            this.formData.parentData.user_name = `${this.formData.parentData.childName}${e.value[0]}`;
+            // 添加关系字段验证触发
+            this.$refs.uForm.validateField('parentData.relationship');
         },
         radioChange(n) {
             // 保留已有数据
@@ -312,9 +359,9 @@ export default {
                 ...this.formData
             });
         },
-        onCloseDate() {
-            this.showDatetimePicker = false;
-        },
+        // onCloseDate() {
+        //     this.showDatetimePicker = false;
+        // },
         onConfirmDate(e) {
             console.log('onConfirmDate', e);
             this.showDatetimePicker = false;
@@ -361,10 +408,10 @@ export default {
 
 
     },
-    // 删除重复的methods声明块
-    onShow() {
-
-    }
+    onReady() {
+        //如果需要兼容微信小程序，并且校验规则中含有方法等，只能通过setRules方法设置规则。
+        this.$refs.uForm.setRules(this.rules)
+    },
 }
 </script>
 
