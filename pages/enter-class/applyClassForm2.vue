@@ -142,6 +142,24 @@ export default {
                 ['父亲', '母亲', '爷爷', '奶奶', '其他']
             ],
             rules: {
+                'teacherData.user_name': [
+                    {
+                        required: true,
+                        message: "请输入您的名字",
+                        trigger: ["change", "blur"],
+                    },
+                    {
+                        min: 1,
+                        max: 10,
+                        message: "姓名长度在1-10个字符之间",
+                        trigger: ["change", "blur"],
+                    },
+                    {
+                        pattern: /^(?!.*(老师|小朋友|儿童|学生)).+$/,
+                        message: "姓名不能包含老师、小朋友、儿童、学生等词语",
+                        trigger: ["change", "blur"],
+                    }
+                ],
                 'parentData.childName': [
                     {
                         required: true,
@@ -229,15 +247,14 @@ export default {
             console.log('handleCodeBlur', e);
             this.$forceUpdate()
         },
-        handleSubmit() {
-            // 校验是否已填写
-            // this.show = true;
+        async handleSubmit() {
             if (this.formData.role === 'parent') {
                 console.log('parent');
                 // 校验
-                this.$refs.uForm.validate((valid) => {
+                try {
+                    const valid = await this.$refs.uForm.validate()
                     if (valid) {
-                        console.log('表单数据校验', valid);
+                        console.log('表单数据校验 parent', valid);
                         // this.show = true;
                         this.confirmInfo = [
                             { label: "您正在申请加入：", name: this.formData.className },
@@ -248,20 +265,34 @@ export default {
                             // 修正手机号绑定
                             { label: "我的手机号码：", name: this.formData.mobile }
                         ];
-                    } else {
-                        uni.showToast({
-                            title: '请完善家长信息',
-                            icon: 'none'
-                        });
                     }
-                });
-
+                } catch (error) {
+                    // 处理数组类型的错误对象
+                    uni.showToast({
+                        title: `请输入必要的信息`,
+                        icon: "none"
+                    })
+                }
             } else if (this.formData.role === 'teacher') {
-                this.confirmInfo = [
-                    { label: "您正在申请加入：", name: this.formData.className },
-                    { label: "我的姓名：", name: `${this.formData.teacherData.user_name}` },
-                    { label: "我的手机号码：", name: this.userInfo.mobile }
-                ];
+                try {
+                    const valid = await this.$refs.uForm.validate()
+                    if (valid) {
+                        console.log('表单数据校验 teacher', valid);
+                        // this.show = true;
+                        this.confirmInfo = [
+                            { label: "您正在申请加入：", name: this.formData.className },
+                            { label: "我的姓名：", name: `${this.formData.teacherData.user_name}` },
+                            { label: "我的手机号码：", name: this.userInfo.mobile }
+                        ];
+                    }
+                } catch (error) {
+                    // 处理数组类型的错误对象
+                    uni.showToast({
+                        title: `请输入必要的信息`,
+                        icon: "none"
+                    })
+                }
+
             }
 
         },
