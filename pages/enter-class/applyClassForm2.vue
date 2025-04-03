@@ -57,8 +57,8 @@
 
                     <view class="input-group">
                         <text class="input-label">我的手机号码</text>
-                        <u-form-item prop="formData.mobile" :borderBottom="false" @click="bindMobile">
-                            <u--input v-model="userInfo.mobile" placeholder="绑定手机号码" border="false" :custom-style="inputStyle" disabled />
+                        <u-form-item prop="mobile" :borderBottom="false" @click="bindMobile">
+                            <u--input v-model="formData.mobile" placeholder="绑定手机号码" border="false" :custom-style="inputStyle" disabled />
                         </u-form-item>
                     </view>
 
@@ -159,7 +159,6 @@ export default {
                         trigger: ["change", "blur"],
                     }
                 ],
-                // 新增性别和生日的必填规则
                 'parentData.gender': [
                     {
                         required: true,
@@ -231,6 +230,10 @@ export default {
     },
     // 修正handleSubmit中的逻辑
     methods: {
+        onChangeDatechange(e) {
+            this.formData.parentData.birthdate = e.value;
+            this.$refs.uForm.validateField('parentData.birthdate');
+        },
         handleCodeBlur(e) {
             console.log('handleCodeBlur', e);
             this.$forceUpdate()
@@ -241,7 +244,6 @@ export default {
             // this.show = true;
             if (this.formData.role === 'parent') {
                 // 校验
-                console.log('formData', this.formData.role);
                 this.$refs.uForm.validate((valid) => {
                     if (valid) {
                         console.log('表单数据校验', valid);
@@ -256,7 +258,6 @@ export default {
                             { label: "我的手机号码：", name: this.formData.mobile }
                         ];
                     } else {
-                        console.log('表单数据校验', valid);
                         uni.showToast({
                             title: '请完善家长信息',
                             icon: 'none'
@@ -276,10 +277,12 @@ export default {
         bindMobile() {
             //#ifdef MP-WEIXIN
             this.$refs['bind-mobile-by-sms'].open()
+            this.$refs.uForm.validateField('mobile');
             // #endif
         },
         bindMobileSuccess() {
             mutations.updateUserInfo()
+            this.$refs.uForm.validateField('mobile');
         },
         handleNavBack() {
             // 需要提示如果返回需要重填
@@ -363,15 +366,17 @@ export default {
         //     this.showDatetimePicker = false;
         // },
         onConfirmDate(e) {
-            console.log('onConfirmDate', e);
             this.showDatetimePicker = false;
-            // 新增：手动更新birthdate值
             this.formData.parentData.birthdate = e.value;
+            console.log('onConfirmDate', this.formData.parentData.birthdate);
             const date = new Date(this.formData.parentData.birthdate);
             const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0'); // 补零
-            const day = String(date.getDate()).padStart(2, '0');       // 补零
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
             this.showDateStr = `${year}-${month}-${day}`;
+            // 新增验证触发
+            this.$refs.uForm.validateField('parentData.birthdate');
+
         },
     },
 
@@ -389,9 +394,6 @@ export default {
         // 这里需要监听formData的变化
         formData: {
             handler(newVal, oldVal) {
-                console.log('formData变化, 新值', newVal);
-                console.log('formData变化, 旧值', oldVal);
-
                 // 需要检查birthdate是否有没有改动
                 if (newVal.birthdate !== oldVal.birthdate) {
                     // 修改日期格式化逻辑
@@ -405,8 +407,15 @@ export default {
             },
             deep: true
         },
-
-
+        userInfo: {
+            handler(newVal) {
+                if (newVal.mobile) {
+                    this.formData.mobile = newVal.mobile
+                }
+            },
+            immediate: true,
+            deep: true
+        }
     },
     onReady() {
         //如果需要兼容微信小程序，并且校验规则中含有方法等，只能通过setRules方法设置规则。
