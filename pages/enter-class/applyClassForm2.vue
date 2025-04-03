@@ -1,7 +1,7 @@
 <template>
     <view class="growth-assessment">
         <u-sticky>
-            <custom-nav :needBack="true" :xcxName="'申请加入'" />
+            <custom-nav :needBack="true" :xcxName="'申请加入'" :backHandler="handleNavBack" />
         </u-sticky>
         <view class="form-container">
             <view class="form-description">您正在加入<span style="font-weight: bold;">【{{ formData.className }}】</span>，请填写以下信息</view>
@@ -186,6 +186,19 @@ export default {
     },
     // 修正handleSubmit中的逻辑
     methods: {
+        handleNavBack() {
+            // 需要提示如果返回需要重填
+            uni.showModal({
+                title: '您确定要返回吗？',
+                content: '返回后需要重新填写信息。',
+                success: (res) => {
+                    if (res.confirm) {
+                        uni.navigateBack();
+                    }
+                }
+            });
+
+        },
         onClickDatetime() {
             this.showDatetimePicker = true;
         },
