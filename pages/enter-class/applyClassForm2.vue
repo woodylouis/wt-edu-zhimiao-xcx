@@ -248,6 +248,8 @@ export default {
             this.$forceUpdate()
         },
         async handleSubmit() {
+            const classId = uni.getStorageSync('tempFormData').classInfo._id;
+            const classCode = uni.getStorageSync('tempFormData').code;
             if (this.formData.role === 'parent') {
                 console.log('parent');
                 // 校验
@@ -266,30 +268,64 @@ export default {
                             { label: "我的手机号码：", name: this.formData.mobile }
                         ];
                         // 这里需要构建提交到wtdb-business-children.schema.json的数据
+
                         const submitChildrenData = {
-                            class_id: uni.getStorageSync('tempFormData').classInfo._id,
+                            class_id: classId,
                             child_name: this.formData.parentData.childName,
                             gender: this.formData.parentData.gender,
                             birthdate: this.formData.parentData.birthdate,
                             avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
                         }
-                        const submitClassMemberData = {
-                            class_id: uni.getStorageSync('tempFormData').classInfo._id,
-                            user_id: this.userInfo._id,
-                            // child_id: submitChildrenData._id, // 需要从submitChildrenData中获取
-                            role: this.formData.role,
-                            nickname: this.formData.parentData.childName + this.formData.parentData.relationship, // 这里需要
-                            relationship: this.formData.parentData.relationship,
-                        }
-                        console.log("formData", this.formData.parentData);
                         console.log('提交到wtdb-business-children.schema.json的数据', submitChildrenData);
-                        console.log('提交到wtdb-business-class-member.schema.json的数据', submitClassMemberData);
+
+                        // 先创建学生
+                        const childrenRes = await uniCloud.callFunction({
+                            name: 'wtdb-business-children-edit',
+                            data: {
+                                submitChildrenData: submitChildrenData,
+                            }
+                        });
+
+                        // 得到学生id后加入班级
+                        if (childrenRes.result.code === 200) {
+                            console.log('childrenRes', childrenRes);
+                            const submitClassMemberData = {
+                                class_id: classId,
+                                child_id: childrenRes.result.data.child_id, // 需要从submitChildrenData中获取
+                                role: this.formData.role,
+                                nickname: this.formData.parentData.childName + this.formData.parentData.relationship, // 这里需要
+                                relationship: this.formData.parentData.relationship,
+                                code: classCode,
+                            }
+                            console.log('提交到wtdb-business-class-member.schema.json的数据', submitClassMemberData);
+                            // 新增云函数调用
+                            const memberRes = await uniCloud.callFunction({
+                                name: 'wtdb-business-class-enter',
+                                data: {
+                                    ...submitClassMemberData
+                                }
+                            });
+                            if (memberRes.result.code === 200) {
+                                this.show = true;
+                                uni.showToast({
+                                    title: '加入班级成功',
+                                    icon: 'none'
+                                });
+                            } else {
+                                uni.showToast({
+                                    title: memberRes.result.msg || '加入班级失败',  // 使用云函数返回的错误信息
+                                    icon: 'none'
+                                });
+                            }
+                        }
+
 
                     }
                 } catch (error) {
                     // 处理数组类型的错误对象
+                    console.log('error', error);
                     uni.showToast({
-                        title: `请输入必要的信息`,
+                        title: `请输入必要的信息1`,
                         icon: "none"
                     })
                 }
@@ -308,7 +344,7 @@ export default {
                 } catch (error) {
                     // 处理数组类型的错误对象
                     uni.showToast({
-                        title: `请输入必要的信息`,
+                        title: `请输入必要的信息2`,
                         icon: "none"
                     })
                 }
@@ -428,8 +464,10 @@ export default {
         this.formData = {
             ...this.formData,
             className: cacheData.nickname || '',
+            class_id: cacheData.classInfo._id,
             role: cacheData.role || 'parent'
         };
+        console.log('初始化表单数据:', this.formData);
 
         // 新增：初始化时立即格式化日期
         const initDate = new Date(this.formData.parentData.birthdate);

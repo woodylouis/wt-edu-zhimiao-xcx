@@ -8,9 +8,9 @@ const uniID = require('uni-id-common')
 exports.main = async (event, context) => {
 	const uniIdInstance = uniID.createInstance({ context });
 	// 参数改为接收code
-	const { code, role = 'teacher' } = event;
+	const { code } = event;
 	const { uid } = await uniIdInstance.checkToken(event.uniIdToken);
-
+	console.log('uid:', uid); // 打印uid以确认是否正确获取到uid
 	// 参数校验code
 	if (!code) {
 		return { code: 400, msg: '班级邀请码不能为空' };
@@ -35,12 +35,9 @@ exports.main = async (event, context) => {
 		}
 
 		// 插入成员表
-		const insertRes = await memberCollection.add({
-			class_id: classId,
-			user_id: uid,
-			role: role,
-			join_time: Date.now()
-		});
+		const insertRes = await memberCollection.add(
+			{ ...event, user_id: uid }
+		);
 
 		return insertRes.id ?
 			{ code: 200, msg: '加入成功', data: classRes.data[0] } :
