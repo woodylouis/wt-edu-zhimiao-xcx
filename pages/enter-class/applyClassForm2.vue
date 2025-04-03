@@ -139,7 +139,7 @@ export default {
                 ['男孩', '女孩']
             ],
             columns: [
-                ['父亲', '母亲', '爷爷', '奶奶', '其他']
+                ['爸爸', '妈妈', '爷爷', '奶奶', '其他']
             ],
             rules: {
                 'teacherData.user_name': [
@@ -265,6 +265,26 @@ export default {
                             // 修正手机号绑定
                             { label: "我的手机号码：", name: this.formData.mobile }
                         ];
+                        // 这里需要构建提交到wtdb-business-children.schema.json的数据
+                        const submitChildrenData = {
+                            class_id: uni.getStorageSync('tempFormData').classInfo._id,
+                            child_name: this.formData.parentData.childName,
+                            gender: this.formData.parentData.gender,
+                            birthdate: this.formData.parentData.birthdate,
+                            avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+                        }
+                        const submitClassMemberData = {
+                            class_id: uni.getStorageSync('tempFormData').classInfo._id,
+                            user_id: this.userInfo._id,
+                            // child_id: submitChildrenData._id, // 需要从submitChildrenData中获取
+                            role: this.formData.role,
+                            nickname: this.formData.parentData.childName + this.formData.parentData.relationship, // 这里需要
+                            relationship: this.formData.parentData.relationship,
+                        }
+                        console.log("formData", this.formData.parentData);
+                        console.log('提交到wtdb-business-children.schema.json的数据', submitChildrenData);
+                        console.log('提交到wtdb-business-class-member.schema.json的数据', submitClassMemberData);
+
                     }
                 } catch (error) {
                     // 处理数组类型的错误对象
