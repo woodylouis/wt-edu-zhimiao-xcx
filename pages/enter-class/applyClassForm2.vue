@@ -58,8 +58,8 @@
 
                     <view class="input-group">
                         <text class="input-label">我的手机号码</text>
-                        <u-form-item prop="mobile" :borderBottom="false">
-                            <u--input v-model="formData.mobile" placeholder="请输入手机号码" border="false" :custom-style="inputStyle" />
+                        <u-form-item prop="mobile" :borderBottom="false" @click="bindMobile">
+                            <u--input v-model="userInfo.mobile" placeholder="绑定手机号码" border="false" :custom-style="inputStyle" disabled />
                         </u-form-item>
                     </view>
 
@@ -74,13 +74,24 @@
                 <modal-box v-if="show" :className="formData.className" :nickname="formData.nickname" :teacherName="formData.teacherName" confirmText="立即创建" @cancel="show = false" @create="handleConfirm" />
             </view>
         </up-overlay>
+        <uni-id-pages-bind-mobile ref="bind-mobile-by-sms" @success="bindMobileSuccess"></uni-id-pages-bind-mobile>
+
     </view>
 </template>
 
 <script>
 // 导入modlBox组件
 import modalBox from '../../components/modalBox/modalBox';
+import {
+    store,
+    mutations
+} from '@/uni_modules/uni-id-pages/common/store.js'
 export default {
+    computed: {
+        userInfo() {
+            return store.userInfo
+        },
+    },
     components: {
         modalBox,
     },
@@ -186,6 +197,14 @@ export default {
     },
     // 修正handleSubmit中的逻辑
     methods: {
+        bindMobile() {
+            //#ifdef MP-WEIXIN
+            this.$refs['bind-mobile-by-sms'].open()
+            // #endif
+        },
+        bindMobileSuccess() {
+            mutations.updateUserInfo()
+        },
         handleNavBack() {
             // 需要提示如果返回需要重填
             uni.showModal({
