@@ -18,7 +18,7 @@
                         <view class="input-group">
                             <text class="input-label">孩子称呼</text>
                             <u-form-item prop="parentData.childName" :borderBottom="false">
-                                <u--input v-model="formData.parentData.childName" placeholder="请输入孩子名称" border="false" :custom-style="inputStyle" />
+                                <u--input v-model="formData.parentData.childName" placeholder="请输入孩子的真实名字" border="false" :custom-style="inputStyle" />
                             </u-form-item>
                         </view>
                         <view class="input-group">
@@ -63,7 +63,7 @@
                         </u-form-item>
                     </view>
 
-                    <u-button @click="handleSubmit" :custom-style="buttonStyle">创建新班级</u-button>
+                    <u-button @click="handleSubmit" :custom-style="buttonStyle">下一步</u-button>
 
                     <text class="help-link" @click="handleHelp">遇到问题？查看帮助</text>
                 </view>
@@ -71,9 +71,10 @@
         </view>
         <up-overlay :show="show">
             <view class="warp">
-                <modal-box v-if="show" :className="formData.className" :nickname="formData.nickname" :teacherName="formData.teacherName" confirmText="立即创建" @cancel="show = false" @create="handleConfirm" />
+                <modal-box v-if="show" :items="confirmInfo" confirmText="确定" @cancel="show = false" @create="handleConfirm" />
             </view>
         </up-overlay>
+
         <uni-id-pages-bind-mobile ref="bind-mobile-by-sms" @success="bindMobileSuccess"></uni-id-pages-bind-mobile>
 
     </view>
@@ -81,7 +82,7 @@
 
 <script>
 // 导入modlBox组件
-import modalBox from '../../components/modalBox/modalBox';
+import modalBox from '../../components/modalBox-v2/modalBox';
 import {
     store,
     mutations
@@ -193,10 +194,44 @@ export default {
                 height: "48px",
                 marginTop: "40rpx"
             },
+            confirmInfo: [
+                {
+                    label: "您正在申请加入：",
+                    name: "【小班12班】",
+                },
+                {
+                    label: "班级码：",
+                    name: "329083",
+                },
+                {
+                    label: "创建者：",
+                    name: "丽丽妈妈",
+                },
+            ],
         };
     },
     // 修正handleSubmit中的逻辑
     methods: {
+        handleSubmit() {
+            this.show = true;
+            if (this.formData.role === 'parent') {
+                this.confirmInfo = [
+                    { label: "您正在申请加入：", name: this.formData.className },
+                    { label: "孩子称呼：", name: this.formData.parentData.childName },
+                    { label: "孩子性别：", name: this.formData.parentData.gender },
+                    { label: "出生年月：", name: this.showDateStr },
+                    { label: "我是孩子的：", name: this.formData.parentData.relationship },
+                    { label: "我的手机号码：", name: this.userInfo.mobile }
+                ];
+            } else if (this.formData.role === 'teacher') {
+                this.confirmInfo = [
+                    { label: "您正在申请加入：", name: this.formData.className },
+                    { label: "我的姓名：", name: `${this.formData.teacherData.user_name}` },
+                    { label: "我的手机号码：", name: this.userInfo.mobile }
+                ];
+            }
+
+        },
         bindMobile() {
             //#ifdef MP-WEIXIN
             this.$refs['bind-mobile-by-sms'].open()
