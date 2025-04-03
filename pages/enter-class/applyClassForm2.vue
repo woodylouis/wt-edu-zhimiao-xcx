@@ -33,7 +33,9 @@
                         <view class="input-group">
                             <text class="input-label">出生年月</text>
                             <u-form-item prop="parentData.birthdate" :borderBottom="false">
-                                <view @click="onClickDatetime"><u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled /></view>
+                                <view @click="onClickDatetime">
+                                    <u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled clearable />
+                                </view>
                                 <u-datetime-picker v-model="formData.parentData.birthdate" :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCancel" @cancel="onCancel" @confirm="onConfirmDate" @change="onChangeDatechange" :minDate="minDate" :maxDate="maxDate" mode="date"></u-datetime-picker>
                             </u-form-item>
                         </view>
@@ -75,7 +77,6 @@
         </up-overlay>
 
         <uni-id-pages-bind-mobile ref="bind-mobile-by-sms" @success="bindMobileSuccess"></uni-id-pages-bind-mobile>
-
     </view>
 </template>
 
@@ -166,13 +167,13 @@ export default {
                         trigger: ["change", "blur"],
                     }
                 ],
-                'parentData.birthdate': [
-                    {
-                        required: true,
-                        message: "请选择出生年月",
-                        trigger: ["change", "blur"],
-                    }
-                ],
+                // 'parentData.birthdate': [
+                //     {
+                //         required: true,
+                //         message: "请选择出生年月",
+                //         trigger: ["blur"],
+                //     }
+                // ],
                 'parentData.relationship': [
                     {
                         required: true,
@@ -230,19 +231,16 @@ export default {
     },
     // 修正handleSubmit中的逻辑
     methods: {
-        onChangeDatechange(e) {
-            this.formData.parentData.birthdate = e.value;
-            this.$refs.uForm.validateField('parentData.birthdate');
-        },
+
         handleCodeBlur(e) {
             console.log('handleCodeBlur', e);
             this.$forceUpdate()
         },
         handleSubmit() {
             // 校验是否已填写
-
             // this.show = true;
             if (this.formData.role === 'parent') {
+                console.log('parent');
                 // 校验
                 this.$refs.uForm.validate((valid) => {
                     if (valid) {
@@ -368,6 +366,7 @@ export default {
         onConfirmDate(e) {
             this.showDatetimePicker = false;
             this.formData.parentData.birthdate = e.value;
+            this.$refs.uForm.validateField('parentData.birthdate');
             console.log('onConfirmDate', this.formData.parentData.birthdate);
             const date = new Date(this.formData.parentData.birthdate);
             const year = date.getFullYear();
@@ -375,37 +374,43 @@ export default {
             const day = String(date.getDate()).padStart(2, '0');
             this.showDateStr = `${year}-${month}-${day}`;
             // 新增验证触发
+        },
+        onChangeDatechange(e) {
+            console.log('onChangeDatechange', e);
+            this.formData.parentData.birthdate = e.value;
             this.$refs.uForm.validateField('parentData.birthdate');
-
         },
     },
 
     onLoad() {
         // 新增缓存读取逻辑
         const cacheData = uni.getStorageSync('tempFormData') || {};
-        console.log('缓存数据', cacheData);
         this.formData = {
             ...this.formData,
-            className: cacheData.nickname || '',  // 将nickname映射为className
-            role: cacheData.role || 'parent'      // 初始化身份选项
+            className: cacheData.nickname || '',
+            role: cacheData.role || 'parent'
         };
+
+        // 新增：初始化时立即格式化日期
+        const initDate = new Date(this.formData.parentData.birthdate);
+        const year = initDate.getFullYear();
+        const month = String(initDate.getMonth() + 1).padStart(2, '0');
+        const day = String(initDate.getDate()).padStart(2, '0');
+        this.showDateStr = `${year}-${month}-${day}`;
     },  // methods结束
     watch: {
         // 这里需要监听formData的变化
         formData: {
-            handler(newVal, oldVal) {
-                // 需要检查birthdate是否有没有改动
-                if (newVal.birthdate !== oldVal.birthdate) {
-                    // 修改日期格式化逻辑
-                    const date = new Date(newVal.birthdate);
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0'); // 补零
-                    const day = String(date.getDate()).padStart(2, '0');       // 补零
-                    this.showDateStr = `${year}-${month}-${day}`;
-                    // console.log('showDateStr', this.showDateStr);
-                }
+            handler(newVal) {
+                // 确保每次birthdate变化都更新showDateStr
+                const date = new Date(newVal.parentData.birthdate);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                this.showDateStr = `${year}-${month}-${day}`;
             },
-            deep: true
+            deep: true,
+            immediate: true
         },
         userInfo: {
             handler(newVal) {
