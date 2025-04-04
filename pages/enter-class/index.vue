@@ -36,7 +36,7 @@
         </view>
         <up-overlay :show="show">
             <view class="warp">
-                <modal-box-mcq :tips="tips" :confirmText="confirmText" :list="modalOptionsList" @cancel="show = false" @create="onConfirm($event)" /> <!-- 传递选中值 -->
+                <modal-box-mcq :tips="tips" :confirmText="confirmText" :list="modalOptionsList" @cancel="onCancel" @create="onConfirm($event)" /> <!-- 传递选中值 -->
             </view>
         </up-overlay>
 
@@ -76,6 +76,12 @@ export default {
         // this.checkLoginStatus();
     },
     methods: {
+        onCancel() {
+            this.show = false;
+            this.tips = '创建班级';
+            this.modalOptionsList = ['我是老师'];
+            this.confirmText = "立即创建";
+        },
         async onConfirm(selectedRole) {
             const role = selectedRole === 0 ? 'teacher' : 'parent';
             this.show = false;
@@ -143,7 +149,7 @@ export default {
                     if (item === 1) {
                         this.isJoinClass = true;
                         this.tips = '加入班级';
-                        this.modalOptionsList = ['我是老师', '我是家长'];
+                        this.modalOptionsList = ['我是家长', '我是老师'];
                         this.confirmText = "立即加入";
                     }
                     this.show = true;

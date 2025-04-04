@@ -276,7 +276,6 @@ export default {
                             birthdate: this.formData.parentData.birthdate,
                             avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
                         }
-                        console.log('提交到wtdb-business-children.schema.json的数据', submitChildrenData);
 
                         // 先创建学生
                         const childrenRes = await uniCloud.callFunction({
@@ -297,7 +296,6 @@ export default {
                                 relationship: this.formData.parentData.relationship,
                                 code: classCode,
                             }
-                            console.log('提交到wtdb-business-class-member.schema.json的数据', submitClassMemberData);
                             // 新增云函数调用
                             const memberRes = await uniCloud.callFunction({
                                 name: 'wtdb-business-class-enter',
