@@ -83,7 +83,7 @@ export default {
             this.confirmText = "立即创建";
         },
         async onConfirm(selectedRole) {
-            const role = selectedRole === 0 ? 'teacher' : 'parent';
+            const role = selectedRole === 0 ? 'parent' : 'teacher';
             this.show = false;
             if (this.isJoinClass) {
                 try {
