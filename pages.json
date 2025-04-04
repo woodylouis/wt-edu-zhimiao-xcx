@@ -75,6 +75,13 @@
 			}
 		},
 		{
+			"path": "pages/enter-class/switchClass",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "切换"
+			}
+		},
+		{
 			"path": "pages/list/list",
 			"style": {
 				// #ifndef APP
