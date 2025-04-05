@@ -6,8 +6,20 @@
         <view class="form-container">
             <view class="form-description">请选择您要进入的班级：</view>
             <view class="form-button">
-                <u-button style="margin-right:20rpx" size="large" iconColor="#6EDD8A" color="#6EDD8A" shape="circle"><span class="button-txt-style">我是家长</span></u-button>
-                <u-button size="large" shape="circle" iconColor="#FFFFFF" color="#FFFFFF"><span class="button-txt-style-2">我是老师</span></u-button>
+                <u-button style="margin-right:20rpx" size="large"
+                    :color="selectedRole === 'parent' ? '#6EDD8A' : '#FFFFFF'" shape="circle"
+                    @click="handleRoleChange('parent')">
+                    <span :style="buttonTextStyle.parent">我是家长</span>
+                </u-button>
+                <u-button size="large" shape="circle" :color="selectedRole === 'teacher' ? '#6EDD8A' : '#FFFFFF'"
+                    @click="handleRoleChange('teacher')">
+                    <span :style="buttonTextStyle.teacher">我是老师</span>
+                </u-button>
+            </view>
+            <view>
+                <view>
+                    <iamge src="../../static/switch-class/unselected.png" />
+                </view>
             </view>
         </view>
     </view>
@@ -21,30 +33,56 @@ export default {
         userInfo() {
             return store.userInfo
         },
+        buttonTextStyle() {
+            return {
+                parent: {
+                    color: this.selectedRole === 'parent' ? '#00214D' : '#6F7374',
+                    fontWeight: this.selectedRole === 'parent' ? 500 : 400
+                },
+                teacher: {
+                    color: this.selectedRole === 'teacher' ? '#00214D' : '#6F7374',
+                    fontWeight: this.selectedRole === 'teacher' ? 500 : 400
+                }
+            }
+        },
+        classBgUrl() {
+            if (this.selected) {
+                return 'static/switch-class/selected.png'
+            }
+            return 'static/switch-class/unselected.png'
+        }
     },
     components: {
-        
+
     },
     // 在data中修正show定义位置
     data() {
         return {
-
+            selectedRole: 'parent',
+            selected: false,
+            classes: {
+                parent: [
+                    { name: '小小班3班', classCode: 123456, nickname: '李思思的爸爸' },
+                    { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
+                    { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' }
+                ],
+                teacher: [
+                    { name: '中班4班', classCode: 345678, nickname: '李文津' },
+                    { name: '大班3班', classCode: 876543, nickname: '李文津' },
+                ]
+            }
         };
     },
     // 修正handleSubmit中的逻辑
     methods: {
 
-        handleCodeBlur(e) {
-            console.log('handleCodeBlur', e);
-            this.$forceUpdate()
-        },
-       
+        handleRoleChange(role) {
+            this.selectedRole = role;
+        }
+
     },
 
     onLoad() {
-        
-    }, 
-    watch: {
 
     },
 
@@ -72,6 +110,7 @@ export default {
     display: flex;
     justify-content: space-between;
     margin-bottom: 32rpx;
+
     .button-txt-style {
         color: #00214D;
         text-align: center;
@@ -79,8 +118,10 @@ export default {
         font-size: 16px;
         font-style: normal;
         font-weight: 500;
-        line-height: 24px; /* 150% */
+        line-height: 24px;
+        /* 150% */
     }
+
     .button-txt-style-2 {
         color: #6F7374;
         text-align: center;
@@ -88,10 +129,11 @@ export default {
         font-size: 16px;
         font-style: normal;
         font-weight: 400;
-        line-height: 24px; /* 150% */
+        line-height: 24px;
+        /* 150% */
     }
-    
-   
+
+
 }
 
 .form-content {
