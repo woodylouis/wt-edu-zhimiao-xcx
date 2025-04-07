@@ -4,29 +4,36 @@
             <custom-nav :needBack="true" :xcxName="'申请加入'" :backHandler="handleNavBack" />
         </u-sticky>
         <view class="form-container">
-            <view class="form-description">您正在加入<span style="font-weight: bold;">【{{ formData.className }}】</span>，请填写以下信息</view>
+            <view class="form-description">您正在加入<span style="font-weight: bold;">【{{ formData.className
+                    }}】</span>，请填写以下信息</view>
             <u--form :model="formData" :rules="rules" ref="uForm" errorType="message" :borderBottom="false">
                 <view class="form-content">
                     <view class="input-group">
                         <text class="input-label">我的身份</text>
-                        <u-radio-group v-model="formData.role" activeColor="rgba(110, 221, 138, 1)" labelColor="#00214D">
-                            <u-radio :customStyle="{ marginBottom: '8px' }" v-for="(item, index) in role" :key="index" :label="item.name" :name="item.role" @change="radioChange" />
+                        <u-radio-group v-model="formData.role" activeColor="rgba(110, 221, 138, 1)"
+                            labelColor="#00214D">
+                            <u-radio :customStyle="{ marginBottom: '8px' }" v-for="(item, index) in role" :key="index"
+                                :label="item.name" :name="item.role" @change="radioChange" />
                         </u-radio-group>
                     </view>
                     <view v-if="formData.role === 'parent'">
                         <view class="input-group">
                             <text class="input-label">孩子称呼</text>
                             <u-form-item prop="parentData.childName" :borderBottom="false">
-                                <u--input v-model="formData.parentData.childName" placeholder="请输入孩子的真实名字" border="false" :custom-style="inputStyle" clearable />
+                                <u--input v-model="formData.parentData.childName" placeholder="请输入孩子的真实名字"
+                                    border="false" :custom-style="inputStyle" clearable />
                             </u-form-item>
                         </view>
                         <view class="input-group">
                             <text class="input-label">孩子性别</text>
                             <u-form-item prop="parentData.gender" :borderBottom="false">
                                 <view @click="onChooseGender"> <!-- 修改点击方法 -->
-                                    <u--input v-model="formData.parentData.gender" placeholder="请选择孩子的性别" border="false" :custom-style="inputStyle" disabled />
+                                    <u--input v-model="formData.parentData.gender" placeholder="请选择孩子的性别" border="false"
+                                        :custom-style="inputStyle" disabled />
                                 </view>
-                                <u--picker :show="showGenderPicker" :columns="genderColumns" @confirm="onConfirmGender" @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker> <!-- 使用新状态和列数据 -->
+                                <u--picker :show="showGenderPicker" :columns="genderColumns" @confirm="onConfirmGender"
+                                    @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker>
+                                <!-- 使用新状态和列数据 -->
                             </u-form-item>
                         </view>
 
@@ -34,17 +41,24 @@
                             <text class="input-label">出生年月</text>
                             <u-form-item :borderBottom="false">
                                 <view @click="onClickDatetime">
-                                    <u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false" :custom-style="inputStyle" disabled clearable />
+                                    <u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false"
+                                        :custom-style="inputStyle" disabled clearable />
                                 </view>
-                                <u-datetime-picker v-model="formData.parentData.birthdate" :show="showDatetimePicker" :closeOnClickOverlay="true" @close="onCancel" @cancel="onCancel" @confirm="onConfirmDate" @change="onChangeDatechange" :minDate="minDate" :maxDate="maxDate" mode="date"></u-datetime-picker>
+                                <u-datetime-picker v-model="formData.parentData.birthdate" :show="showDatetimePicker"
+                                    :closeOnClickOverlay="true" @close="onCancel" @cancel="onCancel"
+                                    @confirm="onConfirmDate" @change="onChangeDatechange" :minDate="minDate"
+                                    :maxDate="maxDate" mode="date"></u-datetime-picker>
                             </u-form-item>
                         </view>
 
                         <view class="input-group">
                             <text class="input-label">我是孩子的</text>
                             <u-form-item prop="parentData.relationship" :borderBottom="false">
-                                <view @click="onChooseRelationship"><u--input v-model="formData.parentData.relationship" placeholder="请输入您和孩子的关系" border="false" :custom-style="inputStyle" disabled /></view>
-                                <u--picker :show="showRelationship" :columns="columns" @confirm="onConfirmRelationship" @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker>
+                                <view @click="onChooseRelationship"><u--input v-model="formData.parentData.relationship"
+                                        placeholder="请输入您和孩子的关系" border="false" :custom-style="inputStyle" disabled />
+                                </view>
+                                <u--picker :show="showRelationship" :columns="columns" @confirm="onConfirmRelationship"
+                                    @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker>
                             </u-form-item>
                         </view>
                     </view>
@@ -52,7 +66,8 @@
                         <view class="input-group">
                             <text class="input-label">我的姓名</text>
                             <u-form-item prop="teacherData.user_name" :borderBottom="false">
-                                <u--input v-model="formData.teacherData.user_name" placeholder="请输入姓名" border="false" :custom-style="inputStyle" />
+                                <u--input v-model="formData.teacherData.user_name" placeholder="请输入姓名" border="false"
+                                    :custom-style="inputStyle" />
                             </u-form-item>
                         </view>
                     </view>
@@ -60,7 +75,8 @@
                     <view class="input-group">
                         <text class="input-label">我的手机号码</text>
                         <u-form-item prop="mobile" :borderBottom="false" @click="bindMobile">
-                            <u--input v-model="formData.mobile" placeholder="绑定手机号码" border="false" :custom-style="inputStyle" disabled />
+                            <u--input v-model="formData.mobile" placeholder="绑定手机号码" border="false"
+                                :custom-style="inputStyle" disabled />
                         </u-form-item>
                     </view>
 
@@ -72,7 +88,8 @@
         </view>
         <up-overlay :show="show">
             <view class="warp">
-                <modal-box v-if="show" :items="confirmInfo" confirmText="确定" @cancel="show = false" @create="handleConfirm" />
+                <modal-box v-if="show" :items="confirmInfo" confirmText="确定" @cancel="show = false"
+                    @create="handleConfirm" />
             </view>
         </up-overlay>
 
@@ -247,9 +264,61 @@ export default {
             console.log('handleCodeBlur', e);
             this.$forceUpdate()
         },
-        async handleSubmit() {
+        // 模态框确认按钮点击事件
+        async handleConfirm() {
             const classId = uni.getStorageSync('tempFormData').classInfo._id;
             const classCode = uni.getStorageSync('tempFormData').code;
+            // 这里可以添加提交表单的逻辑
+            const submitChildrenData = {
+                class_id: classId,
+                child_name: this.formData.parentData.childName,
+                gender: this.formData.parentData.gender,
+                birthdate: this.formData.parentData.birthdate,
+                avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+            }
+
+            // 先创建学生
+            const childrenRes = await uniCloud.callFunction({
+                name: 'wtdb-business-children-edit',
+                data: {
+                    submitChildrenData: submitChildrenData,
+                }
+            });
+
+            // 得到学生id后加入班级
+            if (childrenRes.result.code === 200) {
+                this.show = false;
+                console.log('childrenRes', childrenRes);
+                const submitClassMemberData = {
+                    class_id: classId,
+                    child_id: childrenRes.result.data.child_id, // 需要从submitChildrenData中获取
+                    role: this.formData.role,
+                    nickname: this.formData.parentData.childName + this.formData.parentData.relationship, // 这里需要
+                    relationship: this.formData.parentData.relationship,
+                    code: classCode,
+                }
+                // 新增云函数调用
+                const memberRes = await uniCloud.callFunction({
+                    name: 'wtdb-business-class-enter',
+                    data: {
+                        ...submitClassMemberData
+                    }
+                });
+                if (memberRes.result.code === 200) {
+                    uni.showToast({
+                        title: '加入班级成功',
+                        icon: 'none'
+                    });
+                } else {
+                    uni.showToast({
+                        title: memberRes.result.msg || '加入班级失败',  // 使用云函数返回的错误信息
+                        icon: 'none'
+                    });
+                }
+            }
+            console.log('表单提交成功');
+        },
+        async handleSubmit() {
             if (this.formData.role === 'parent') {
                 console.log('parent');
                 // 校验
@@ -257,7 +326,7 @@ export default {
                     const valid = await this.$refs.uForm.validate()
                     if (valid) {
                         console.log('表单数据校验 parent', valid);
-                        // this.show = true;
+                        this.show = true;
                         this.confirmInfo = [
                             { label: "您正在申请加入：", name: this.formData.className },
                             { label: "孩子称呼：", name: this.formData.parentData.childName },
@@ -267,57 +336,6 @@ export default {
                             // 修正手机号绑定
                             { label: "我的手机号码：", name: this.formData.mobile }
                         ];
-                        // 这里需要构建提交到wtdb-business-children.schema.json的数据
-
-                        const submitChildrenData = {
-                            class_id: classId,
-                            child_name: this.formData.parentData.childName,
-                            gender: this.formData.parentData.gender,
-                            birthdate: this.formData.parentData.birthdate,
-                            avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-                        }
-
-                        // 先创建学生
-                        const childrenRes = await uniCloud.callFunction({
-                            name: 'wtdb-business-children-edit',
-                            data: {
-                                submitChildrenData: submitChildrenData,
-                            }
-                        });
-
-                        // 得到学生id后加入班级
-                        if (childrenRes.result.code === 200) {
-                            console.log('childrenRes', childrenRes);
-                            const submitClassMemberData = {
-                                class_id: classId,
-                                child_id: childrenRes.result.data.child_id, // 需要从submitChildrenData中获取
-                                role: this.formData.role,
-                                nickname: this.formData.parentData.childName + this.formData.parentData.relationship, // 这里需要
-                                relationship: this.formData.parentData.relationship,
-                                code: classCode,
-                            }
-                            // 新增云函数调用
-                            const memberRes = await uniCloud.callFunction({
-                                name: 'wtdb-business-class-enter',
-                                data: {
-                                    ...submitClassMemberData
-                                }
-                            });
-                            if (memberRes.result.code === 200) {
-                                this.show = true;
-                                uni.showToast({
-                                    title: '加入班级成功',
-                                    icon: 'none'
-                                });
-                            } else {
-                                uni.showToast({
-                                    title: memberRes.result.msg || '加入班级失败',  // 使用云函数返回的错误信息
-                                    icon: 'none'
-                                });
-                            }
-                        }
-
-
                     }
                 } catch (error) {
                     // 处理数组类型的错误对象
@@ -332,7 +350,6 @@ export default {
                     const valid = await this.$refs.uForm.validate()
                     if (valid) {
                         console.log('表单数据校验 teacher', valid);
-                        // this.show = true;
                         this.confirmInfo = [
                             { label: "您正在申请加入：", name: this.formData.className },
                             { label: "我的姓名：", name: `${this.formData.teacherData.user_name}` },
