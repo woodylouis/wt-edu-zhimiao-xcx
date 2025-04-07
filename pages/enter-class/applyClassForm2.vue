@@ -5,7 +5,7 @@
         </u-sticky>
         <view class="form-container">
             <view class="form-description">您正在加入<span style="font-weight: bold;">【{{ formData.className
-                    }}】</span>，请填写以下信息</view>
+            }}】</span>，请填写以下信息</view>
             <u--form :model="formData" :rules="rules" ref="uForm" errorType="message" :borderBottom="false">
                 <view class="form-content">
                     <view class="input-group">
@@ -309,6 +309,20 @@ export default {
                         title: '加入班级成功',
                         icon: 'none'
                     });
+                    const classRes = await uniCloud.callFunction({
+                        name: 'wtdb-business-class-list'
+                    });
+                    console.log('classRes', classRes);
+
+                    if (classRes.result.code === 200 && classRes.result.data.length > 0) {
+                        const newClass = classRes.result.data[classRes.result.data.length - 1];
+                        uni.setStorageSync('currentClass', newClass);
+                        uni.reLaunch({
+                            url: '/pages/dashboard/teacher/teacher'
+                        });
+                        return
+                    }
+
                 } else {
                     uni.showToast({
                         title: memberRes.result.msg || '加入班级失败',  // 使用云函数返回的错误信息
