@@ -36,7 +36,7 @@ exports.main = async (event, context) => {
 
 		// 插入成员表
 		const insertRes = await memberCollection.add(
-			{ ...event, user_id: uid }
+			{ ...event, user_id: uid, join_time: Date.now() }
 		);
 
 		return insertRes.id ?
