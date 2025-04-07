@@ -75,7 +75,40 @@ export default {
     },
     // 修正handleSubmit中的逻辑
     methods: {
+        async loadClasses() {
+            try {
+                const res = await uniCloud.callFunction({
+                    name: 'wtdb-business-member-class',
+                    data: {
+                        uniIdToken: uni.getStorageSync('uni_id_token')
+                    }
+                })
 
+                if (res.result.code === 200) {
+                    // 按角色分类班级数据
+                    this.classes.parent = res.result.data
+                        .filter(item => item.role === 'parent')
+                        .map(item => ({
+                            name: item.classInfo.nickname,
+                            classCode: item.classInfo.code,
+                            nickname: item.relationship ? `${item.classInfo.nickname}的${item.relationship}` : item.classInfo.nickname
+                        }))
+
+                    this.classes.teacher = res.result.data
+                        .filter(item => item.role === 'teacher')
+                        .map(item => ({
+                            name: item.classInfo.nickname,
+                            classCode: item.classInfo.code,
+                            nickname: item.classInfo.teacherName || '未知老师'
+                        }))
+                }
+            } catch (error) {
+                uni.showToast({
+                    title: '班级数据加载失败',
+                    icon: 'none'
+                })
+            }
+        },
         handleRoleChange(role) {
             this.selectedRole = role;
         }
@@ -83,7 +116,7 @@ export default {
     },
 
     onLoad() {
-
+        this.loadClasses();
     },
 
 }
