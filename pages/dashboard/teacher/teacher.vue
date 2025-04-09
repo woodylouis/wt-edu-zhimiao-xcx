@@ -15,8 +15,8 @@
             </view>
 
             <!-- 右侧切换按钮 -->
-            <view class="switch-class">
-                <!-- <image class="switch-class-image" :src="switchIconUrl"></image> -->
+            <view class="switch-class" @click="onClickSwitch">
+                <image class="switch-class-image" :src="switchIconUrl"></image>
             </view>
         </view>
         <view class="assessment-option">
@@ -64,6 +64,16 @@ const classDisplay = computed(() => {
     }
     return '暂无班级信息';
 });
+
+const onClickSwitch = () => {
+    uni.navigateTo({
+        url: '/pages/enter-class/switchClass'
+    }).then(() => {
+        // 新增返回后强制更新
+        userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
+        currentClass.value = uni.getStorageSync('currentClass') || {};
+    });
+}
 
 const onClickProfile = () => {
     uni.navigateTo({
