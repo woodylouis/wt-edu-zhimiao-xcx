@@ -83,18 +83,10 @@ export default {
             selected: 0,
             classes: {
                 parent: [
-                    // { name: '小小班3班', classCode: 123456, nickname: '李思思的爸爸' },
-                    // { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
-                    // { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
-                    // { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
-                    // { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
-                    // { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
-                    // { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
-                    // { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
+
                 ],
                 teacher: [
-                    { name: '中班4班', classCode: 345678, nickname: '李文津' },
-                    { name: '大班3班', classCode: 876543, nickname: '李文津' },
+
                 ]
             }
         };
@@ -112,7 +104,8 @@ export default {
                     }
                 })
 
-                if (res.result.code === 2010) {
+
+                if (res.result.code === 200) {
                     console.log('班级数据加载成功', this.selectedRole)
                     // 按角色分类班级数据
                     this.classes.parent = res.result.data
@@ -126,12 +119,24 @@ export default {
                     this.classes.teacher = res.result.data
                         .filter(item => item.role === 'teacher')
                         .map(item => ({
-                            name: item.classInfo.nickname,
+                            name: item.classInfo.nickname || '家长',
                             classCode: item.classInfo.code,
-                            nickname: item.classInfo.teacherName || '未知老师'
+                            nickname: item.classInfo.teacherName || '老师'
                         }))
+                    console.log('this.classes', this.classes)
+                    const currentClass = uni.getStorageSync('currentClass');
+                    const targetIndex = this.classes[currentClass.memberStatus].findIndex(
+                        item => item.classCode == currentClass.code
+                    );
+                    console.log('targetIndex', targetIndex)
+                    if (targetIndex > -1) {
+                        this.selected = targetIndex;
+                        this.selectedRole = currentClass.memberStatus;
+                    }
                 }
+
             } catch (error) {
+                console.error('班级数据加载失败', error);
                 uni.showToast({
                     title: '班级数据加载失败',
                     icon: 'none'

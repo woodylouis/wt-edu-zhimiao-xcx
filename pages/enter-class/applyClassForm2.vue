@@ -5,7 +5,7 @@
         </u-sticky>
         <view class="form-container">
             <view class="form-description">您正在加入<span style="font-weight: bold;">【{{ formData.className
-            }}】</span>，请填写以下信息</view>
+                    }}】</span>，请填写以下信息</view>
             <u--form :model="formData" :rules="rules" ref="uForm" errorType="message" :borderBottom="false">
                 <view class="form-content">
                     <view class="input-group">
@@ -364,6 +364,7 @@ export default {
                     const valid = await this.$refs.uForm.validate()
                     if (valid) {
                         console.log('表单数据校验 teacher', valid);
+                        this.show = true;
                         this.confirmInfo = [
                             { label: "您正在申请加入：", name: this.formData.className },
                             { label: "我的姓名：", name: `${this.formData.teacherData.user_name}` },
