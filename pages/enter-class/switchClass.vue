@@ -17,7 +17,10 @@
                 </u-button>
             </view>
             <view class="class-list">
-                <view v-for="(item, index) in classes[selectedRole]" :key="index" class="class-item"
+                <view v-if="classes[selectedRole].length === 0" class="no-data">
+                    ～～ 暂无数据 ～～
+                </view>
+                <view v-else v-for="(item, index) in classes[selectedRole]" :key="index" class="class-item"
                     @click="selected = index">
                     <image
                         :src="selected === index ? '/static/switch-class/selected.png' : '/static/switch-class/unselected.png'"
@@ -57,6 +60,17 @@ export default {
                 return '../../static/switch-class/selected.png'
             }
             return '../../static/switch-class/unselected.png'
+        },
+        // 添加计算属性判断默认角色
+        hasClassData() {
+            return {
+                parent: this.classes.parent.length > 0,
+                teacher: this.classes.teacher.length > 0
+            }
+        },
+        defaultRole() {
+            return this.hasClassData.parent ? 'parent' :
+                this.hasClassData.teacher ? 'teacher' : 'parent'
         }
     },
     components: {
@@ -69,13 +83,14 @@ export default {
             selected: 0,
             classes: {
                 parent: [
-                    { name: '小小班3班', classCode: 123456, nickname: '李思思的爸爸' },
-                    { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
-                    { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
-                    { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
-                    { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
-                    { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
-                    { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
+                    // { name: '小小班3班', classCode: 123456, nickname: '李思思的爸爸' },
+                    // { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
+                    // { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
+                    // { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
+                    // { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
+                    // { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
+                    // { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
+                    // { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
                 ],
                 teacher: [
                     { name: '中班4班', classCode: 345678, nickname: '李文津' },
@@ -87,6 +102,8 @@ export default {
     // 修正handleSubmit中的逻辑
     methods: {
         async loadClasses() {
+            this.selectedRole = this.defaultRole
+
             try {
                 const res = await uniCloud.callFunction({
                     name: 'wtdb-business-member-class',
@@ -95,9 +112,9 @@ export default {
                     }
                 })
 
-                if (res.result.code === 200) {
+                if (res.result.code === 2010) {
+                    console.log('班级数据加载成功', this.selectedRole)
                     // 按角色分类班级数据
-
                     this.classes.parent = res.result.data
                         .filter(item => item.role === 'parent')
                         .map(item => ({
@@ -128,7 +145,7 @@ export default {
     },
 
     onLoad() {
-        // this.loadClasses();
+        this.loadClasses();
     },
 
 }
@@ -202,7 +219,7 @@ export default {
     margin-top: 40rpx;
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
+    // justify-content: space-between;
     gap: 30rpx;
     /* 列间距 */
 }
@@ -257,5 +274,15 @@ export default {
         font-size: 24rpx;
         color: #3D464A;
     }
+}
+
+.no-data {
+    margin-top: 100rpx;
+    width: 100%;
+    text-align: center;
+    color: #6F7374;
+    font-size: 32rpx;
+    padding: 60rpx 0;
+    font-family: "PingFang SC";
 }
 </style>
