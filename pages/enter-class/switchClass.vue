@@ -21,7 +21,7 @@
                     ～～ 暂无数据 ～～
                 </view>
                 <view v-else v-for="(item, index) in classes[selectedRole]" :key="index" class="class-item"
-                    @click="selected = index">
+                    @click="handleChooseClass(index)">
                     <image
                         :src="selected === index ? '/static/switch-class/selected.png' : '/static/switch-class/unselected.png'"
                         class="class-bg" />
@@ -82,12 +82,8 @@ export default {
             selectedRole: 'parent',
             selected: 0,
             classes: {
-                parent: [
-
-                ],
-                teacher: [
-
-                ]
+                parent: [],
+                teacher: []
             }
         };
     },
@@ -106,32 +102,39 @@ export default {
 
 
                 if (res.result.code === 200) {
-                    console.log('班级数据加载成功', this.selectedRole)
+                    console.log('班级数据加载成功', res.result.data)
                     // 按角色分类班级数据
                     this.classes.parent = res.result.data
                         .filter(item => item.role === 'parent')
                         .map(item => ({
                             name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
-                            nickname: item.relationship ? `${item.classInfo.nickname}的${item.relationship}` : item.classInfo.nickname
+                            nickname: '家长'
                         }))
 
                     this.classes.teacher = res.result.data
                         .filter(item => item.role === 'teacher')
                         .map(item => ({
-                            name: item.classInfo.nickname || '家长',
+                            name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
                             nickname: item.classInfo.teacherName || '老师'
                         }))
                     console.log('this.classes', this.classes)
                     const currentClass = uni.getStorageSync('currentClass');
-                    const targetIndex = this.classes[currentClass.memberStatus].findIndex(
-                        item => item.classCode == currentClass.code
-                    );
-                    console.log('targetIndex', targetIndex)
-                    if (targetIndex > -1) {
-                        this.selected = targetIndex;
-                        this.selectedRole = currentClass.memberStatus;
+                    console.log('currentClass', currentClass)
+                    if (currentClass?.code) {
+                        // 合并所有班级数据
+                        const allClasses = [...this.classes.parent, ...this.classes.teacher];
+                        const targetIndex = allClasses.findIndex(
+                            item => item.classCode == currentClass.code
+                        );
+                        console.log('targetIndex', targetIndex)
+                        if (targetIndex > -1) {
+                            // 计算所属角色
+                            const targetRole = targetIndex < this.classes.parent.length ? 'parent' : 'teacher';
+                            this.selected = targetRole === 'parent' ? targetIndex : targetIndex - this.classes.parent.length;
+                            this.selectedRole = targetRole;
+                        }
                     }
                 }
 
@@ -145,6 +148,31 @@ export default {
         },
         handleRoleChange(role) {
             this.selectedRole = role;
+        },
+        async handleChooseClass(index, code) {
+            console.log("选择的班级：", code);
+            this.selected = index;
+            const selectedClass = this.classes[this.selectedRole][index];
+            console.log("选择的班级信息：", selectedClass);
+            const { result } = await uniCloud.callFunction({
+                name: 'wtdb-business-class-detail',
+                data: { code: selectedClass.classCode }
+            });
+            uni.showModal({
+                title: '提示',
+                content: '确定切换到选中班级吗？',
+                showCancel: true,
+                success: ({ confirm, cancel }) => {
+                    if (confirm) {
+                        uni.setStorageSync('currentClass', result.data);
+                        uni.reLaunch({
+                            url: '/pages/dashboard/teacher/teacher'
+                        });
+                    }
+                }
+            })
+
+            console.log(result)
         }
 
     },
