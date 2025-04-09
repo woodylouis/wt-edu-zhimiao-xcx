@@ -16,9 +16,16 @@
                     <span :style="buttonTextStyle.teacher">我是老师</span>
                 </u-button>
             </view>
-            <view>
-                <view>
-                    <iamge src="../../static/switch-class/unselected.png" />
+            <view class="class-list">
+                <view v-for="(item, index) in classes[selectedRole]" :key="index" class="class-item"
+                    @click="selected = index">
+                    <image
+                        :src="selected === index ? '/static/switch-class/selected.png' : '/static/switch-class/unselected.png'"
+                        class="class-bg" />
+                    <view class="class-info">
+                        <text class="class-name">{{ item.name }}</text>
+                        <text class="user-nickname">{{ item.nickname }}</text>
+                    </view>
                 </view>
             </view>
         </view>
@@ -47,9 +54,9 @@ export default {
         },
         classBgUrl() {
             if (this.selected) {
-                return 'static/switch-class/selected.png'
+                return '../../static/switch-class/selected.png'
             }
-            return 'static/switch-class/unselected.png'
+            return '../../static/switch-class/unselected.png'
         }
     },
     components: {
@@ -59,12 +66,16 @@ export default {
     data() {
         return {
             selectedRole: 'parent',
-            selected: false,
+            selected: 0,
             classes: {
                 parent: [
                     { name: '小小班3班', classCode: 123456, nickname: '李思思的爸爸' },
                     { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
-                    { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' }
+                    { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
+                    { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
+                    { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
+                    { name: '小班3班', classCode: 654321, nickname: '李思思的爸爸' },
+                    { name: '中班3班', classCode: 789012, nickname: '李思思的爸爸' },
                 ],
                 teacher: [
                     { name: '中班4班', classCode: 345678, nickname: '李文津' },
@@ -86,6 +97,7 @@ export default {
 
                 if (res.result.code === 200) {
                     // 按角色分类班级数据
+
                     this.classes.parent = res.result.data
                         .filter(item => item.role === 'parent')
                         .map(item => ({
@@ -116,7 +128,7 @@ export default {
     },
 
     onLoad() {
-        this.loadClasses();
+        // this.loadClasses();
     },
 
 }
@@ -183,5 +195,67 @@ export default {
     text-decoration: underline;
     text-align: center;
     margin-top: 32rpx;
+}
+
+
+.class-list {
+    margin-top: 40rpx;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 30rpx;
+    /* 列间距 */
+}
+
+.class-item {
+    position: relative;
+    width: calc(33.33% - 20rpx);
+    /* 调整为更精确的三列计算 */
+    margin-bottom: 30rpx;
+    // padding: 12rpx;
+    // box-sizing: border-box;
+    /* 新增盒模型计算方式 */
+    // background: #FFFFFF;
+    // border-radius: 24rpx;
+    // box-shadow: 0 8rpx 24rpx rgba(0, 33, 77, 0.08);
+}
+
+.class-bg {
+    width: 100%;
+    height: 230rpx;
+    // border-radius: 16rpx;
+    object-fit: cover;
+}
+
+.class-info {
+    position: absolute;
+    left: 32rpx;
+    top: 32rpx;
+    right: 32rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    // background-color: red;
+    margin-top: 76rpx;
+    font-family: "PingFang SC";
+
+
+    /* 文字居中 */
+    .class-name {
+        font-size: 28rpx;
+        color: #00214D;
+        margin-bottom: 16rpx;
+        font-weight: 400;
+        text-align: center;
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .user-nickname {
+        font-size: 24rpx;
+        color: #3D464A;
+    }
 }
 </style>
