@@ -4,76 +4,29 @@
             <view class="card-title">能力达标情况</view>
             <view class="capability-bar">
                 <view class="bar">
-                    <view class="title">感知</view>
-                    <u-line-progress :percentage="ganzhijuePercentage" activeColor="#02C3FF" height="16">
-                        <text class="u-percentage-slot"> {{ ganzhijueResult }} </text>
-                    </u-line-progress>
-                </view>
-                <view class="bar">
-                    <view class="title">社交</view>
-                    <u-line-progress :percentage="shejiaoPercentage" activeColor="#9265FD" height="16">
-                        <text class="u-percentage-slot"> {{ shejiaoResult }} </text>
-                    </u-line-progress>
-                </view>
-                <view class="bar">
-                    <view class="title">运动</view>
-                    <u-line-progress :percentage="yundongPercentage" activeColor="#0071F1" height="16">
-                        <text class="u-percentage-slot"> {{ yundongResult }} </text>
-                    </u-line-progress>
-                </view>
-                <view class="bar">
-                    <view class="title">语言</view>
-                    <u-line-progress :percentage="yuyanPercentage" activeColor="#FF960C" height="16">
-                        <text class="u-percentage-slot"> {{ yuyanResult }} </text>
-                    </u-line-progress>
-                </view>
-                <view class="bar">
-                    <view class="title">自理</view>
-                    <u-line-progress :percentage="ziliPercentage" activeColor="#FF3ABB" height="16">
-                        <text class="u-percentage-slot"> {{ ziliResult }} </text>
-                    </u-line-progress>
-                </view>
-            </view>
-            <view class="analysis-text-overall">
-                <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
-                <template v-else>
-                    {{ analysisText }}
-                </template>
-            </view>
-            <!-- <div class="analysis-section"> -->
-            <!-- 优势领域 -->
-            <!-- <div class="strength-section" v-if="strengthDimensions.length > 0">
-                    <div class="section-header">
-                        <span class="indicator strength"></span>
-                        <span>优势领域</span>
-                    </div>
-                    <div class="analysis-item" v-for="dim in strengthDimensions" :key="dim">
-                        <h4 class="analysis-title">{{ dim }}能力：</h4>
-                        <p class="analysis-text">
-                            {{ dimensionDetails[dim][1] }}（{{ dim }}1阶段）
-                        </p>
-                    </div>
-                </div> -->
 
-            <!-- 需要关注 -->
-            <!-- <div class="concern-section" v-if="concernDimensions.length > 0">
-                    <div class="section-header">
-                        <span class="indicator concern"></span>
-                        <span>需要关注</span>
-                    </div>
-                    <div class="analysis-item" v-for="item in concernDimensions" :key="item.name">
-                        <h4 class="analysis-title">{{ item.name }}能力：</h4>
-                        <p class="analysis-text">
-                            {{ dimensionDetails[item.name][item.level] }}
-                            <span class="professional-advice" v-if="professionalAdvice[item.name]?.[item.level]">
-                                （{{ professionalAdvice[item.name][item.level] }}）
-                            </span>
-                        </p>
-                    </div>
-                </div> -->
-            <!-- </div> -->
+                    <view class="bar">
+                        <view class="title">运动</view>
+                        <u-line-progress :percentage="yundongPercentage" activeColor="#0071F1" height="16">
+                            <text class="u-percentage-slot"> {{ yundongResult }} </text>
+                        </u-line-progress>
+                    </view>
+                    <view class="bar">
+                        <view class="title">语言</view>
+                        <u-line-progress :percentage="yuyanPercentage" activeColor="#FF960C" height="16">
+                            <text class="u-percentage-slot"> {{ yuyanResult }} </text>
+                        </u-line-progress>
+                    </view>
+                </view>
+                <view class="analysis-text-overall">
+                    <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
+                    <template v-else>
+                        {{ analysisText }}
+                    </template>
+                </view>
+
+            </view>
         </view>
-    </view>
 </template>
 
 <script setup>
@@ -82,11 +35,9 @@ import { MarkdownIt, parseTokens } from "@/uni_modules/wtto-markdown/js_sdk/inde
 import "@/uni_modules/wtto-markdown/js_sdk/markdown.css";
 
 const props = defineProps({
-    perceptionScore: Number,   // 感知维度得分
-    socialScore: Number,       // 社交维度得分
+
     motorScore: Number,        // 运动维度得分
     languageScore: Number,     // 语言维度得分
-    selfcareScore: Number,      // 自理维度得分
     displayName: String,
     analysisTextAI: String,
 });
@@ -116,11 +67,9 @@ nodes.value = parseTokens(tokens, markdownIt.options);
 const analysisText = computed(() => {
     // 获取各维度阶段值
     const levels = {
-        '感知': ganzhijueLevel.value,
-        '社交': shejiaoLevel.value,
+
         '运动': yundongLevel.value,
         '语言': yuyanLevel.value,
-        '自理': ziliLevel.value
     };
 
     // 筛选各阶段维度
@@ -161,11 +110,8 @@ const getLevel = (score, ranges) => {
 };
 
 // 各维度阶段计算
-const ganzhijueLevel = computed(() => getLevel(props.perceptionScore, [4, 5, 10, 12, 16, 26]));
-const shejiaoLevel = computed(() => getLevel(props.socialScore, [7, 8, 16, 19, 25, 38]));
 const yundongLevel = computed(() => getLevel(props.motorScore, [7, 8, 16, 19, 25, 38]));
 const yuyanLevel = computed(() => getLevel(props.languageScore, [4, 5, 10, 12, 16, 31]));
-const ziliLevel = computed(() => getLevel(props.selfcareScore, [4, 5, 10, 12, 16, 25]));
 
 // 阶段到百分比的映射
 const levelPercentage = {
@@ -178,22 +124,15 @@ const levelPercentage = {
 };
 
 // 各维度百分比计算
-const ganzhijuePercentage = computed(() => levelPercentage[ganzhijueLevel.value]);
-const shejiaoPercentage = computed(() => levelPercentage[shejiaoLevel.value]);
+
 const yundongPercentage = computed(() => levelPercentage[yundongLevel.value]);
 const yuyanPercentage = computed(() => levelPercentage[yuyanLevel.value]);
-const ziliPercentage = computed(() => levelPercentage[ziliLevel.value]);
 
 // 结果文本
-const ganzhijueResult = computed(() => `${ganzhijueLevel.value}阶`);
-const shejiaoResult = computed(() => `${shejiaoLevel.value}阶`);
+
 const yundongResult = computed(() => `${yundongLevel.value}阶`);
 const yuyanResult = computed(() => `${yuyanLevel.value}阶`);
-const ziliResult = computed(() => `${ziliLevel.value}阶`);
 
-
-// 新增专业建议映射
-// 简化专业建议
 
 </script>
 
