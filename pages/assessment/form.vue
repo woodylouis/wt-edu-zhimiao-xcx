@@ -1,7 +1,8 @@
 <template>
     <!-- // abc 量表报告 -->
     <view class="assessment">
-        <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" :backHandler="handleNavBack" />
+        <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true"
+            :backHandler="handleNavBack" />
         <view class="content">
             <view class="progress">
                 <view class="title">
@@ -9,7 +10,8 @@
                     <view> {{ persentage }}% </view>
                 </view>
                 <view class="progress-bar">
-                    <u-line-progress :percentage="persentage" activeColor="#6EDE8A" inactiveColor="#C9E8D1" :showText="false"></u-line-progress>
+                    <u-line-progress :percentage="persentage" activeColor="#6EDE8A" inactiveColor="#C9E8D1"
+                        :showText="false"></u-line-progress>
                 </view>
                 <view class="current">{{ current }}/{{ count }} 问题</view>
             </view>
@@ -19,18 +21,19 @@
             </view>
 
             <view class="button-group">
-                <u-button v-for="(option, index) in questions[currentIndex]?.options" :key="index" @click="handleSubmit(option.score)" :custom-style="getButtonStyle(option.score)">
+                <u-button v-for="(option, index) in questions[currentIndex]?.options" :key="index"
+                    @click="handleSubmit(option.score)" :custom-style="getButtonStyle(option.score)">
                     {{ option.text }}
                 </u-button>
             </view>
 
             <view class="nav-buttons">
                 <u-button v-if="currentIndex > 0" @click="backToPrevious" :custom-style="{
-            ...buttonStyle1,
-            position: 'fixed',
-            bottom: '60rpx',
-            width: 'calc(100% - 80rpx)'
-        }">返回上一题</u-button>
+                    ...buttonStyle1,
+                    position: 'fixed',
+                    bottom: '60rpx',
+                    width: 'calc(100% - 80rpx)'
+                }">返回上一题</u-button>
             </view>
 
 

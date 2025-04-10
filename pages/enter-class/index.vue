@@ -6,13 +6,16 @@
                 {{ $t('xcxName') }}
             </view>
             <!-- banner -->
-            <unicloud-db ref="bannerdb" v-slot:default="{ data, loading, error, options }" collection="opendb-banner" field="_id,bannerfile,open_url,title">
+            <unicloud-db ref="bannerdb" v-slot:default="{ data, loading, error, options }" collection="opendb-banner"
+                field="_id,bannerfile,open_url,title">
                 <!-- 当无banner数据时显示占位图 -->
-                <image v-if="!(loading || data.length)" class="banner-image" src="/static/uni-center/headers.png" mode="aspectFill" :draggable="false" />
+                <image v-if="!(loading || data.length)" class="banner-image" src="/static/uni-center/headers.png"
+                    mode="aspectFill" :draggable="false" />
 
                 <swiper v-else class="swiper-box" @change="changeSwiper" :current="current" indicator-dots>
                     <swiper-item v-for="(item, index) in data" :key="item._id">
-                        <image class="banner-image" :src="item.bannerfile.url" mode="aspectFill" @click="clickBannerItem(item)" :draggable="false" />
+                        <image class="banner-image" :src="item.bannerfile.url" mode="aspectFill"
+                            @click="clickBannerItem(item)" :draggable="false" />
                         <view class="banner-mask"></view>
                     </swiper-item>
                 </swiper>
@@ -30,13 +33,16 @@
                 <image class="image" src="../../static/enter-class/apply.svg" />
 
             </view>
-            <view class="ai-response" v-if="aiResponse">
-                <text>{{ aiResponse }}</text>
+            <view class="help-container" @click="onClickEnter">
+                <text class="help-link">进入现有班级</text>
             </view>
+
         </view>
+
         <up-overlay :show="show">
             <view class="warp">
-                <modal-box-mcq :tips="tips" :confirmText="confirmText" :list="modalOptionsList" @cancel="onCancel" @create="onConfirm($event)" /> <!-- 传递选中值 -->
+                <modal-box-mcq :tips="tips" :confirmText="confirmText" :list="modalOptionsList" @cancel="onCancel"
+                    @create="onConfirm($event)" /> <!-- 传递选中值 -->
             </view>
         </up-overlay>
 
@@ -76,6 +82,15 @@ export default {
         // this.checkLoginStatus();
     },
     methods: {
+        onClickEnter() {
+            this.checkLoginStatus().then(async valid => { // 改为 async
+                if (valid) {
+                    uni.navigateTo({
+                        url: '/pages/enter-class/switchClass'
+                    });
+                }
+            });
+        },
         onCancel() {
             this.show = false;
             this.tips = '创建班级';
@@ -255,5 +270,18 @@ export default {
     width: 120px;
     height: 120px;
     background-color: #fff;
+}
+
+.help-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 58rpx;
+}
+
+.help-link {
+    color: #6F7374;
+    font-size: 32rpx;
+    // text-decoration: underline;
 }
 </style>
