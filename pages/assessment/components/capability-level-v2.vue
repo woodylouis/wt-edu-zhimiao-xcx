@@ -4,19 +4,16 @@
             <view class="card-title">能力达标情况</view>
             <view class="capability-bar">
                 <view class="bar">
-
-                    <view class="bar">
-                        <view class="title">运动</view>
-                        <u-line-progress :percentage="yundongPercentage" activeColor="#0071F1" height="16">
-                            <text class="u-percentage-slot"> {{ yundongResult }} </text>
-                        </u-line-progress>
-                    </view>
-                    <view class="bar">
-                        <view class="title">语言</view>
-                        <u-line-progress :percentage="yuyanPercentage" activeColor="#FF960C" height="16">
-                            <text class="u-percentage-slot"> {{ yuyanResult }} </text>
-                        </u-line-progress>
-                    </view>
+                    <view class="title">运动</view>
+                    <u-line-progress :percentage="yundongPercentage" activeColor="#0071F1" height="16">
+                        <text class="u-percentage-slot"> {{ yundongResult }} </text>
+                    </u-line-progress>
+                </view>
+                <view class="bar">
+                    <view class="title">语言</view>
+                    <u-line-progress :percentage="yuyanPercentage" activeColor="#FF960C" height="16">
+                        <text class="u-percentage-slot"> {{ yuyanResult }} </text>
+                    </u-line-progress>
                 </view>
                 <view class="analysis-text-overall">
                     <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
@@ -98,39 +95,17 @@ const analysisText = computed(() => {
 
     return `发育评估显示：${props.displayName}在${dimensionDesc}。${severityText}，必要时可进行标准化发育量表复核评估。`;
 });
-// 通用阶段计算函数
-const getLevel = (score, ranges) => {
-    if (score >= ranges[5]) return 1;
-    if (score >= ranges[4]) return 2;
-    if (score >= ranges[3]) return 3;
-    if (score >= ranges[2]) return 4;
-    if (score >= ranges[1]) return 5;
-    return 6;
-};
 
-// 各维度阶段计算
-const yundongLevel = computed(() => getLevel(props.motorScore, [7, 8, 16, 19, 25, 38]));
-const yuyanLevel = computed(() => getLevel(props.languageScore, [4, 5, 10, 12, 16, 31]));
-
-// 阶段到百分比的映射
-const levelPercentage = {
-    1: 16,
-    2: 32,
-    3: 48,
-    4: 64,
-    5: 80,
-    6: 100
-};
 
 // 各维度百分比计算
 
-const yundongPercentage = computed(() => levelPercentage[yundongLevel.value]);
-const yuyanPercentage = computed(() => levelPercentage[yuyanLevel.value]);
+const yundongPercentage = "100";
+const yuyanPercentage = "100";
 
 // 结果文本
 
-const yundongResult = computed(() => `${yundongLevel.value}阶`);
-const yuyanResult = computed(() => `${yuyanLevel.value}阶`);
+const yundongResult = `2阶`;
+const yuyanResult = `2阶`;
 
 
 </script>

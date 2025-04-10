@@ -11,7 +11,7 @@
                         <view class="name">{{ displayName }}的评估报告</view>
                         <view class="class">
                             <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{ classDisplay
-                                }}</view>
+                            }}</view>
                             <view><span style="font-weight: bold;">年龄：</span>{{ formattedAge }}</view>
                         </view>
                     </view>
@@ -33,7 +33,7 @@
 <script setup>
 import customNav from '@/components/customNav';
 import developmentLevel from './components/development-level';
-import capabilityLevel from './components/capability-level';
+import capabilityLevel from './components/capability-level-v2';
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, onMounted, computed, onUnmounted } from "vue";
 
