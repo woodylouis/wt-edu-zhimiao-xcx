@@ -36,7 +36,6 @@ import { MarkdownIt, parseTokens } from "@/uni_modules/wtto-markdown/js_sdk/inde
 import "@/uni_modules/wtto-markdown/js_sdk/markdown.css";
 
 const props = defineProps({
-
     motorScore: Number,        // 运动维度得分
     languageScore: Number,     // 语言维度得分
     displayName: String,
@@ -68,7 +67,6 @@ nodes.value = parseTokens(tokens, markdownIt.options);
 const analysisText = computed(() => {
     // 获取各维度阶段值
     const levels = {
-
         '运动': yundongLevel.value,
         '语言': yuyanLevel.value,
     };

@@ -1,6 +1,7 @@
 <template>
     <view class="assessment">
-        <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" :backHandler="handleNavBack" />
+        <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true"
+            :backHandler="handleNavBack" />
         <view class="content">
             <view class="user-profile">
                 <!-- 左侧内容容器 -->
@@ -9,7 +10,8 @@
                     <view class="info">
                         <view class="name">{{ displayName }}的评估报告</view>
                         <view class="class">
-                            <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{ classDisplay }}</view>
+                            <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{ classDisplay
+                                }}</view>
                             <view><span style="font-weight: bold;">年龄：</span>{{ formattedAge }}</view>
                         </view>
                     </view>
@@ -18,7 +20,10 @@
             <view class="report">
                 <view class="part">
                     <developmentLevel :totalScore="totalScore" />
-                    <capability-level :displayName="displayName" :analysisTextAI="analysisTextAI" :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交 || 0" :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0" :selfcare-score="sectionScores.生活自理 || 0" />
+                    <capability-level :displayName="displayName" :analysisTextAI="analysisTextAI"
+                        :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交 || 0"
+                        :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0"
+                        :selfcare-score="sectionScores.生活自理 || 0" />
                 </view>
             </view>
         </view>
@@ -34,7 +39,6 @@ import { ref, onMounted, computed, onUnmounted } from "vue";
 
 let displayName = ref('李思'); // 
 let classDisplay = ref('小班3班');
-let age = ref('36个月');
 let avatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png");
 
 const totalScore = ref(0);
