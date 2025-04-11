@@ -9,7 +9,7 @@
                 <view class="info">
                     <view class="name">{{ displayName }}</view>
                     <view class="class">{{ classDisplay }}
-                        <!-- <view class="invite">邀请加入本班</view> -->
+                        <view class="invite" @click.stop="onClickInvite">邀请加入本班</view>
                     </view>
                 </view>
             </view>
@@ -56,7 +56,23 @@ const avatarUrl = computed(() => {
         : defaultAvatarUrl.value;
 });
 
+const onClickInvite = () => {
+    if (!currentClass.value?.code) {
+        uni.showToast({ title: '暂无班级码', icon: 'none' });
+        return;
+    }
 
+    // 复制班级码到剪贴板
+    uni.setClipboardData({
+        data: currentClass.value.code,
+        success: () => {
+            uni.showToast({ title: '班级码已复制', icon: 'success' });
+        },
+        fail: () => {
+            uni.showToast({ title: '复制失败', icon: 'none' });
+        }
+    });
+};
 // 修改班级显示逻辑
 const classDisplay = computed(() => {
     if (currentClass.value.grade && currentClass.value.class) {
