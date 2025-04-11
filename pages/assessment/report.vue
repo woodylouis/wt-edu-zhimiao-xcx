@@ -22,8 +22,7 @@
                     <!-- <developmentLevel :totalScore="totalScore" /> -->
                     <capability-level :displayName="displayName" :analysisTextAI="analysisTextAI"
                         :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交 || 0"
-                        :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0"
-                        :selfcare-score="sectionScores.生活自理 || 0" />
+                        :motor-score="3 || 0" :language-score="47 || 0" :selfcare-score="sectionScores.生活自理 || 0" />
                 </view>
             </view>
         </view>

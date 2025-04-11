@@ -25,79 +25,102 @@ import { MarkdownIt, parseTokens } from "@/uni_modules/wtto-markdown/js_sdk/inde
 import "@/uni_modules/wtto-markdown/js_sdk/markdown.css";
 const echarts = require('../../../uni_modules/lime-echart/static/echarts.min');
 
+const convertScoreToStage = (score, type) => {
+    const thresholds = {
+        motor: [0, 7, 23, 37, 51, 57], // 运动维度各阶阈值
+        language: [0, 24, 46, 50, 50, 50] // 语言维度各阶阈值
+    };
 
+    // 找到分数所在的区间
+    for (let i = 0; i < thresholds[type].length - 1; i++) {
+        if (score >= thresholds[type][i] && score < thresholds[type][i + 1]) {
+            // 计算在当前区间内的比例位置
+            const range = thresholds[type][i + 1] - thresholds[type][i];
+            const position = (score - thresholds[type][i]) / range;
+            return i + 1 + position; // 返回带小数的阶段值
+        }
+    }
+
+    // 处理超出最大值的情况
+    if (score >= thresholds[type][thresholds[type].length - 1]) {
+        return thresholds[type].length;
+    }
+
+    return 1; // 默认返回1阶
+};
 const chartRef = ref(null)
+const props = defineProps({
+    motorScore: Number,        // 运动维度得分
+    languageScore: Number,     // 语言维度得分
+    displayName: String,
+    analysisTextAI: String,
+});
 const option = {
     tooltip: {
         trigger: 'axis',
         axisPointer: {
             type: 'shadow'
-        },
-        confine: true
+        }
     },
     legend: {
-        data: ['热度', '正面', '负面']
+        data: ['运动', '语言']
     },
     grid: {
-        left: 20,
-        right: 20,
-        bottom: 15,
-        top: 40,
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
         containLabel: true
     },
-    xAxis: [
-        {
-            type: 'value',
-            axisLine: {
-                lineStyle: {
-                    color: '#999999'
-                }
-            },
-            axisLabel: {
-                color: '#666666'
+    xAxis: {
+        type: 'value',
+        min: 1,
+        max: 6,
+        axisLabel: {
+            formatter: function (value) {
+                const stages = ['', '一阶', '二阶', '三阶', '四阶', '五阶', '六阶'];
+                return stages[value] || value;
             }
         }
-    ],
-    yAxis: [
-        {
-            type: 'category',
-            axisTick: { show: false },
-            data: ['运动', '语言'],
-            axisLine: {
-                lineStyle: {
-                    color: '#999999'
-                }
-            },
-            axisLabel: {
-                color: '#666666'
+    },
+    yAxis: {
+        type: 'category',
+
+        axisLabel: {
+            show: false,
+            color: '#666666',
+            fontSize: 12
+        },
+        axisLine: {
+            show: false,
+            lineStyle: {
+                color: '#999999'
             }
+        },
+        axisTick: {
+            show: false
         }
-    ],
+    },
     series: [
         {
-            name: '热度',
+            name: '运动',
             type: 'bar',
-            label: {
-                normal: {
-                    show: true,
-                    position: 'inside'
-                }
-            },
-            data: [300, 270, 340, 344, 300, 320, 310],
+            data: [convertScoreToStage(props.motorScore, 'motor')],
+            itemStyle: {
+                color: '#1890FF'
+            }
         },
         {
-            name: '正面',
+            name: '语言',
             type: 'bar',
-            stack: '总量',
-            label: {
-                normal: {
-                    show: true
-                }
-            },
-            data: [120, 102, 141, 174, 190, 250, 220]
+            data: [convertScoreToStage(props.languageScore, 'language')],
+            itemStyle: {
+                color: '#91CB74'
+            }
         }
     ]
 };
+
+
 
 onMounted(() => {
     // 组件能被调用必须是组件的节点已经被渲染到页面上
@@ -108,12 +131,7 @@ onMounted(() => {
     }, 300)
 })
 
-const props = defineProps({
-    motorScore: Number,        // 运动维度得分
-    languageScore: Number,     // 语言维度得分
-    displayName: String,
-    analysisTextAI: String,
-});
+
 
 const nodes = ref(null);
 
