@@ -19,11 +19,14 @@
                 <image class="switch-class-image" :src="switchIconUrl"></image>
             </view>
         </view>
-        <view class="assessment-option">
+        <view class="assessment-option" v-if="role === 'teacher'">
             <view v-for="item in assessmentList" :key="item.id" class="option" @click="handleAssessmentClick(item)">
                 <view class="title">{{ item.title }}</view>
                 <image class="image" src="../../../static/assessment-list/child-assess.svg" />
             </view>
+        </view>
+        <view v-if="role === 'parent'" class="no-data">
+            暂无评估报告数据
         </view>
 
     </view>
@@ -32,7 +35,7 @@
 <script setup>
 import customNav from '@/components/customNav'
 import { ref, onMounted, computed } from "vue";
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onLoad } from '@dcloudio/uni-app'
 
 const CACHE_KEY = 'teacher_assessment_list';
 const CACHE_EXPIRY = 3600 * 1000; // 1小时有效期
@@ -45,10 +48,13 @@ const switchIconUrl = "../../../static/general/switch.png";
 // 新增用户信息获取
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
 const currentClass = ref(uni.getStorageSync('currentClass') || {});
+const role = ref('teacher'); // 默认值设为teacher
 // 修改用户信息显示部分
+let userNickname = ref('');
 const displayName = computed(() => {
-    return userInfo.value.nickname || userInfo.value.username || '小程序用户';
+    return userNickname.value ? userNickname.value : userInfo.value.nickname || '小程序用户';
 });
+
 const avatarUrl = computed(() => {
     // 添加双重保护逻辑
     return (userInfo.value.avatar_file && userInfo.value.avatar_file.url)
@@ -143,6 +149,26 @@ onShow(() => {
     currentClass.value = uni.getStorageSync('currentClass') || {};
     checkLoginStatus();
 })
+
+onLoad((options) => {
+    console.log('onLoad options:', options);
+    // 读取从switchClass页面传递的selectedClass参数
+    if (options.userNickname) {
+        try {
+            // 给displayName
+            userNickname.value = options.userNickname;
+        } catch (e) {
+            console.error('解析selectedClass参数失败:', e);
+        }
+    }
+    if (options.role) {
+        role.value = options.role;
+    }
+
+    // 保持原有的currentClass逻辑不变
+    userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
+    currentClass.value = uni.getStorageSync('currentClass') || {};
+});
 
 const checkLoginStatus = () => {
     try {
@@ -319,5 +345,13 @@ const handleAssessmentClick = (item) => {
     }
 }
 
-.dashboard__title {}
+.no-data {
+    margin-top: 100rpx;
+    width: 100%;
+    text-align: center;
+    color: #6F7374;
+    font-size: 32rpx;
+    padding: 60rpx 0;
+    font-family: "PingFang SC";
+}
 </style>

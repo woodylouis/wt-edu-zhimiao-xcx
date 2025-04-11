@@ -109,7 +109,9 @@ export default {
                         .map(item => ({
                             name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
-                            nickname: '家长'
+                            nickname: item.nickname || '家长', // 用户在本班的昵称
+                            role: item.role
+
                         }))
 
                     this.classes.teacher = res.result.data
@@ -117,7 +119,8 @@ export default {
                         .map(item => ({
                             name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
-                            nickname: item.classInfo.teacherName || '老师'
+                            nickname: item.classInfo.teacherName || '老师',
+                            role: item.role
                         }))
                     console.log('this.classes', this.classes)
                     const currentClass = uni.getStorageSync('currentClass');
@@ -165,14 +168,13 @@ export default {
                 success: ({ confirm, cancel }) => {
                     if (confirm) {
                         uni.setStorageSync('currentClass', result.data);
-                        uni.reLaunch({
-                            url: '/pages/dashboard/teacher/teacher'
+                        // 修改跳转逻辑，携带整个selectedClass对象
+                        uni.navigateTo({
+                            url: `/pages/dashboard/teacher/teacher?userNickname=${selectedClass.nickname}&role=${selectedClass.role}`
                         });
                     }
                 }
             })
-
-            console.log(result)
         }
 
     },

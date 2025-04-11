@@ -28,6 +28,7 @@ exports.main = async (event, context) => {
 				role: 1,
 				relationship: 1,
 				join_time: 1,
+				nickname: 1,
 				classInfo: {
 					_id: 1,
 					nickname: 1,
