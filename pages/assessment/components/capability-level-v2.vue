@@ -3,18 +3,10 @@
         <view class="development-card">
             <view class="card-title">能力达标情况</view>
             <view class="capability-bar">
-                <view class="bar">
-                    <view class="title">运动</view>
-                    <u-line-progress :percentage="yundongPercentage" activeColor="#0071F1" height="16">
-                        <text class="u-percentage-slot"> {{ yundongResult }} </text>
-                    </u-line-progress>
+                <view class="chart-container">
+                    <l-echart ref="chartRef"></l-echart>
                 </view>
-                <view class="bar">
-                    <view class="title">语言</view>
-                    <u-line-progress :percentage="yuyanPercentage" activeColor="#FF960C" height="16">
-                        <text class="u-percentage-slot"> {{ yuyanResult }} </text>
-                    </u-line-progress>
-                </view>
+
                 <view class="analysis-text-overall">
                     <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
                     <template v-else>
@@ -28,9 +20,93 @@
 </template>
 
 <script setup>
-import { ref, computed, watchEffect } from "vue";
+import { ref, computed, watchEffect, onMounted } from "vue";
 import { MarkdownIt, parseTokens } from "@/uni_modules/wtto-markdown/js_sdk/index";
 import "@/uni_modules/wtto-markdown/js_sdk/markdown.css";
+const echarts = require('../../../uni_modules/lime-echart/static/echarts.min');
+
+
+const chartRef = ref(null)
+const option = {
+    tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+            type: 'shadow'
+        },
+        confine: true
+    },
+    legend: {
+        data: ['热度', '正面', '负面']
+    },
+    grid: {
+        left: 20,
+        right: 20,
+        bottom: 15,
+        top: 40,
+        containLabel: true
+    },
+    xAxis: [
+        {
+            type: 'value',
+            axisLine: {
+                lineStyle: {
+                    color: '#999999'
+                }
+            },
+            axisLabel: {
+                color: '#666666'
+            }
+        }
+    ],
+    yAxis: [
+        {
+            type: 'category',
+            axisTick: { show: false },
+            data: ['运动', '语言'],
+            axisLine: {
+                lineStyle: {
+                    color: '#999999'
+                }
+            },
+            axisLabel: {
+                color: '#666666'
+            }
+        }
+    ],
+    series: [
+        {
+            name: '热度',
+            type: 'bar',
+            label: {
+                normal: {
+                    show: true,
+                    position: 'inside'
+                }
+            },
+            data: [300, 270, 340, 344, 300, 320, 310],
+        },
+        {
+            name: '正面',
+            type: 'bar',
+            stack: '总量',
+            label: {
+                normal: {
+                    show: true
+                }
+            },
+            data: [120, 102, 141, 174, 190, 250, 220]
+        }
+    ]
+};
+
+onMounted(() => {
+    // 组件能被调用必须是组件的节点已经被渲染到页面上
+    setTimeout(async () => {
+        if (!chartRef.value) return
+        const myChart = await chartRef.value.init(echarts)
+        myChart.setOption(option)
+    }, 300)
+})
 
 const props = defineProps({
     motorScore: Number,        // 运动维度得分
@@ -97,15 +173,6 @@ const analysisText = computed(() => {
 });
 
 
-// 各维度百分比计算
-
-const yundongPercentage = "100";
-const yuyanPercentage = "100";
-
-// 结果文本
-
-const yundongResult = `2阶`;
-const yuyanResult = `2阶`;
 
 
 </script>
@@ -257,5 +324,13 @@ const yuyanResult = `2阶`;
     color: #00214d;
     font-size: 12px;
     line-height: 18px;
+}
+
+.chart-container {
+    width: 100%;
+    height: 400rpx;
+    /* 设置固定高度 */
+    position: relative;
+    /* 确保图表容器定位正确 */
 }
 </style>
