@@ -122,10 +122,10 @@ const assessmentMeta = ref({
 });
 
 const testAI = async (answers) => {
-    // 新增Deepseek API调用
-    uni.showLoading({ title: 'AI分析中...' }); // 新增加载提示
-    let aiResponse = '' // 新增AI响应存储
-    let loadingAI = false // 新增加载状态
+    uni.showLoading({ title: 'AI分析中...' });
+    let aiResponse = '';
+    let loadingAI = false;
+
     try {
         const res = await uni.request({
             url: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
@@ -143,25 +143,38 @@ const testAI = async (answers) => {
                     },
                     {
                         role: "user",
-                        content: JSON.stringify(answers)  // 直接使用序列化字符串，无需嵌套对象
+                        content: JSON.stringify(answers)
                     }
                 ]
             }
         });
+
         if (res.statusCode === 200 && res.data?.choices?.[0]?.message?.content) {
             aiResponse = res.data.choices[0].message.content;
             return aiResponse;
         }
         return '';
-
     } catch (e) {
-        uni.showToast({ title: 'AI服务异常', icon: 'none' });
-        return ''; // 明确返回空字符串
-    } finally {
-        uni.hideLoading(); // 关闭加载提示
-    }
+        const shouldRetry = await new Promise((resolve) => {
+            uni.showModal({
+                title: '提示',
+                content: '服务异常，是否重试？',
+                confirmText: '重试',
+                cancelText: '取消',
+                success: ({ confirm }) => {
+                    resolve(confirm);
+                }
+            });
+        });
 
-}
+        if (shouldRetry) {
+            return await testAI(answers); // 递归调用重试
+        }
+        return '';
+    } finally {
+        uni.hideLoading();
+    }
+};
 
 const loadQuestions = async () => {
     try {

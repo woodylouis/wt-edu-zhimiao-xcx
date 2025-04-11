@@ -8,7 +8,7 @@
                 </view>
 
                 <view class="analysis-text-overall">
-                    <rich-text v-if="nodes" :nodes="test" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
+                    <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
                     <!-- <template v-else>
                         {{ analysisText }}
                     </template> -->
