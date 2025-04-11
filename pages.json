@@ -9,13 +9,6 @@
 	},
 	"pages": [
 		{
-			"path": "pages/enter-class/index",
-			"style": {
-				"navigationStyle": "custom",
-				"navigationBarTitleText": "知苗成长"
-			}
-		},
-		{
 			"path": "pages/dashboard/teacher/teacher",
 			"style": {
 				"navigationStyle": "custom",
@@ -45,40 +38,6 @@
 			"path": "pages/assessment/report",
 			"style": {
 				"navigationStyle": "custom"
-			}
-		},
-		{
-			"path": "pages/enter-class/createClassForm1",
-			"style": {
-				"navigationStyle": "custom",
-				"navigationBarTitleText": "创建班级-选择年级"
-			}
-		},
-		{
-			"path": "pages/enter-class/createClassForm2",
-			"style": {
-				"navigationStyle": "custom"
-			}
-		},
-		{
-			"path": "pages/enter-class/applyClassForm1",
-			"style": {
-				"navigationStyle": "custom",
-				"navigationBarTitleText": "申请加入-填写班级码"
-			}
-		},
-		{
-			"path": "pages/enter-class/applyClassForm2",
-			"style": {
-				"navigationStyle": "custom",
-				"navigationBarTitleText": "申请加入-填写班级码"
-			}
-		},
-		{
-			"path": "pages/enter-class/switchClass",
-			"style": {
-				"navigationStyle": "custom",
-				"navigationBarTitleText": "切换"
 			}
 		},
 		{
@@ -195,6 +154,52 @@
 		// #endif
 	],
 	"subPackages": [
+		{
+			"root": "pages/enter-class",
+			"pages": [
+				{
+					"path": "index",
+					"style": {
+						"navigationStyle": "custom",
+						"navigationBarTitleText": "知苗成长"
+					}
+				},
+				{
+					"path": "createClassForm1",
+					"style": {
+						"navigationStyle": "custom",
+						"navigationBarTitleText": "创建班级-选择年级"
+					}
+				},
+				{
+					"path": "createClassForm2",
+					"style": {
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "applyClassForm1",
+					"style": {
+						"navigationStyle": "custom",
+						"navigationBarTitleText": "申请加入-填写班级码"
+					}
+				},
+				{
+					"path": "applyClassForm2",
+					"style": {
+						"navigationStyle": "custom",
+						"navigationBarTitleText": "申请加入-填写班级码"
+					}
+				},
+				{
+					"path": "switchClass",
+					"style": {
+						"navigationStyle": "custom",
+						"navigationBarTitleText": "切换"
+					}
+				}
+			]
+		},
 		{
 			"root": "uni_modules/uni-feedback",
 			"pages": [
