@@ -4,14 +4,14 @@
             <view class="card-title">能力达标情况</view>
             <view class="capability-bar">
                 <view class="chart-container">
-                    <l-echart ref="chartRef"></l-echart>
+                    <l-echart ref="chartRef" is-disable-scroll></l-echart>
                 </view>
 
                 <view class="analysis-text-overall">
-                    <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
-                    <template v-else>
+                    <rich-text v-if="nodes" :nodes="test" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
+                    <!-- <template v-else>
                         {{ analysisText }}
-                    </template>
+                    </template> -->
                 </view>
 
             </view>
@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watchEffect, onMounted } from "vue";
+import { ref, computed, watchEffect, onMounted, watch } from "vue";
 import { MarkdownIt, parseTokens } from "@/uni_modules/wtto-markdown/js_sdk/index";
 import "@/uni_modules/wtto-markdown/js_sdk/markdown.css";
 const echarts = require('../../../uni_modules/lime-echart/static/echarts.min');
@@ -50,12 +50,12 @@ const convertScoreToStage = (score, type) => {
 };
 const chartRef = ref(null)
 const props = defineProps({
-    motorScore: Number,        // 运动维度得分
-    languageScore: Number,     // 语言维度得分
+    motorScore: Number,
+    languageScore: Number,
     displayName: String,
     analysisTextAI: String,
 });
-const option = {
+const option = computed(() => ({
     tooltip: {
         trigger: 'axis',
         axisPointer: {
@@ -84,57 +84,44 @@ const option = {
     },
     yAxis: {
         type: 'category',
-
-        axisLabel: {
-            show: false,
-            color: '#666666',
-            fontSize: 12
-        },
-        axisLine: {
-            show: false,
-            lineStyle: {
-                color: '#999999'
-            }
-        },
-        axisTick: {
-            show: false
-        }
+        axisLabel: { show: false },
+        axisLine: { show: false },
+        axisTick: { show: false }
     },
     series: [
         {
             name: '运动',
             type: 'bar',
             data: [convertScoreToStage(props.motorScore, 'motor')],
-            itemStyle: {
-                color: '#1890FF'
-            }
+            itemStyle: { color: '#1890FF' }
         },
         {
             name: '语言',
             type: 'bar',
             data: [convertScoreToStage(props.languageScore, 'language')],
-            itemStyle: {
-                color: '#91CB74'
-            }
+            itemStyle: { color: '#91CB74' }
         }
     ]
-};
+}));
 
-
+watch(() => [props.motorScore, props.languageScore], () => {
+    if (chartRef.value && chartRef.value.chart) {
+        chartRef.value.chart.setOption(option.value);
+    }
+});
 
 onMounted(() => {
-    // 组件能被调用必须是组件的节点已经被渲染到页面上
     setTimeout(async () => {
-        if (!chartRef.value) return
-        const myChart = await chartRef.value.init(echarts)
-        myChart.setOption(option)
-    }, 300)
-})
+        if (!chartRef.value) return;
+        const myChart = await chartRef.value.init(echarts);
+        myChart.setOption(option.value);
+    }, 300);
+});
 
 
 
 const nodes = ref(null);
-
+const test = "### 分析↵↵赵子轩(4岁8个月)在粗大运动和精细动作方面表现良好，多数项目达标。粗大运动方面，存在向前步态异常、横向行走和飞奔困难；精细动作方面，存在剪刀使用、手指描线、胶水挤压和包装打开困难。语言模仿和自发表达表现优异，具备基础沟通能力。↵↵### 建议↵↵1. 粗大运动：建议进行步态分析和平衡训练，重点改善横向移动能力↵2. 精细动作：需加强手部工具使用训练，特别是剪刀操作和手指精细控制↵3. 语言能力：可进一步发展复杂句式表达和对话技巧↵4. 生活技能：需训练独立打开包装等日常自理能力↵↵### 干预计划↵↵1. 运动训练(每周3次，每次30分钟)：↵   - 平衡木横向行走练习↵   - 标志桶绕行训练改善步态↵   - 单脚站立延长时间至5秒↵↵2. 精细动作训练(每日15分钟)：↵   - 使用儿童安全剪刀进行直线裁剪↵   - 描红本描线练习↵   - 小珠子串线活动↵↵3. 生活技能训练(融入日常)：↵   - 分步骤练习包装打开↵   - 胶水挤压控制训练↵   - 书页翻动练习↵↵4. 语言强化(自然情境)：↵   - 扩展对话回合↵   - 引入描述性语言↵   - 鼓励提问互动↵↵建议每月评估进展，根据进步情况调整训练难度。家长应每日记录工具使用情况，强化课堂训练效果。"
 const markdownIt = MarkdownIt({
     typographer: true,
     linkify: true,
@@ -155,40 +142,6 @@ watchEffect(() => {
 // 根据报错信息，将analysisTextAI改为analysisText
 const tokens = markdownIt.parse(props.analysisTextAI, {});
 nodes.value = parseTokens(tokens, markdownIt.options);
-const analysisText = computed(() => {
-    // 获取各维度阶段值
-    const levels = {
-        '运动': yundongLevel.value,
-        '语言': yuyanLevel.value,
-    };
-
-    // 筛选各阶段维度
-    const laggingDimensions = Object.entries(levels)
-        .filter(([_, level]) => level >= 3);
-
-    if (laggingDimensions.length === 0) {
-        return `经评估，${props.displayName}在五大能区发育商数均处于同龄常模范围（±1SD），发展轨迹正常。`;
-    }
-
-    // 专业分级描述
-    const severityLevel = {
-        1: '可能需要注意',
-        2: '可能需要注意',
-        3: '可能需要注意',
-        4: '可能需要注意'
-    };
-
-    // 构建专业描述
-    const dimensionDesc = laggingDimensions.map(([name, level]) =>
-        `${name}能区（${severityLevel[level]}）`
-    ).join('、');
-
-    const severityText = laggingDimensions.some(([_, l]) => l >= 5) ?
-        '建议结合专项训练及定期发育监测' :
-        '建议加强日常训练并观察进展';
-
-    return `发育评估显示：${props.displayName}在${dimensionDesc}。${severityText}，必要时可进行标准化发育量表复核评估。`;
-});
 
 
 

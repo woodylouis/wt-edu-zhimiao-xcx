@@ -11,7 +11,7 @@
                         <view class="name">{{ displayName }}的评估报告</view>
                         <view class="class">
                             <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{ classDisplay
-                                }}</view>
+                            }}</view>
                             <view><span style="font-weight: bold;">年龄：</span>{{ formattedAge }}</view>
                         </view>
                     </view>
@@ -22,7 +22,8 @@
                     <!-- <developmentLevel :totalScore="totalScore" /> -->
                     <capability-level :displayName="displayName" :analysisTextAI="analysisTextAI"
                         :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交 || 0"
-                        :motor-score="3 || 0" :language-score="47 || 0" :selfcare-score="sectionScores.生活自理 || 0" />
+                        :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0"
+                        :selfcare-score="sectionScores.生活自理 || 0" />
                 </view>
             </view>
         </view>
@@ -57,7 +58,7 @@ const handleNavBack = () => {
 onLoad((options) => {
     assessmentId.value = options.assessmentId; // 存储assessmentId
     analysisTextAI.value = options.analysisTextAI;
-    const cacheKey = `assessment_${options.assessmentId}`;
+    const cacheKey = `assessment_67f61c06816a3f73442910de`;
     const cachedData = uni.getStorageSync(cacheKey);
 
     // 初始化数据绑定
@@ -66,6 +67,7 @@ onLoad((options) => {
         classDisplay.value = cachedData.className || '未知班级';
         totalScore.value = cachedData.totalScore || 0;
         sectionScores.value = cachedData.sectionScores || {};
+        console.log("sectionScores", sectionScores.value)
 
         // 格式化年龄显示
         if (cachedData.childAge >= 2) {
