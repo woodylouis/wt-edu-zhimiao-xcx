@@ -124,7 +124,6 @@ const assessmentMeta = ref({
 const testAI = async (answers) => {
     uni.showLoading({ title: 'AI分析中...' });
     let aiResponse = '';
-    let loadingAI = false;
 
     try {
         const res = await uni.request({
@@ -139,7 +138,7 @@ const testAI = async (answers) => {
                 messages: [
                     {
                         role: "system",
-                        content: "你是BACB的专家，现在需要分析基本语言和学习技能评估(ABLLS-R)的量表评估结果。目前量表里不是完整的题目，只挑了部份的运动和语言的题目。得分大于0表示选择'是'。不要再把每个题目在写一遍。针对个体的年龄，请以精简和专业的话术给出个性化专业建议，必要时在报告里可以提个体的年龄。分析有三个部分，第一个的标题是分析， 第二个是建议，第三个是干预计划。" // 直接使用字符串
+                        content: "你是专业BACB和儿童心理学专家，现在需要分析基本语言和学习技能评估(ABLLS-R)的量表评估结果。目前量表里不是完整的题目，只挑了部份的运动和语言的题目。得分大于0表示选择'是'。不要再把每个题目在写一遍。针对个体的年龄，请以详细和专业的话术给出个性化专业建议，必要时在报告里可以提个体的年龄。分析有三个部分，第一个的标题是分析， 第二个是建议，第三个是干预计划。" // 直接使用字符串
                     },
                     {
                         role: "user",
@@ -151,6 +150,10 @@ const testAI = async (answers) => {
 
         if (res.statusCode === 200 && res.data?.choices?.[0]?.message?.content) {
             aiResponse = res.data.choices[0].message.content;
+
+            // 确保AI分析完成后再上传
+            await uploadAIResponse(aiResponse);
+
             return aiResponse;
         }
         return '';
@@ -173,6 +176,38 @@ const testAI = async (answers) => {
         return '';
     } finally {
         uni.hideLoading();
+    }
+};
+
+// 新增单独的上传AI响应函数
+const uploadAIResponse = async (aiResponse) => {
+    try {
+        console.log('上传AI分析结果');
+        const cacheKey = `assessment_${assessmentId.value}`;
+        const cachedData = uni.getStorageSync(cacheKey);
+
+        if (!cachedData) {
+            throw new Error('未找到评估数据');
+        }
+
+        const res = await uniCloud.callFunction({
+            name: 'wt-business-report-gen',
+            data: {
+                uuid: assessmentMeta.value.uuid,
+                assessmentData: {
+                    ...cachedData,
+                    aiResponse: aiResponse // 将AI响应合并到评估数据中
+                }
+            }
+        });
+
+        if (res.result.code) {
+            console.error('AI分析结果上传失败:', res.result.message);
+            throw new Error(res.result.message);
+        }
+    } catch (e) {
+        console.error('AI分析结果上传异常:', e);
+        throw e;
     }
 };
 
