@@ -435,7 +435,7 @@ onLoad(async (options) => {
             className: options.className,
             childId: options.childId,
             childName: options.childName,
-            childAge: Number(options.childAge),
+            childAge: options.childAge,
             startTimestamp: Date.now(),
             duration: 0,
             uuid: Date.now().toString(36) + Math.random().toString(36).substr(2)

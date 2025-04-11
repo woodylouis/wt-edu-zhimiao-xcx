@@ -11,8 +11,8 @@
                         <view class="name">{{ displayName }}的评估报告</view>
                         <view class="class">
                             <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{ classDisplay
-                            }}</view>
-                            <view><span style="font-weight: bold;">年龄：</span>{{ formattedAge }}</view>
+                                }}</view>
+                            <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                         </view>
                     </view>
                 </view>
@@ -44,7 +44,7 @@ let avatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.
 const totalScore = ref(0);
 const sectionScores = ref({});
 const completionTime = ref('');
-const formattedAge = ref('');
+const childAge = ref('');
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 // 在setup中添加卸载生命周期
@@ -65,20 +65,21 @@ onLoad((options) => {
     if (cachedData) {
         displayName.value = cachedData.childName || '未知姓名';
         classDisplay.value = cachedData.className || '未知班级';
+        childAge.value = cachedData.childAge || '未知年龄';
         totalScore.value = cachedData.totalScore || 0;
         sectionScores.value = cachedData.sectionScores || {};
         console.log("sectionScores", sectionScores.value)
 
         // 格式化年龄显示
-        if (cachedData.childAge >= 2) {
-            const years = Math.floor(cachedData.childAge);
-            const months = Math.round((cachedData.childAge - years) * 10 * 1.2);
-            formattedAge.value = months === 0 ?
-                `${years}岁` :
-                `${years}岁${months}个月`;
-        } else {
-            formattedAge.value = `${Math.round(cachedData.childAge * 10 * 1.2)}个月`;
-        }
+        // if (cachedData.childAge >= 2) {
+        //     const years = Math.floor(cachedData.childAge);
+        //     const months = Math.round((cachedData.childAge - years) * 10 * 1.2);
+        //     formattedAge.value = months === 0 ?
+        //         `${years}岁` :
+        //         `${years}岁${months}个月`;
+        // } else {
+        //     formattedAge.value = `${Math.round(cachedData.childAge * 10 * 1.2)}个月`;
+        // }
 
         // 格式化完成时间
         completionTime.value = new Date(cachedData.completionTime).toLocaleString();

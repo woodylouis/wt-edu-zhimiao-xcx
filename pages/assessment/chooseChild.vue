@@ -11,12 +11,23 @@
                 <view class="instruction">请输入您要进行儿童量表评估的小朋友姓名，系统将根据您的选择进入相应的评估流程。</view>
             </view>
             <view class="search" style="z-index:999">
-                <search v-model="searchKeyword" :list="filteredStudents" labelName="name" valueName="_id" placeholder="请输入小朋友姓名" @select="handleSelectChild"></search>
+                <search v-model="searchKeyword" :list="filteredStudents" labelName="name" valueName="_id"
+                    placeholder="请输入小朋友姓名" @select="handleSelectChild"></search>
             </view>
             <view class="searchHistory" v-if="searchHistory.length">
-                <u-tag v-for="(item, index) in searchHistory" :key="index" :text="item" size="medium" @click="handleClickTag(item)" borderColor="#8696A3" bgColor="#FFFFFF" color="#8696A3" style="margin:20rpx;box-sizing: border-box;"></u-tag>
+                <u-tag v-for="(item, index) in searchHistory" :key="index" :text="item" size="medium"
+                    @click="handleClickTag(item)" borderColor="#8696A3" bgColor="#FFFFFF" color="#8696A3"
+                    style="margin:20rpx;box-sizing: border-box;"></u-tag>
             </view>
+
         </view>
+
+        <up-overlay :show="show">
+            <view class="warp">
+                <modal-box v-if="show" :items="confirmInfo" confirmText="进入评估" @cancel="show = false"
+                    @create="handleConfirm" />
+            </view>
+        </up-overlay>
     </view>
 </template>
 
@@ -25,6 +36,9 @@ import customNav from '@/components/customNav';
 import search from '../../uni_modules/z-search/components/z-search/z-search'
 import { ref, onMounted, computed } from "vue";
 import { onLoad, onUnload } from '@dcloudio/uni-app'
+import modalBox from '../../components/modalBox-v2/modalBox';
+
+//需要用vue3的方式引入modalBox组件
 
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 // 新增用户信息引用
@@ -48,7 +62,16 @@ const formValue = ref({
     // ... 其他字段保持不变 ...
     childId: '' // 新增选中儿童ID存储
 });
-
+const confirmInfo = ref([
+    {
+        label: "姓名：",
+        name: "小班12班",
+    },
+    {
+        label: "年龄：",
+        name: "3岁5个月",
+    }
+]);
 // 加载班级学生数据
 const loadStudents = async () => {
     try {
@@ -100,10 +123,92 @@ onUnload(() => {
 
 const handleClickTag = (tag) => {
     searchKeyword.value = tag;
-    // 新增：手动触发搜索组件过滤
     filteredStudents.value = students.value.filter(child =>
         child.name.includes(tag)
     );
+};
+
+const show = ref(false);
+const selectedChildInfo = ref({
+    id: '',
+    name: '',
+    age: ''
+});
+
+const handleSelectChild = (id) => {
+    const selectedChild = students.value.find(child => child._id === id);
+    if (!selectedChild) return;
+
+    // 计算年龄
+    const timestamp = parseInt(selectedChild.birthdate, 10);
+    if (isNaN(timestamp)) {
+        console.error('无效的生日时间戳:', selectedChild.birthdate);
+        return uni.showToast({ title: '学生数据异常', icon: 'none' });
+    }
+
+    const birthDate = new Date(timestamp);
+    const today = new Date();
+    let years = today.getFullYear() - birthDate.getFullYear();
+    let months = today.getMonth() - birthDate.getMonth();
+    if (today.getDate() < birthDate.getDate()) months--;
+    if (months < 0) {
+        years--;
+        months += 12;
+    }
+    const totalMonths = years * 12 + months;
+
+    // 更新选中儿童信息
+    selectedChildInfo.value = {
+        id,
+        name: selectedChild.name,
+        age: `${years}岁${months}个月`
+    };
+
+    // 更新确认框内容
+    confirmInfo.value = [
+        { label: "姓名：", name: selectedChild.name },
+        { label: "年龄：", name: `${years}岁${months}个月` }
+    ];
+
+    // 显示自定义确认框
+    show.value = true;
+};
+
+const handleConfirm = () => {
+    const { id, name, age } = selectedChildInfo.value;
+
+    // 加入搜索历史
+    updateSearchHistory(name);
+
+    // 计算格式化年龄
+    const ageParts = age.split('岁');
+    const years = parseInt(ageParts[0]);
+    const months = parseInt(ageParts[1].split('个月')[0]);
+    const totalMonths = years * 12 + months;
+
+    let ageDisplay;
+    if (totalMonths >= 24) {
+        const displayYears = Math.floor(totalMonths / 12);
+        const displayMonths = totalMonths % 12;
+        ageDisplay = displayMonths === 0 ?
+            `${displayYears}.0` :
+            `${displayYears}.${Math.round(displayMonths / 1.2)}`;
+    } else {
+        ageDisplay = (totalMonths / 10).toFixed(1);
+    }
+
+    // 跳转
+    uni.navigateTo({
+        url: `/pages/assessment/form?classId=${classId.value}` +
+            `&className=${className.value}` +
+            `&childId=${id}` +
+            `&childName=${name}` +
+            `&childAge=${age}` +
+            `&assessmentId=${assessmentId.value}` +
+            `&assessmentTitle=${assessmentTitle.value}`
+    });
+
+    show.value = false;
 };
 
 // 新增搜索历史管理方法
@@ -126,54 +231,6 @@ const updateSearchHistory = (name) => {
     uni.setStorageSync('childSearchHistory', searchHistory.value);
 };
 
-const handleSelectChild = (id) => {
-    const selectedChild = students.value.find(child => child._id === id);
-
-    // 新增加入搜索历史
-    if (selectedChild?.name) {
-        updateSearchHistory(selectedChild.name);
-    }
-    const timestamp = parseInt(selectedChild.birthdate, 10);
-    if (isNaN(timestamp)) {
-        console.error('无效的生日时间戳:', selectedChild.birthdate);
-        return uni.showToast({ title: '学生数据异常', icon: 'none' });
-    }
-    const birthDate = new Date(timestamp);
-    const today = new Date();
-
-    // 计算总月数
-    let years = today.getFullYear() - birthDate.getFullYear();
-    let months = today.getMonth() - birthDate.getMonth();
-    if (today.getDate() < birthDate.getDate()) months--;
-    if (months < 0) {
-        years--;
-        months += 12;
-    }
-    const totalMonths = years * 12 + months;
-
-    // 格式化年龄显示
-    let ageDisplay;
-    if (totalMonths >= 24) { // 2岁以上显示岁+月
-        const displayYears = Math.floor(totalMonths / 12);
-        const displayMonths = totalMonths % 12;
-        ageDisplay = displayMonths === 0 ?
-            `${displayYears}.0` :
-            `${displayYears}.${Math.round(displayMonths / 1.2)}`; // 将月份转换为0-9的小数位
-    } else { // 2岁以下显示月数
-        ageDisplay = (totalMonths / 10).toFixed(1); // 保留一位小数
-    }
-
-    uni.navigateTo({
-        url: `/pages/assessment/form?classId=${classId.value}` +
-            `&className=${className.value}` +
-            `&childId=${id}` +
-            `&childName=${selectedChild.name}` +
-            `&childAge=${ageDisplay}` +  // 修改后的年龄参数
-            `&assessmentId=${assessmentId.value}` +
-            `&assessmentTitle=${assessmentTitle.value}`
-    });
-};
-
 // 修改标签关闭事件处理
 const handleCloseTag = (index) => {
     searchHistory.value.splice(index, 1);
@@ -189,6 +246,13 @@ onMounted((params) => {
 
 <style lang="scss" scoped>
 .assessment {
+    .warp {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+    }
+
     .content {
         padding: 0 40rpx;
         background-color: #F2F7F6;
