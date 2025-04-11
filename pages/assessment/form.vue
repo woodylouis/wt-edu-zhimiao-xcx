@@ -138,7 +138,7 @@ const testAI = async (answers) => {
                 messages: [
                     {
                         role: "system",
-                        content: "你是专业BACB和儿童心理学专家，现在需要分析基本语言和学习技能评估(ABLLS-R)的量表评估结果。目前量表里不是完整的题目，只挑了部份的运动和语言的题目。得分大于0表示选择'是'。不要再把每个题目在写一遍。针对个体的年龄，请以详细和专业的话术给出个性化专业建议，必要时在报告里可以提个体的年龄。分析有三个部分，第一个的标题是分析， 第二个是建议，第三个是干预计划。" // 直接使用字符串
+                        content: "你是专业BACB和儿童心理学专家，现在需要分析基本语言和学习技能评估(ABLLS-R)的量表评估结果。目前量表里不是完整的题目，只挑了部份的运动和语言的题目。得分大于0表示选择'是'。不要再把每个题目在写一遍。针对个体的年龄，请以详细和专业的话术给出个性化专业建议，必要时在报告里可以提个体的年龄。分析有三个部分，第一个的标题是分析， 第二个是建议（针对没有达到该年龄应该达到的地方提供建议），第三个是干预计划（针对没有达到该年龄应该达到的地方提供干预计划）。干预计划比较详细，给出一年的计划，然后是每个季度的计划，然后是每个月的计划，然后是每一周的计划，这些计划都需要是关联的相呼应的。" // 直接使用字符串
                     },
                     {
                         role: "user",
@@ -270,11 +270,18 @@ const handleNextQuestion = () => {
         currentIndex.value++;
     } else {
         const totalScore = calculateTotalScore();
+        const sectionScores = calculateSectionScores();
+
+        // 构建分数详情字符串
+        let scoreDetails = `总得分：${totalScore}\n\n`;
+        for (const [section, score] of Object.entries(sectionScores)) {
+            scoreDetails += `${section}得分：${score}\n`;
+        }
 
         uni.showModal({
-            title: '评估完成',
-            content: `总得分：${totalScore}，确定要查看报告吗？`,
-            success: async (res) => { // 改为async函数
+            title: '评估完成，确定要查看报告吗？',
+            content: `${scoreDetails}\n`,
+            success: async (res) => {
                 if (res.confirm) {
                     // 强制提交最后一次答案
                     updateCache();
