@@ -20,6 +20,9 @@ export default {
 		this.globalData.$t = str => this.$t(str)
 		initApp();
 		uniIdPageInit()
+		// #ifdef MP-WEIXIN
+		this.checkMiniProgramUpdate();
+		// #endif
 
 		// #ifdef APP
 		//checkIsAgree(); APP端暂时先用原生默认生成的。目前，自定义方式启动vue界面时，原生层已经请求了部分权限这并不符合国家的法规
@@ -47,6 +50,37 @@ export default {
 	},
 	onHide: function () {
 		console.log('App Hide')
+	},
+	methods: {
+		checkMiniProgramUpdate() {
+			if (uni.canIUse('getUpdateManager')) {
+				const updateManager = uni.getUpdateManager();
+
+				updateManager.onCheckForUpdate((res) => {
+					console.log('版本信息', res);
+					console.log('是否有新版本：', res.hasUpdate);
+				});
+
+				updateManager.onUpdateReady(() => {
+					uni.showModal({
+						title: '更新提示',
+						content: '发现新版本，是否立即重启应用？',
+						success: (res) => {
+							if (res.confirm) {
+								updateManager.applyUpdate();
+							}
+						}
+					});
+				});
+
+				updateManager.onUpdateFailed(() => {
+					uni.showToast({
+						title: '新版本下载失败',
+						icon: 'none'
+					});
+				});
+			}
+		}
 	}
 }
 </script>
