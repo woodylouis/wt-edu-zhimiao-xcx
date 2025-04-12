@@ -64,27 +64,6 @@
 			}
 		},
 		{
-			"path": "pages/list/detail",
-			"style": {
-				"app-plus": {
-					"titleNView": {
-						"buttons": [
-							{
-								"type": "share"
-							}
-						],
-						"type": "transparent"
-					}
-				},
-				"h5": {
-					"titleNView": {
-						"type": "transparent"
-					}
-				},
-				"navigationBarTitleText": "文章详情"
-			}
-		},
-		{
 			"path": "pages/ucenter/ucenter",
 			"style": {
 				"navigationStyle": "custom"
