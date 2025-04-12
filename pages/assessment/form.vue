@@ -137,11 +137,24 @@ const testAI = async (answers) => {
 
     if (!shouldProceed) return '';
 
-    // 用户确认后显示加载框
-    uni.showLoading({
-        title: '生成报告中...',
-        mask: true
-    });
+    // 用户确认后显示轮播提示
+    let timer;
+    const messages = [
+        '生成报告中...',
+        '请勿触碰屏幕...',
+        '请勿关闭页面...',
+        'AI分析中...',
+        '请耐心等待...'
+    ];
+    let index = 0;
+
+    timer = setInterval(() => {
+        uni.showLoading({
+            title: messages[index],
+            mask: true
+        });
+        index = (index + 1) % messages.length;
+    }, 1000); // 每2秒切换一次提示
     let aiResponse = '';
 
     try {
@@ -205,6 +218,7 @@ const testAI = async (answers) => {
         }
         return '';
     } finally {
+        clearInterval(timer);
         uni.hideLoading();
     }
 };
