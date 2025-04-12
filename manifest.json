@@ -56,7 +56,10 @@
         "optimization" : {
             "subPackages" : true
         },
-        "mergeVirtualHostAttributes" : true
+        "mergeVirtualHostAttributes" : true,
+        "uniStatistics" : {
+            "enable" : true
+        }
     },
     "mp-alipay" : {
         "usingComponents" : true
@@ -68,7 +71,8 @@
         "usingComponents" : true
     },
     "uniStatistics" : {
-        "enable" : false
+        "enable" : false,
+        "version" : "2"
     },
     "vueVersion" : "3"
 }
