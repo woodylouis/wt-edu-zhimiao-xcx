@@ -116,7 +116,7 @@ export default {
             this.confirmText = "立即创建";
         },
         async onConfirm(selectedRole) {
-            const role = selectedRole === 0 ? 'parent' : 'teacher';
+            const role = selectedRole === 0 ? 'teacher' : 'parent';
             this.show = false;
             if (this.isJoinClass) {
                 try {
@@ -182,7 +182,7 @@ export default {
                     if (item === 1) {
                         this.isJoinClass = true;
                         this.tips = '加入班级';
-                        this.modalOptionsList = ['我是家长', '我是老师'];
+                        this.modalOptionsList = ['我是老师'];
                         this.confirmText = "立即加入";
                     }
                     this.show = true;

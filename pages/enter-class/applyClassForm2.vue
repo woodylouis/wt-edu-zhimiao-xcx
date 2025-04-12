@@ -16,7 +16,7 @@
                                 :label="item.name" :name="item.role" @change="radioChange" />
                         </u-radio-group>
                     </view>
-                    <view v-if="formData.role === 'parent'">
+                    <!-- <view v-if="formData.role === 'parent'">
                         <view class="input-group">
                             <text class="input-label">孩子称呼</text>
                             <u-form-item prop="parentData.childName" :borderBottom="false">
@@ -27,13 +27,13 @@
                         <view class="input-group">
                             <text class="input-label">孩子性别</text>
                             <u-form-item prop="parentData.gender" :borderBottom="false">
-                                <view @click="onChooseGender"> <!-- 修改点击方法 -->
+                                <view @click="onChooseGender"> 
                                     <u--input v-model="formData.parentData.gender" placeholder="请选择孩子的性别" border="false"
                                         :custom-style="inputStyle" disabled />
                                 </view>
                                 <u--picker :show="showGenderPicker" :columns="genderColumns" @confirm="onConfirmGender"
                                     @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker>
-                                <!-- 使用新状态和列数据 -->
+                           
                             </u-form-item>
                         </view>
 
@@ -61,7 +61,7 @@
                                     @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker>
                             </u-form-item>
                         </view>
-                    </view>
+                    </view> -->
                     <view v-if="formData.role === 'teacher'">
                         <view class="input-group">
                             <text class="input-label">我的姓名</text>
@@ -144,14 +144,19 @@ export default {
             maxDate: Number(
                 new Date(new Date().setFullYear(new Date().getFullYear() - 1))
             ),
-            role: [{
-                name: '家长',
-                role: 'parent'
-            },
-            {
-                name: '老师',
-                role: 'teacher'
-            }],
+            // role: [{
+            //     name: '家长',
+            //     role: 'parent'
+            // },
+            // {
+            //     name: '老师',
+            //     role: 'teacher'
+            // }],
+            role: [
+                {
+                    name: '老师',
+                    role: 'teacher'
+                }],
             genderColumns: [
                 ['男孩', '女孩']
             ],

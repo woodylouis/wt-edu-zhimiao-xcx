@@ -88,6 +88,7 @@ const loadStudents = async () => {
 
         // 新增加载时同步学生姓名到搜索历史
         students.value.forEach(child => {
+            console.log('child.name:', child.name)
             const existing = searchHistory.value.find(name => name === child.name);
             if (!existing) {
                 searchHistory.value.unshift(child.name);

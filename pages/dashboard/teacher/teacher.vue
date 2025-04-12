@@ -25,6 +25,9 @@
                 <image class="image" src="../../../static/assessment-list/child-assess.svg" />
             </view>
         </view>
+        <view class="help-container" @click="onClick">
+            <text class="help-link">回到首页</text>
+        </view>
         <view v-if="role === 'parent'" class="no-data">
             暂无评估报告数据
         </view>
@@ -61,6 +64,12 @@ const avatarUrl = computed(() => {
         ? userInfo.value.avatar_file.url
         : defaultAvatarUrl.value;
 });
+
+const onClick = () => {
+    uni.redirectTo({
+        url: '/pages/enter-class/index'
+    });
+}
 
 const onClickInvite = () => {
     if (!currentClass.value?.code) {
@@ -353,5 +362,18 @@ const handleAssessmentClick = (item) => {
     font-size: 32rpx;
     padding: 60rpx 0;
     font-family: "PingFang SC";
+}
+
+.help-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 58rpx;
+}
+
+.help-link {
+    color: #6F7374;
+    font-size: 32rpx;
+    // text-decoration: underline;
 }
 </style>
