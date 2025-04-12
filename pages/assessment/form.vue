@@ -122,7 +122,26 @@ const assessmentMeta = ref({
 });
 
 const testAI = async (answers) => {
-    uni.showLoading({ title: 'AI分析中...' });
+    // 先显示确认模态框
+    const shouldProceed = await new Promise((resolve) => {
+        uni.showModal({
+            title: '提示',
+            content: 'AI模型实时分析量表，大概30秒左右的等待时间。',
+            confirmText: '我知道了',
+            showCancel: false,
+            success: ({ confirm }) => {
+                resolve(confirm);
+            }
+        });
+    });
+
+    if (!shouldProceed) return '';
+
+    // 用户确认后显示加载框
+    uni.showLoading({
+        title: '生成报告中...',
+        mask: true
+    });
     let aiResponse = '';
 
     try {
@@ -138,7 +157,18 @@ const testAI = async (answers) => {
                 messages: [
                     {
                         role: "system",
-                        content: "你是专业BACB和儿童心理学专家，现在需要分析基本语言和学习技能评估(ABLLS-R)的量表评估结果。目前量表里不是完整的题目，只挑了部份的运动和语言的题目。得分大于0表示选择'是'。不要再把每个题目在写一遍。针对个体的年龄，请以详细和专业的话术给出个性化专业建议，必要时在报告里可以提个体的年龄。分析有三个部分，第一个的标题是分析， 第二个是建议（针对没有达到该年龄应该达到的地方提供建议），第三个是干预计划（针对没有达到该年龄应该达到的地方提供干预计划）。干预计划比较详细，给出一年的计划，然后是每个季度的计划，然后是每个月的计划，然后是每一周的计划，这些计划都需要是关联的相呼应的。" // 直接使用字符串
+                        content: `  角色：BACB认证行为分析师+儿童心理学专家
+                                    任务：基于ABLLS-R（部分运动/语言题目）评估结果分析
+                                    评分规则：得分>0=“是”（不重复题目）
+                                    报告结构：
+                                    ‌个体分析‌：结合年龄的专业能力的详细分析
+                                    ‌建议‌：针对未达标项（得分=0）的年龄适配详细建议
+                                    ‌干预计划‌（递进式）：
+                                    年度目标 → 季度分解 → 月度方案 → 周任务（需逻辑闭环）
+                                    要求：
+                                    所有建议/计划需引用发展里程碑
+                                    必要时明确标注个体年龄
+                                    需要详细、专业` // 直接使用字符串
                     },
                     {
                         role: "user",
@@ -273,7 +303,7 @@ const handleNextQuestion = () => {
         const sectionScores = calculateSectionScores();
 
         // 构建分数详情字符串
-        let scoreDetails = `总得分：${totalScore}\n\n`;
+        let scoreDetails = '';
         for (const [section, score] of Object.entries(sectionScores)) {
             scoreDetails += `${section}得分：${score}\n`;
         }
@@ -318,7 +348,10 @@ const handleNextQuestion = () => {
                         question: answer.question?.content || '未知题目',
                         answer: answer.score > 0 ? '是' : '否',
                     }));
-                    uni.showLoading({ title: '生成报告中...' }); // 新增加载提示
+                    uni.showLoading({
+                        title: '生成报告中...',
+                        mask: true
+                    });// 新增加载提示
                     const analysisTextAIRes = await testAI(answersArray);
                     console.log('analysisTextAIRes:', analysisTextAIRes);
                     uni.hideLoading();
