@@ -5,7 +5,7 @@
         </u-sticky>
         <view class="form-container">
             <view class="form-description">您正在加入<span style="font-weight: bold;">【{{ formData.className
-                    }}】</span>，请填写以下信息</view>
+            }}】</span>，请填写以下信息</view>
             <u--form :model="formData" :rules="rules" ref="uForm" errorType="message" :borderBottom="false">
                 <view class="form-content">
                     <view class="input-group">
@@ -273,69 +273,82 @@ export default {
         async handleConfirm() {
             const classId = uni.getStorageSync('tempFormData').classInfo._id;
             const classCode = uni.getStorageSync('tempFormData').code;
-            // 这里可以添加提交表单的逻辑
-            const submitChildrenData = {
-                class_id: classId,
-                child_name: this.formData.parentData.childName,
-                gender: this.formData.parentData.gender,
-                birthdate: this.formData.parentData.birthdate,
-                avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-            }
 
-            // 先创建学生
-            const childrenRes = await uniCloud.callFunction({
-                name: 'wtdb-business-children-edit',
-                data: {
-                    submitChildrenData: submitChildrenData,
-                }
-            });
-
-            // 得到学生id后加入班级
-            if (childrenRes.result.code === 200) {
-                this.show = false;
-                console.log('childrenRes', childrenRes);
+            if (this.formData.role === 'teacher') {
+                // 老师身份直接加入班级
                 const submitClassMemberData = {
                     class_id: classId,
-                    child_id: childrenRes.result.data.child_id, // 需要从submitChildrenData中获取
-                    role: this.formData.role,
-                    nickname: this.formData.parentData.childName + this.formData.parentData.relationship, // 这里需要
-                    relationship: this.formData.parentData.relationship,
-                    code: classCode,
-                }
-                // 新增云函数调用
+                    role: 'teacher',
+                    nickname: this.formData.teacherData.user_name,
+                    code: classCode
+                };
+
                 const memberRes = await uniCloud.callFunction({
                     name: 'wtdb-business-class-enter',
-                    data: {
-                        ...submitClassMemberData
-                    }
+                    data: submitClassMemberData
                 });
+
                 if (memberRes.result.code === 200) {
-                    uni.showToast({
-                        title: '加入班级成功',
-                        icon: 'none'
-                    });
-                    const classRes = await uniCloud.callFunction({
-                        name: 'wtdb-business-class-list'
-                    });
-                    console.log('classRes', classRes);
-
-                    if (classRes.result.code === 200 && classRes.result.data.length > 0) {
-                        const newClass = classRes.result.data[classRes.result.data.length - 1];
-                        uni.setStorageSync('currentClass', newClass);
-                        uni.reLaunch({
-                            url: '/pages/dashboard/teacher/teacher'
-                        });
-                        return
-                    }
-
+                    this.handleJoinSuccess();
                 } else {
                     uni.showToast({
-                        title: memberRes.result.msg || '加入班级失败',  // 使用云函数返回的错误信息
+                        title: memberRes.result.msg || '加入班级失败',
                         icon: 'none'
                     });
                 }
+            } else {
+                // 家长身份需要先创建学生
+                const submitChildrenData = {
+                    class_id: classId,
+                    child_name: this.formData.parentData.childName,
+                    gender: this.formData.parentData.gender,
+                    birthdate: this.formData.parentData.birthdate,
+                    avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+                };
+
+                const childrenRes = await uniCloud.callFunction({
+                    name: 'wtdb-business-children-edit',
+                    data: { submitChildrenData }
+                });
+
+                if (childrenRes.result.code === 200) {
+                    const submitClassMemberData = {
+                        class_id: classId,
+                        child_id: childrenRes.result.data.child_id,
+                        role: 'parent',
+                        nickname: this.formData.parentData.childName + this.formData.parentData.relationship,
+                        relationship: this.formData.parentData.relationship,
+                        code: classCode
+                    };
+
+                    const memberRes = await uniCloud.callFunction({
+                        name: 'wtdb-business-class-enter',
+                        data: submitClassMemberData
+                    });
+
+                    if (memberRes.result.code === 200) {
+                        this.handleJoinSuccess();
+                    } else {
+                        uni.showToast({
+                            title: memberRes.result.msg || '加入班级失败',
+                            icon: 'none'
+                        });
+                    }
+                }
             }
-            console.log('表单提交成功');
+        },
+        // 新增成功处理公共方法
+        handleJoinSuccess() {
+            this.show = false;
+            uni.showToast({ title: '加入班级成功', icon: 'none' });
+
+            uniCloud.callFunction({ name: 'wtdb-business-class-list' }).then(classRes => {
+                if (classRes.result.code === 200 && classRes.result.data.length > 0) {
+                    const newClass = classRes.result.data[classRes.result.data.length - 1];
+                    uni.setStorageSync('currentClass', newClass);
+                    uni.reLaunch({ url: '/pages/dashboard/teacher/teacher' });
+                }
+            });
         },
         async handleSubmit() {
             if (this.formData.role === 'parent') {
