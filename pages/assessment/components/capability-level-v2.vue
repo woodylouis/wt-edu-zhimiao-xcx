@@ -28,7 +28,8 @@ const echarts = require('../../../uni_modules/lime-echart/static/echarts.min');
 const convertScoreToStage = (score, type) => {
     const thresholds = {
         motor: [0, 7, 23, 37, 51, 57], // 运动维度各阶阈值
-        language: [0, 24, 46, 50, 50, 50] // 语言维度各阶阈值
+        language: [0, 24, 46, 50, 50, 50],  // 语言维度各阶阈值
+        social: [0, 0, 0, 0, 23, 24] // 语言维度各阶阈值
     };
 
     // 找到分数所在的区间
@@ -52,6 +53,7 @@ const chartRef = ref(null)
 const props = defineProps({
     motorScore: Number,
     languageScore: Number,
+    socialScore: Number,
     displayName: String,
     analysisTextAI: String,
 });
@@ -63,7 +65,7 @@ const option = computed(() => ({
         }
     },
     legend: {
-        data: ['运动', '语言']
+        data: ['运动', '语言', '社交'],
     },
     grid: {
         left: '3%',
@@ -100,6 +102,12 @@ const option = computed(() => ({
             type: 'bar',
             data: [convertScoreToStage(props.languageScore, 'language')],
             itemStyle: { color: '#91CB74' }
+        },
+        {
+            name: '社交',
+            type: 'bar',
+            data: [convertScoreToStage(props.socialScore, 'social')],
+            itemStyle: { color: '#FFA34D' }
         }
     ]
 }));
