@@ -3,10 +3,11 @@
         <view class="development-card">
             <view class="card-title">能力达标情况</view>
             <view class="capability-bar">
+
                 <view class="chart-container">
                     <l-echart ref="chartRef" is-disable-scroll></l-echart>
                 </view>
-                <view class="chart-container" style="margin-top: 36rpx;">
+                <view class="chart-container-2" style="margin-top: 48rpx;">
                     <l-echart ref="radarChartRef" is-disable-scroll></l-echart>
                 </view>
 
@@ -135,13 +136,17 @@ const radarOption = computed(() => ({
                     convertScoreToStage(props.languageScore, 'language'),
                     convertScoreToStage(props.socialScore, 'social')
                 ],
-                name: '能力发展',
-                areaStyle: {
-                    color: 'rgba(110, 221, 138, 0.2)'
-                },
-                lineStyle: {
-                    color: '#6EDE8A'
-                }
+                name: '当前',
+            },
+            {
+                value: [
+                    4,
+                    4,
+                    4
+                ],
+                name: '标准',
+
+
             }
         ]
     }]
@@ -352,6 +357,14 @@ onMounted(() => {
 .chart-container {
     width: 100%;
     height: 400rpx;
+    /* 设置固定高度 */
+    position: relative;
+    /* 确保图表容器定位正确 */
+}
+
+.chart-container-2 {
+    width: 100%;
+    height: 500rpx;
     /* 设置固定高度 */
     position: relative;
     /* 确保图表容器定位正确 */
