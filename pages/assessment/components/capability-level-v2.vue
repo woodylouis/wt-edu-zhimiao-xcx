@@ -6,6 +6,9 @@
                 <view class="chart-container">
                     <l-echart ref="chartRef" is-disable-scroll></l-echart>
                 </view>
+                <view class="chart-container" style="margin-top: 36rpx;">
+                    <l-echart ref="radarChartRef" is-disable-scroll></l-echart>
+                </view>
 
                 <view class="analysis-text-overall">
                     <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
@@ -29,7 +32,7 @@ const convertScoreToStage = (score, type) => {
     const thresholds = {
         motor: [0, 7, 23, 37, 51, 57], // 运动维度各阶阈值
         language: [0, 24, 46, 50, 50, 50],  // 语言维度各阶阈值
-        social: [0, 0, 0, 0, 23, 24] // 语言维度各阶阈值
+        social: [0, 0, 0, 0, 23, 24] // 社交维度各阶阈值
     };
 
     // 找到分数所在的区间
@@ -50,6 +53,7 @@ const convertScoreToStage = (score, type) => {
     return 1; // 默认返回1阶
 };
 const chartRef = ref(null)
+const radarChartRef = ref(null)
 const props = defineProps({
     motorScore: Number,
     languageScore: Number,
@@ -57,6 +61,7 @@ const props = defineProps({
     displayName: String,
     analysisTextAI: String,
 });
+console.log(props)
 const option = computed(() => ({
     tooltip: {
         trigger: 'axis',
@@ -112,24 +117,48 @@ const option = computed(() => ({
     ]
 }));
 
-watch(() => [props.motorScore, props.languageScore], () => {
+const radarOption = computed(() => ({
+    radar: {
+        indicator: [
+            { name: '运动', max: 7 },
+            { name: '语言', max: 7 },
+            { name: '社交', max: 7 }
+        ],
+        // radius: '65%'
+    },
+    series: [{
+        type: 'radar',
+        data: [
+            {
+                value: [
+                    convertScoreToStage(props.motorScore, 'motor'),
+                    convertScoreToStage(props.languageScore, 'language'),
+                    convertScoreToStage(props.socialScore, 'social')
+                ],
+                name: '能力发展',
+                areaStyle: {
+                    color: 'rgba(110, 221, 138, 0.2)'
+                },
+                lineStyle: {
+                    color: '#6EDE8A'
+                }
+            }
+        ]
+    }]
+}));
+
+watch(() => [props.motorScore, props.languageScore, props.socialScore], () => {
+    console.log("props.socialScore", props.socialScore)
     if (chartRef.value && chartRef.value.chart) {
         chartRef.value.chart.setOption(option.value);
     }
+    if (radarChartRef.value && radarChartRef.value.chart) {
+        radarChartRef.value.chart.setOption(radarOption.value);
+    }
 });
-
-onMounted(() => {
-    setTimeout(async () => {
-        if (!chartRef.value) return;
-        const myChart = await chartRef.value.init(echarts);
-        myChart.setOption(option.value);
-    }, 300);
-});
-
 
 
 const nodes = ref(null);
-const test = "### 分析↵↵赵子轩(4岁8个月)在粗大运动和精细动作方面表现良好，多数项目达标。粗大运动方面，存在向前步态异常、横向行走和飞奔困难；精细动作方面，存在剪刀使用、手指描线、胶水挤压和包装打开困难。语言模仿和自发表达表现优异，具备基础沟通能力。↵↵### 建议↵↵1. 粗大运动：建议进行步态分析和平衡训练，重点改善横向移动能力↵2. 精细动作：需加强手部工具使用训练，特别是剪刀操作和手指精细控制↵3. 语言能力：可进一步发展复杂句式表达和对话技巧↵4. 生活技能：需训练独立打开包装等日常自理能力↵↵### 干预计划↵↵1. 运动训练(每周3次，每次30分钟)：↵   - 平衡木横向行走练习↵   - 标志桶绕行训练改善步态↵   - 单脚站立延长时间至5秒↵↵2. 精细动作训练(每日15分钟)：↵   - 使用儿童安全剪刀进行直线裁剪↵   - 描红本描线练习↵   - 小珠子串线活动↵↵3. 生活技能训练(融入日常)：↵   - 分步骤练习包装打开↵   - 胶水挤压控制训练↵   - 书页翻动练习↵↵4. 语言强化(自然情境)：↵   - 扩展对话回合↵   - 引入描述性语言↵   - 鼓励提问互动↵↵建议每月评估进展，根据进步情况调整训练难度。家长应每日记录工具使用情况，强化课堂训练效果。"
 const markdownIt = MarkdownIt({
     typographer: true,
     linkify: true,
@@ -151,6 +180,21 @@ watchEffect(() => {
 const tokens = markdownIt.parse(props.analysisTextAI, {});
 nodes.value = parseTokens(tokens, markdownIt.options);
 
+
+
+
+
+onMounted(() => {
+    setTimeout(async () => {
+        if (!chartRef.value) return;
+        const myChart = await chartRef.value.init(echarts);
+        myChart.setOption(option.value);
+
+        if (!radarChartRef.value) return;
+        const radarChart = await radarChartRef.value.init(echarts);
+        radarChart.setOption(radarOption.value);
+    }, 300);
+});
 
 
 

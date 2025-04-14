@@ -11,7 +11,7 @@
                         <view class="name">{{ displayName }}的评估报告</view>
                         <view class="class">
                             <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{ classDisplay
-                                }}</view>
+                            }}</view>
                             <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                         </view>
                     </view>
@@ -21,8 +21,9 @@
                 <view class="part">
                     <!-- <developmentLevel :totalScore="totalScore" /> -->
                     <capability-level :displayName="displayName" :analysisTextAI="analysisTextAI"
-                        :perception-score="sectionScores.感知觉 || 0" :social-score="23 || 0" :motor-score="45 || 0"
-                        :language-score="24 || 0" :selfcare-score="sectionScores.生活自理 || 0" />
+                        :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交"
+                        :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0"
+                        :selfcare-score="sectionScores.生活自理 || 0" />
                 </view>
             </view>
         </view>
