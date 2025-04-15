@@ -23,7 +23,7 @@
                     <capability-level :displayName="displayName" :analysisTextAI="analysisTextAI"
                         :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交"
                         :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0"
-                        :selfcare-score="sectionScores.生活自理 || 0" />
+                        :selfcare-score="sectionScores.生活自理 || 0" :age="childAge" />
                 </view>
             </view>
         </view>

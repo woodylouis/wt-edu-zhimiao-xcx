@@ -5,10 +5,10 @@
             <view class="capability-bar">
 
                 <view class="chart-container">
-                    <l-echart ref="chartRef" is-disable-scroll></l-echart>
+                    <l-echart ref="chartRef"></l-echart>
                 </view>
                 <view class="chart-container-2" style="margin-top: 48rpx;">
-                    <l-echart ref="radarChartRef" is-disable-scroll></l-echart>
+                    <l-echart ref="radarChartRef"></l-echart>
                 </view>
 
                 <view class="analysis-text-overall">
@@ -61,6 +61,7 @@ const props = defineProps({
     socialScore: Number,
     displayName: String,
     analysisTextAI: String,
+    age: String,
 });
 console.log(props)
 const option = computed(() => ({
@@ -72,6 +73,7 @@ const option = computed(() => ({
     },
     legend: {
         data: ['运动', '语言', '社交'],
+        position: 'top',
     },
     grid: {
         left: '3%',
@@ -118,39 +120,46 @@ const option = computed(() => ({
     ]
 }));
 
-const radarOption = computed(() => ({
-    radar: {
-        indicator: [
-            { name: '运动', max: 7 },
-            { name: '语言', max: 7 },
-            { name: '社交', max: 7 }
-        ],
-        // radius: '65%'
-    },
-    series: [{
-        type: 'radar',
-        data: [
-            {
-                value: [
-                    convertScoreToStage(props.motorScore, 'motor'),
-                    convertScoreToStage(props.languageScore, 'language'),
-                    convertScoreToStage(props.socialScore, 'social')
-                ],
-                name: '当前',
-            },
-            {
-                value: [
-                    4,
-                    4,
-                    4
-                ],
-                name: '标准',
+const radarOption = computed(() => {
+    // 从props.age中提取年龄数字（如"4岁5个月" -> 4）
+    const ageYears = props.age ? parseInt(props.age.split('岁')[0]) : 0;
 
+    return {
+        radar: {
+            indicator: [
+                { name: '运动', max: 6 },
+                { name: '语言', max: 6 },
+                { name: '社交', max: 6 }
+            ],
+        },
+        legend: {
+            top: 'bottom',
+            data: ['理想值', '当前'],
+        },
 
-            }
-        ]
-    }]
-}));
+        series: [{
+            type: 'radar',
+            data: [
+                {
+                    value: [
+                        convertScoreToStage(props.motorScore, 'motor'),
+                        convertScoreToStage(props.languageScore, 'language'),
+                        convertScoreToStage(props.socialScore, 'social')
+                    ],
+                    name: '当前',
+                },
+                {
+                    value: [
+                        Math.min(ageYears, 6), // 限制最大为6岁
+                        Math.min(ageYears, 6),
+                        Math.min(ageYears, 6)
+                    ],
+                    name: '理想值',
+                }
+            ]
+        }]
+    };
+});
 
 watch(() => [props.motorScore, props.languageScore, props.socialScore], () => {
     console.log("props.socialScore", props.socialScore)
@@ -364,7 +373,7 @@ onMounted(() => {
 
 .chart-container-2 {
     width: 100%;
-    height: 500rpx;
+    height: 400rpx;
     /* 设置固定高度 */
     position: relative;
     /* 确保图表容器定位正确 */
