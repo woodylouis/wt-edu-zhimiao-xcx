@@ -225,7 +225,6 @@ const testAI = async (answers) => {
     }
 };
 
-// 新增单独的上传AI响应函数
 const uploadAIResponse = async (aiResponse) => {
     try {
         console.log('上传AI分析结果');
@@ -242,7 +241,8 @@ const uploadAIResponse = async (aiResponse) => {
                 uuid: assessmentMeta.value.uuid,
                 assessmentData: {
                     ...cachedData,
-                    aiResponse: aiResponse // 将AI响应合并到评估数据中
+                    aiResponse: aiResponse,
+                    assessorId: cachedData.assessorId // 确保上传时包含评估者ID
                 }
             }
         });
@@ -383,13 +383,17 @@ const handleNextQuestion = () => {
 };
 
 const updateCache = () => {
+    // 获取当前用户信息
+    const userInfo = uni.getStorageSync('uni-id-pages-userInfo') || {};
+
     const cacheData = {
         ...assessmentMeta.value,
         classId: assessmentMeta.value.classId,
         className: assessmentMeta.value.className,
         childId: assessmentMeta.value.childId,
         childName: assessmentMeta.value.childName,
-        childAge: assessmentMeta.value.childAge, // 新增年龄存储
+        childAge: assessmentMeta.value.childAge,
+        assessorId: userInfo._id, // 新增评估者ID
         questions: questions.value,
         answers: answers.value,
         currentIndex: currentIndex.value,
