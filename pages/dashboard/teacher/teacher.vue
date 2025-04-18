@@ -19,6 +19,10 @@
                 <image class="switch-class-image" :src="switchIconUrl"></image>
             </view>
         </view>
+        <view class="student-list">
+            <StudentList />
+        </view>
+
 
         <view class="help-container" @click="onClick">
             <text class="help-link">回到首页</text>
@@ -35,10 +39,8 @@ import customNav from '@/components/customNav'
 import { ref, onMounted, computed, reactive } from "vue";
 import { onShow, onLoad } from '@dcloudio/uni-app'
 import QcSuspendBtn from '@/components/qc-suspendBtn/qc-suspendBtn.vue'
-const CACHE_KEY = 'teacher_assessment_list';
-const CACHE_EXPIRY = 3600 * 1000; // 1小时有效期
-const assessmentList = ref([]);
-const pagination = ref({ page: 1, pageSize: 10, total: 0 });
+import StudentList from './components/student-list'
+
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
 const switchIconUrl = "../../../static/general/switch.png";
@@ -275,6 +277,11 @@ onMounted(() => {
                 }
             }
         }
+    }
+
+    .student-list {
+        // margin-top: 40rpx;
+        padding: 0 40rpx;
     }
 
     .assessment-option {
