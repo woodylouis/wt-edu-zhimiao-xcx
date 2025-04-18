@@ -32,14 +32,17 @@
             暂无评估报告数据
         </view>
 
+        <QcSuspendBtn :mainBtn="suspen.mainBtn" :childSize="suspen.childSize" :childBtns="suspen.childBtns"
+            :openType="suspen.openType" :padding="suspen.padding" @childClick="childClick">
+        </QcSuspendBtn>
     </view>
 </template>
 
 <script setup>
 import customNav from '@/components/customNav'
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, reactive } from "vue";
 import { onShow, onLoad } from '@dcloudio/uni-app'
-
+import QcSuspendBtn from '@/components/qc-suspendBtn/qc-suspendBtn.vue'
 const CACHE_KEY = 'teacher_assessment_list';
 const CACHE_EXPIRY = 3600 * 1000; // 1小时有效期
 const assessmentList = ref([]);
@@ -47,6 +50,31 @@ const pagination = ref({ page: 1, pageSize: 10, total: 0 });
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
 const switchIconUrl = "../../../static/general/switch.png";
+
+const suspen = reactive({
+    openType: 'SectorLeft', //LineUp LineDown LineLeft LineRight SectorLeft SectorRight
+    mainBtn: {
+        size: 52,
+        bgImg:
+            'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png', // 按钮背景图仅支持网络图片 如使用文字 请使用text
+        initX: 300,
+        initY: 100,
+    },
+    childSize: 44, // 子按钮大小
+    childBtns: [
+        {
+            bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png', // 按钮背景图仅支持网络图片 如使用文字 请使用text
+        },
+        {
+            bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png',
+        },
+        {
+            bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png',
+        },
+    ],
+    padding: 15,
+})
+const childClick = () => { }
 
 // 新增用户信息获取
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});

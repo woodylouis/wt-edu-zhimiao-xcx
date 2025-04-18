@@ -1,0 +1,45 @@
+.qc-suspendbtn {
+  overflow: hidden;
+  .drag-back {
+    position: absolute;
+    z-index: 999;
+    .allbtns-back {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      height: 100%;
+    }
+    .main-btn {
+      border-radius: 50%;
+      .main-btn-content {
+        background-color: white;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+      }
+    }
+    .child-btn {
+      position: absolute;
+      border-radius: 50%;
+      .child-btn-content {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+      }
+    }
+  }
+}
+.screen-back {
+  width: 100vw;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 3;
+}
+.f-c-c {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
