@@ -15,36 +15,7 @@ const props = defineProps({
     studentList: {
         type: Array,
         default: () => [
-            {
-                avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-                name: '李思思',
-                lastAssessmentDate: '2025年3月22日',
-                assessmentNumber: '共6次'
-            },
-            {
-                avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-                name: '李小思',
-                lastAssessmentDate: '2025年3月22日',
-                assessmentNumber: '共6次'
-            },
-            {
-                avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-                name: '李平平',
-                lastAssessmentDate: '2025年3月22日',
-                assessmentNumber: '共6次'
-            },
-            {
-                avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-                name: '李小平',
-                lastAssessmentDate: '2025年3月22日',
-                assessmentNumber: '共6次'
-            },
-            {
-                avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-                name: '刘小平',
-                lastAssessmentDate: '2025年3月22日',
-                assessmentNumber: '共6次'
-            },
+
         ]
     }
 })
@@ -55,8 +26,14 @@ const props = defineProps({
 .container {
     .student-list {
         display: flex;
-        flex-direction: column;
-        // gap: 30rpx;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        // padding: 20rpx;
+
+        .student-item {
+            width: 48%;
+            margin-bottom: 20rpx;
+        }
     }
 }
 </style>

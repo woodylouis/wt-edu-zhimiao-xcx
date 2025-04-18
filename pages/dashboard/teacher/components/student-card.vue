@@ -8,7 +8,7 @@
                 <view class="student-name">{{ props.student.name }}</view>
                 <view class="assessment-statistics">
                     <view class="assessment-date">
-                        {{ props.student.lastAssessmentDate }}
+                        最近：{{ props.student.lastAssessmentDate }}
                     </view>
                     <view class="assessment-number">
                         {{ props.student.assessmentNumber }}
@@ -54,13 +54,13 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .container {
-    background-color: coral;
-    border: 1px solid #ccc;
-    border-radius: 10px;
-
-    width: calc(100vw / 2 - 40rpx * 2);
-
-
+    // width: calc(100vw / 2 - 10rpx);
+    height: 160rpx;
+    display: flex;
+    justify-content: center;
+    border-radius: 16px;
+    background: #FFF;
+    box-shadow: 0px 0px 10px 0px rgba(193, 197, 210, 0.20), 3px 4px 23px 1px rgba(193, 197, 210, 0.15);
 
     .student-card {
         display: flex;
@@ -68,13 +68,30 @@ onMounted(() => {
         align-items: center;
 
         .student-avatar {
-            width: 65px;
-            height: 60px;
+            width: 55px;
+            height: 50px;
 
             .avatar {
                 width: 100%;
                 height: 100%;
                 border-radius: 50%;
+            }
+        }
+
+        .student-info {
+            margin-left: 10px;
+
+            .student-name {
+                font-size: 32rpx;
+                font-weight: bold;
+                color: #00214D;
+                font-style: normal;
+                line-height: 24px;
+                /* 240% */
+            }
+
+            .assessment-statistics {
+                font-size: 20rpx;
             }
         }
     }

@@ -20,7 +20,7 @@
             </view>
         </view>
         <view class="student-list">
-            <StudentList />
+            <StudentList :studentList="studentList" />
         </view>
 
 
@@ -68,7 +68,50 @@ const suspen = reactive({
     padding: 0,
 })
 const childClick = () => { }
-
+const studentList = ref([
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '李思思',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '李小思',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '李平平',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '李小平',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '刘小平',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '刘大平',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '刘平平',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    }
+])
 // 新增用户信息获取
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
 const currentClass = ref(uni.getStorageSync('currentClass') || {});
