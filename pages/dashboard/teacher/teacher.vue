@@ -19,17 +19,9 @@
                 <image class="switch-class-image" :src="switchIconUrl"></image>
             </view>
         </view>
-        <view class="assessment-option" v-if="role === 'teacher'">
-            <view v-for="item in assessmentList" :key="item.id" class="option" @click="handleAssessmentClick(item)">
-                <view class="title">{{ item.title }}</view>
-                <image class="image" src="../../../static/assessment-list/child-assess.svg" />
-            </view>
-        </view>
+
         <view class="help-container" @click="onClick">
             <text class="help-link">回到首页</text>
-        </view>
-        <view v-if="role === 'parent'" class="no-data">
-            暂无评估报告数据
         </view>
 
         <QcSuspendBtn :mainBtn="suspen.mainBtn" :childSize="suspen.childSize" :childBtns="suspen.childBtns"
@@ -84,6 +76,13 @@ let userNickname = ref('');
 const displayName = computed(() => {
     return userNickname.value ? userNickname.value : userInfo.value.nickname || '小程序用户';
 });
+
+
+const navigateToLogin = () => {
+    uni.navigateTo({
+        url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
+    });
+}
 
 const avatarUrl = computed(() => {
     // 添加双重保护逻辑
@@ -143,42 +142,6 @@ const onClickProfile = () => {
     });
 }
 
-const loadAssessments = async () => {
-    try {
-        // 尝试读取缓存
-        const cachedData = uni.getStorageSync(CACHE_KEY);
-        if (cachedData && Date.now() - cachedData.timestamp < CACHE_EXPIRY) {
-            assessmentList.value = cachedData.list;
-            pagination.value.total = cachedData.total;
-            return;
-        }
-        const res = await uniCloud.callFunction({
-            name: 'wt-fetch-assessment-list',
-            data: {
-                page: pagination.value.page,
-                pageSize: pagination.value.pageSize
-            }
-        });
-
-        if (res.result.code === 0) {
-            assessmentList.value = res.result.data.list;
-            pagination.value.total = res.result.data.total;
-
-            // 更新缓存（包含时间戳）
-            uni.setStorageSync(CACHE_KEY, {
-                list: res.result.data.list,
-                total: res.result.data.total,
-                timestamp: Date.now()
-            });
-        }
-    } catch (e) {
-        uni.showToast({ title: '加载失败', icon: 'none' });
-    }
-};
-
-// 添加定时清理过期缓存的逻辑
-let cacheTimer = null;
-
 onShow(() => {
     // 新增用户信息更新逻辑
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
@@ -230,39 +193,12 @@ const checkLoginStatus = () => {
     }
 }
 
-const navigateToLogin = () => {
-    uni.navigateTo({
-        url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
-    });
-}
-
 onMounted(() => {
-    loadAssessments();
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
     currentClass.value = uni.getStorageSync('currentClass') || {};
-    cacheTimer = setInterval(() => {
-        const cachedData = uni.getStorageSync(CACHE_KEY);
-        if (cachedData && Date.now() - cachedData.timestamp > CACHE_EXPIRY) {
-            uni.removeStorageSync(CACHE_KEY);
-        }
-    }, 60000); // 每分钟检查一次
-    // try {
-    //     currentClass = uni.getStorageSync('currentClass');
-    // } catch(e) {
 
-    // }
 });
 
-const handleAssessmentClick = (item) => {
-    let classId = currentClass.value?._id ? currentClass.value?._id : currentClass.value?.id;
-    if (!classId) {
-        uni.showToast({ title: '请先选择班级', icon: 'none' });
-        return;
-    }
-    uni.navigateTo({
-        url: `/pages/assessment/chooseChild?classId=${classId}&className=${classDisplay.value}&assessmentId=${item.id}&assessmentTitle=${item.title}`
-    });
-};
 
 </script>
 
