@@ -145,7 +145,7 @@ const moveAreaStyle = computed(() => {
             height:calc(50vh - ${props.padding * 2 + props.tabbarHeight}px);
             top:${props.padding}px;
             left:${props.padding}px;
-            background-color:yellow;`
+            `
 })
 // 被拖动部分的大小
 const dragStyle = computed(() => {
