@@ -52,7 +52,7 @@ const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cd
 const switchIconUrl = "../../../static/general/switch.png";
 
 const suspen = reactive({
-    openType: 'SectorLeft', //LineUp LineDown LineLeft LineRight SectorLeft SectorRight
+    openType: 'LineUp', //LineUp LineDown LineLeft LineRight SectorLeft SectorRight
     mainBtn: {
         size: 52,
         bgImg:
@@ -72,7 +72,7 @@ const suspen = reactive({
             bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png',
         },
     ],
-    padding: 15,
+    padding: 0,
 })
 const childClick = () => { }
 

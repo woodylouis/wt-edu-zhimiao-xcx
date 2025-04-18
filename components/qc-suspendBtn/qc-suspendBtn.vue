@@ -142,9 +142,10 @@ const allbtnsBackStyle = computed(() => {
 })
 const moveAreaStyle = computed(() => {
   return `width:calc(100vw - ${props.padding * 2}px);
-            height:calc(100vh - ${props.padding * 2 + props.tabbarHeight}px);
+            height:calc(50vh - ${props.padding * 2 + props.tabbarHeight}px);
             top:${props.padding}px;
-            left:${props.padding}px;`
+            left:${props.padding}px;
+            background-color:yellow;`
 })
 // 被拖动部分的大小
 const dragStyle = computed(() => {
