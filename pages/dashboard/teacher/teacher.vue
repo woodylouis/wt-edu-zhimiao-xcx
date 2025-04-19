@@ -20,6 +20,13 @@
             </view>
         </view>
         <view class="student-list">
+            <view v-if="loading" class="u-demo-block">
+                <view class="u-demo-block__content">
+                    <u-skeleton rows="5" :title="false" :rowsWidth="['100%', '100%', '100%', '100%', '100%']"
+                        :rowsHeight="['160rpx', '160rpx', '160rpx', '160rpx', '160rpx']" loading
+                        :animate="true"></u-skeleton>
+                </view>
+            </view>
             <StudentList :studentList="studentList" />
         </view>
 
@@ -48,6 +55,7 @@ const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cd
 const switchIconUrl = "../../../static/general/switch.png";
 const page = ref(1)
 const pageSize = ref(10)
+const loading = ref(true); // 新增加载状态
 
 const suspen = reactive({
     openType: 'LineUp', //LineUp LineDown LineLeft LineRight SectorLeft SectorRight
@@ -72,110 +80,7 @@ const suspen = reactive({
     padding: 0,
 })
 const childClick = () => { }
-const studentList = ref([
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '李思思',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '李小思',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '李平平',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '李小平',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '刘小平',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '刘大平',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '刘平平',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '张小花',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '张小丽',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '王小明',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '王小华',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '赵小刚',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '赵小红',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '陈小美',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '陈小强',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '林小芳',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    },
-    {
-        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-        name: '林小军',
-        lastAssessmentDate: '2025.12.22',
-        assessmentNumber: '共评估6次'
-    }
-])
+const studentList = ref([])
 // 新增用户信息获取
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
 const currentClass = ref(uni.getStorageSync('currentClass') || {});
@@ -253,12 +158,13 @@ const onClickProfile = () => {
 
 const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
     try {
+        loading.value = true; // 开始加载
         const res = await uniCloud.callFunction({
             name: 'wt-fetch-report-history',
             data: {
                 classId,
-                page: pageNum,  // Use .value to get the primitive value
-                pageSize: pageSizeNum  // Use .value to get the primitive value
+                page: pageNum,
+                pageSize: pageSizeNum
             }
         })
         if (res.result.code === 0) {
@@ -266,6 +172,8 @@ const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
         }
     } catch (e) {
         console.error('加载失败:', e);
+    } finally {
+        loading.value = false; // 结束加载
     }
 };
 
@@ -473,5 +381,21 @@ onMounted(() => {
     color: #6F7374;
     font-size: 32rpx;
     // text-decoration: underline;
+}
+
+.u-skeleton-slot {
+    @include flex;
+    align-items: flex-start;
+
+    &__image {
+        width: 40px;
+        height: 40px;
+        border-radius: 100px;
+    }
+
+    &__content {
+        margin-left: 10px;
+        flex: 1;
+    }
 }
 </style>
