@@ -73,6 +73,6 @@ export const suspendBtnProps = {
   // tabbar高度  如果不是tabbar页面 请将高度设置为0
   tabbarHeight: {
     type: Number, // 单位px
-    default: 52,
+    default: 0,
   },
 }

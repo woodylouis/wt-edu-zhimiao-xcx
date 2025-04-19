@@ -38,7 +38,7 @@
             </view>
         </view>
 
-        <view style="margin-top:-25vh;z-index: 99;">
+        <view style="position: fixed; right: 30rpx; bottom: 120rpx; z-index: 9999;">
             <QcSuspendBtn :mainBtn="suspen.mainBtn" :childSize="suspen.childSize" :childBtns="suspen.childBtns"
                 :openType="suspen.openType" :padding="suspen.padding" @childClick="childClick">
             </QcSuspendBtn>
