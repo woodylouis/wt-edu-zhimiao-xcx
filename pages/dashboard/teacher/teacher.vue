@@ -249,6 +249,20 @@ const onClickProfile = () => {
     });
 }
 
+const loadStudents = async (classId) => {
+    try {
+        const res = await uniCloud.callFunction({
+            name: 'wtdb-business-children-list',
+            data: {
+                classId
+            }
+        })
+    } catch (e) {
+        console.error('加载失败:', e);
+    }
+};
+
+
 onShow(() => {
     // 新增用户信息更新逻辑
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
@@ -274,6 +288,8 @@ onLoad((options) => {
     // 保持原有的currentClass逻辑不变
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
     currentClass.value = uni.getStorageSync('currentClass') || {};
+
+    loadStudents(currentClass.value._id);
 });
 
 const checkLoginStatus = () => {
