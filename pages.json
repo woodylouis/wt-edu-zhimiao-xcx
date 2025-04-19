@@ -19,7 +19,8 @@
 			"path": "pages/dashboard/teacher/teacher",
 			"style": {
 				"navigationStyle": "custom",
-				"navigationBarTitleText": "知苗成长"
+				"navigationBarTitleText": "知苗成长",
+				"onReachBottomDistance": 100
 			}
 		},
 		{

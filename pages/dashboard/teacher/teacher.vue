@@ -1,24 +1,27 @@
 <template>
     <view class="dashboard">
-        <custom-nav :xcxName="'成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" />
-        <view class="user-profile">
-            <!-- 左侧内容容器 -->
+        <u-sticky>
+            <custom-nav :xcxName="'成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" />
 
-            <view class="profile-left" @click="onClickProfile">
-                <image class="avatar-image" :src="avatarUrl" />
-                <view class="info">
-                    <view class="name">{{ displayName }}</view>
-                    <view class="class">{{ classDisplay }}
-                        <view class="invite" @click.stop="onClickInvite">邀请加入本班</view>
+            <view class="user-profile">
+                <!-- 左侧内容容器 -->
+
+                <view class="profile-left" @click="onClickProfile">
+                    <image class="avatar-image" :src="avatarUrl" />
+                    <view class="info">
+                        <view class="name">{{ displayName }}</view>
+                        <view class="class">{{ classDisplay }}
+                            <view class="invite" @click.stop="onClickInvite">邀请加入本班</view>
+                        </view>
                     </view>
                 </view>
-            </view>
 
-            <!-- 右侧切换按钮 -->
-            <view class="switch-class" @click="onClickSwitch">
-                <image class="switch-class-image" :src="switchIconUrl"></image>
+                <!-- 右侧切换按钮 -->
+                <view class="switch-class" @click="onClickSwitch">
+                    <image class="switch-class-image" :src="switchIconUrl"></image>
+                </view>
             </view>
-        </view>
+        </u-sticky>
         <view class="student-list">
             <view v-if="loading" class="u-demo-block">
                 <view class="u-demo-block__content">
@@ -30,32 +33,39 @@
             <StudentList :studentList="studentList" />
         </view>
 
-
+        <view v-if="loadingMore" class="u-demo-block__content">
+            <view class="u-page__loading-item">
+                <u-loading-icon mode="circle" timingFunction="linear"></u-loading-icon>
+            </view>
+        </view>
         <view class="help-container" @click="onClick">
             <text class="help-link">回到首页</text>
         </view>
 
-        <view style="margin-top:-25vh;z-index: 99;">
+        <!-- <view style="margin-top:-25vh;z-index: 99;">
             <QcSuspendBtn :mainBtn="suspen.mainBtn" :childSize="suspen.childSize" :childBtns="suspen.childBtns"
                 :openType="suspen.openType" :padding="suspen.padding" @childClick="childClick">
             </QcSuspendBtn>
-        </view>
+        </view> -->
+
     </view>
 </template>
 
 <script setup>
 import customNav from '@/components/customNav'
 import { ref, onMounted, computed, reactive } from "vue";
-import { onShow, onLoad } from '@dcloudio/uni-app'
+import { onShow, onLoad, onUnload, onReachBottom } from '@dcloudio/uni-app'
 import QcSuspendBtn from '@/components/qc-suspendBtn/qc-suspendBtn.vue'
 import StudentList from './components/student-list'
 
-const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
+const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
 const switchIconUrl = "../../../static/general/switch.png";
 const page = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(14)
 const loading = ref(true); // 新增加载状态
+const loadingMore = ref(false) // 新增加载更多状态
+const noMoreData = ref(false) // 新增无更多数据标志
 
 const suspen = reactive({
     openType: 'LineUp', //LineUp LineDown LineLeft LineRight SectorLeft SectorRight
@@ -158,7 +168,9 @@ const onClickProfile = () => {
 
 const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
     try {
-        loading.value = true; // 开始加载
+        loading.value = pageNum === 1; // 第一页显示加载动画
+        loadingMore.value = pageNum > 1; // 非第一页显示加载更多
+
         const res = await uniCloud.callFunction({
             name: 'wt-fetch-report-history',
             data: {
@@ -167,13 +179,22 @@ const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
                 pageSize: pageSizeNum
             }
         })
+
         if (res.result.code === 0) {
-            studentList.value = res.result.data.list
+            if (pageNum === 1) {
+                studentList.value = res.result.data.list
+            } else {
+                studentList.value = [...studentList.value, ...res.result.data.list]
+            }
+
+            // 判断是否还有更多数据
+            noMoreData.value = res.result.data.list.length < pageSizeNum
         }
     } catch (e) {
         console.error('加载失败:', e);
     } finally {
-        loading.value = false; // 结束加载
+        loading.value = false;
+        loadingMore.value = false;
     }
 };
 
@@ -183,6 +204,14 @@ onShow(() => {
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
     currentClass.value = uni.getStorageSync('currentClass') || {};
     checkLoginStatus();
+})
+
+onReachBottom(() => {
+    console.log('onReachBottom');
+    if (loadingMore.value || noMoreData.value) return;
+
+    page.value += 1
+    loadStudentsWithData(currentClass.value._id, page.value, pageSize.value)
 })
 
 onLoad((options) => {
@@ -205,7 +234,12 @@ onLoad((options) => {
     currentClass.value = uni.getStorageSync('currentClass') || {};
 
     loadStudentsWithData(currentClass.value._id, page.value, pageSize.value);
+    uni.$on('reachBottom', onReachBottom)
 });
+
+onUnload(() => {
+    uni.$off('reachBottom', onReachBottom)
+})
 
 const checkLoginStatus = () => {
     try {
@@ -236,6 +270,7 @@ onMounted(() => {
     currentClass.value = uni.getStorageSync('currentClass') || {};
 
 });
+
 
 
 </script>
@@ -397,5 +432,11 @@ onMounted(() => {
         margin-left: 10px;
         flex: 1;
     }
+}
+
+.u-demo-block__content {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
 }
 </style>
