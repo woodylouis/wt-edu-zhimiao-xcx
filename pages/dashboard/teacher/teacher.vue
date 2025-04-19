@@ -38,11 +38,11 @@
             </view>
         </view>
 
-        <!-- <view style="margin-top:-25vh;z-index: 99;">
+        <view style="margin-top:-25vh;z-index: 99;">
             <QcSuspendBtn :mainBtn="suspen.mainBtn" :childSize="suspen.childSize" :childBtns="suspen.childBtns"
                 :openType="suspen.openType" :padding="suspen.padding" @childClick="childClick">
             </QcSuspendBtn>
-        </view> -->
+        </view>
 
     </view>
 </template>
@@ -82,10 +82,20 @@ const suspen = reactive({
                 bgColor: 'red', // 背景色
             },
         },
+        {
+            // bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png',
+            textBg: {
+                content: '首页', //文字内容
+                textStyle: '', //文字样式
+                bgColor: 'red', // 背景色
+            },
+        },
     ],
     padding: 0,
 })
-const childClick = () => { }
+const childClick = (i) => {
+    console.log('点击了子按钮', i)
+}
 const studentList = ref([])
 // 新增用户信息获取
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
