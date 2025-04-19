@@ -25,7 +25,7 @@ const childAni = uni.createAnimation({
 
 // 设置主按钮动画
 const mainAnimation = computed(() => {
-  mainAni.rotateZ(isExpand.value ? 315 : 0).step()
+  mainAni.rotateZ(isExpand.value ? 180 : 0).step()
   return mainAni.export()
 })
 

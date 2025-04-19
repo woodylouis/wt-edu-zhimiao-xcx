@@ -68,27 +68,27 @@ const suspen = reactive({
     mainBtn: {
         size: 52,
         bgImg:
-            'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png', // 按钮背景图仅支持网络图片 如使用文字 请使用text
+            'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/more-down.png', // 按钮背景图仅支持网络图片 如使用文字 请使用text
         initX: 400,
         initY: 100,
     },
     childSize: 44, // 子按钮大小
     childBtns: [
         {
-            // bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png',
-            textBg: {
-                content: '评估', //文字内容
-                textStyle: '', //文字样式
-                bgColor: 'red', // 背景色
-            },
+            bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/assessment.png',
+            // textBg: {
+            //     content: '评估', //文字内容
+            //     textStyle: '', //文字样式
+            //     bgColor: 'red', // 背景色
+            // },
         },
         {
-            // bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png',
-            textBg: {
-                content: '首页', //文字内容
-                textStyle: '', //文字样式
-                bgColor: 'red', // 背景色
-            },
+            bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/home.png',
+            // textBg: {
+            //     content: '首页', //文字内容
+            //     textStyle: '', //文字样式
+            //     bgColor: 'red', // 背景色
+            // },
         },
     ],
     padding: 0,
