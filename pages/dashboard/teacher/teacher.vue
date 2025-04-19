@@ -28,9 +28,11 @@
             <text class="help-link">回到首页</text>
         </view>
 
-        <QcSuspendBtn :mainBtn="suspen.mainBtn" :childSize="suspen.childSize" :childBtns="suspen.childBtns"
-            :openType="suspen.openType" :padding="suspen.padding" @childClick="childClick">
-        </QcSuspendBtn>
+        <view style="margin-top:-25vh;z-index: 99;">
+            <QcSuspendBtn :mainBtn="suspen.mainBtn" :childSize="suspen.childSize" :childBtns="suspen.childBtns"
+                :openType="suspen.openType" :padding="suspen.padding" @childClick="childClick">
+            </QcSuspendBtn>
+        </view>
     </view>
 </template>
 
@@ -108,6 +110,66 @@ const studentList = ref([
     {
         avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
         name: '刘平平',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '张小花',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '张小丽',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '王小明',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '王小华',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '赵小刚',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '赵小红',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '陈小美',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '陈小强',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '林小芳',
+        lastAssessmentDate: '2025.12.22',
+        assessmentNumber: '共评估6次'
+    },
+    {
+        avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
+        name: '林小军',
         lastAssessmentDate: '2025.12.22',
         assessmentNumber: '共评估6次'
     }
