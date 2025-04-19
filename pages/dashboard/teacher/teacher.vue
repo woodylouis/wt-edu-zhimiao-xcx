@@ -357,7 +357,7 @@ onMounted(() => {
 
     .student-list {
         // margin-top: 40rpx;
-        padding: 0 40rpx;
+        padding: 5rpx 40rpx;
     }
 
     .assessment-option {
