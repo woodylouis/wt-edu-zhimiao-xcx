@@ -46,6 +46,8 @@ import StudentList from './components/student-list'
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
 const switchIconUrl = "../../../static/general/switch.png";
+const page = ref(1)
+const pageSize = ref(10)
 
 const suspen = reactive({
     openType: 'LineUp', //LineUp LineDown LineLeft LineRight SectorLeft SectorRight
@@ -249,14 +251,19 @@ const onClickProfile = () => {
     });
 }
 
-const loadStudents = async (classId) => {
+const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
     try {
         const res = await uniCloud.callFunction({
-            name: 'wtdb-business-children-list',
+            name: 'wt-fetch-report-history',
             data: {
-                classId
+                classId,
+                page: pageNum,  // Use .value to get the primitive value
+                pageSize: pageSizeNum  // Use .value to get the primitive value
             }
         })
+        if (res.result.code === 0) {
+            studentList.value = res.result.data.list
+        }
     } catch (e) {
         console.error('加载失败:', e);
     }
@@ -289,7 +296,7 @@ onLoad((options) => {
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
     currentClass.value = uni.getStorageSync('currentClass') || {};
 
-    loadStudents(currentClass.value._id);
+    loadStudentsWithData(currentClass.value._id, page.value, pageSize.value);
 });
 
 const checkLoginStatus = () => {
