@@ -2,7 +2,6 @@
     <view class="dashboard">
         <u-sticky>
             <custom-nav :xcxName="'成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" />
-
             <view class="user-profile">
                 <!-- 左侧内容容器 -->
 
@@ -25,21 +24,18 @@
         <view class="student-list">
             <view v-if="loading" class="u-demo-block">
                 <view class="u-demo-block__content">
-                    <u-skeleton rows="5" :title="false" :rowsWidth="['100%', '100%', '100%', '100%', '100%']"
-                        :rowsHeight="['160rpx', '160rpx', '160rpx', '160rpx', '160rpx']" loading
+                    <u-skeleton rows="6" :title="false" :rowsWidth="['100%', '100%', '100%', '100%', '100%', '100%']"
+                        :rowsHeight="['160rpx', '160rpx', '160rpx', '160rpx', '160rpx', '160rpx']" loading
                         :animate="true"></u-skeleton>
                 </view>
             </view>
             <StudentList :studentList="studentList" />
         </view>
 
-        <view v-if="loadingMore" class="u-demo-block__content">
+        <view v-if="loadingMore">
             <view class="u-page__loading-item">
                 <u-loading-icon mode="circle" timingFunction="linear"></u-loading-icon>
             </view>
-        </view>
-        <view class="help-container" @click="onClick">
-            <text class="help-link">回到首页</text>
         </view>
 
         <!-- <view style="margin-top:-25vh;z-index: 99;">
@@ -208,7 +204,16 @@ onShow(() => {
 
 onReachBottom(() => {
     console.log('onReachBottom');
-    if (loadingMore.value || noMoreData.value) return;
+    if (loadingMore.value) return;
+
+    if (noMoreData.value) {
+        uni.showToast({
+            title: '没有更多数据了~',
+            icon: 'none',
+            duration: 1500
+        });
+        return;
+    }
 
     page.value += 1
     loadStudentsWithData(currentClass.value._id, page.value, pageSize.value)

@@ -32,7 +32,7 @@ const props = defineProps({
 
         .student-item {
             width: 48%;
-            margin-bottom: 20rpx;
+            margin-bottom: 28rpx;
         }
     }
 }
