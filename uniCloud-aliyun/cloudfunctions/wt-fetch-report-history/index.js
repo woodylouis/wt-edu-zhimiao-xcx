@@ -13,60 +13,71 @@ exports.main = async (event, context) => {
 	}
 
 	try {
-		// 1. 查询该班级下所有儿童(带分页)
-		const childrenRes = await db.collection('wtdb-business-children')
+		// 1. 查询该班级下所有儿童
+		const allChildrenRes = await db.collection('wtdb-business-children')
 			.where({
 				class_id: classId
 			})
-			.skip((page - 1) * pageSize)
-			.limit(pageSize)
 			.get();
 
-		if (!childrenRes.data || childrenRes.data.length === 0) {
+		if (!allChildrenRes.data || allChildrenRes.data.length === 0) {
 			return {
 				code: 404,
 				message: '该班级下没有儿童'
 			};
 		}
 
-		const childIds = childrenRes.data.map(child => child._id);
+		const allChildIds = allChildrenRes.data.map(child => child._id);
 
-		// 2. 查询这些儿童的评估报告
+		// 2. 查询这些儿童的评估报告（按completionTime降序排序）
 		const reportRes = await db.collection('wtdb-business-assess-report')
 			.where({
-				childId: dbCmd.in(childIds)
+				childId: dbCmd.in(allChildIds)
 			})
 			.orderBy('completionTime', 'desc')
 			.get();
 
-		// 3. 获取总数用于分页
-		const totalRes = await db.collection('wtdb-business-children')
-			.where({
-				class_id: classId
-			})
-			.count();
-
-		// 4. 合并数据并添加新字段
-		const result = childrenRes.data.map(child => {
+		// 3. 准备数据：为每个儿童添加报告信息
+		const childrenWithReports = allChildrenRes.data.map(child => {
 			const reports = reportRes.data.filter(report => report.childId === child._id);
+			const hasReports = reports.length > 0;
 
-			// 更严谨地获取最近评估日期
-			const lastAssessmentDate = reports.reduce((latest, report) => {
-				return (!latest || report.completionTime > latest)
-					? report.completionTime
-					: latest;
-			}, null);
-
-			// 计算评估次数
-			const assessmentNumber = reports.length;
+			// 获取最新评估时间（如果有报告）
+			const latestReportTime = hasReports
+				? reports[0].completionTime
+				: 0;
 
 			return {
 				...child,
-				reports: reports || [],
-				lastAssessmentDate: lastAssessmentDate
-					? formatDate(lastAssessmentDate)
+				reports,
+				hasReports,
+				latestReportTime
+			};
+		});
+
+		// 4. 排序：有报告的在前，按最新评估时间降序；无报告的在后
+		childrenWithReports.sort((a, b) => {
+			if (a.hasReports && !b.hasReports) return -1;
+			if (!a.hasReports && b.hasReports) return 1;
+			if (!a.hasReports && !b.hasReports) return 0;
+			return b.latestReportTime - a.latestReportTime;
+		});
+
+		// 5. 分页处理
+		const startIndex = (page - 1) * pageSize;
+		const paginatedData = childrenWithReports.slice(startIndex, startIndex + pageSize);
+
+		// 6. 格式化最终结果
+		const result = paginatedData.map(child => {
+			return {
+				...child,
+				lastAssessmentDate: child.hasReports
+					? formatDate(child.reports[0].completionTime)
 					: '暂无评估记录',
-				assessmentNumber: `共评估${assessmentNumber}次`
+				assessmentNumber: `共评估${child.reports.length}次`,
+				// 移除临时字段
+				hasReports: undefined,
+				latestReportTime: undefined
 			};
 		});
 
@@ -74,7 +85,7 @@ exports.main = async (event, context) => {
 			code: 0,
 			data: {
 				list: result,
-				total: totalRes.total,
+				total: allChildrenRes.data.length,
 				page,
 				pageSize
 			},
