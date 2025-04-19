@@ -13,7 +13,28 @@ exports.main = async (event, context) => {
 	}
 
 	try {
-		// 1. 查询该班级下所有儿童
+		// 1. 先查询有评估报告的儿童ID（按最新评估时间排序）
+		const reportRes = await db.collection('wtdb-business-assess-report')
+			.where({
+				classId: classId
+			})
+			.orderBy('completionTime', 'desc')
+			.field({
+				childId: true,
+				completionTime: true
+			})
+			.get();
+
+		// 2. 获取去重后的儿童ID列表（已按最新评估时间排序）
+		const childIdMap = new Map();
+		reportRes.data.forEach(report => {
+			if (!childIdMap.has(report.childId)) {
+				childIdMap.set(report.childId, report.completionTime);
+			}
+		});
+		const sortedChildIds = Array.from(childIdMap.keys());
+
+		// 3. 查询所有儿童信息（包括无报告的）
 		const allChildrenRes = await db.collection('wtdb-business-children')
 			.where({
 				class_id: classId
@@ -27,35 +48,19 @@ exports.main = async (event, context) => {
 			};
 		}
 
-		const allChildIds = allChildrenRes.data.map(child => child._id);
-
-		// 2. 查询这些儿童的评估报告（按completionTime降序排序）
-		const reportRes = await db.collection('wtdb-business-assess-report')
-			.where({
-				childId: dbCmd.in(allChildIds)
-			})
-			.orderBy('completionTime', 'desc')
-			.get();
-
-		// 3. 准备数据：为每个儿童添加报告信息
+		// 4. 合并数据并排序
 		const childrenWithReports = allChildrenRes.data.map(child => {
-			const reports = reportRes.data.filter(report => report.childId === child._id);
-			const hasReports = reports.length > 0;
-
-			// 获取最新评估时间（如果有报告）
-			const latestReportTime = hasReports
-				? reports[0].completionTime
-				: 0;
+			const hasReports = sortedChildIds.includes(child._id);
+			const latestReportTime = hasReports ? childIdMap.get(child._id) : 0;
 
 			return {
 				...child,
-				reports,
 				hasReports,
 				latestReportTime
 			};
 		});
 
-		// 4. 排序：有报告的在前，按最新评估时间降序；无报告的在后
+		// 排序：有报告的在前，按最新评估时间降序；无报告的在后
 		childrenWithReports.sort((a, b) => {
 			if (a.hasReports && !b.hasReports) return -1;
 			if (!a.hasReports && b.hasReports) return 1;
@@ -67,15 +72,26 @@ exports.main = async (event, context) => {
 		const startIndex = (page - 1) * pageSize;
 		const paginatedData = childrenWithReports.slice(startIndex, startIndex + pageSize);
 
-		// 6. 格式化最终结果
+		// 6. 获取分页儿童的详细报告数据
+		const pageChildIds = paginatedData.map(child => child._id);
+		const pageReportsRes = await db.collection('wtdb-business-assess-report')
+			.where({
+				childId: dbCmd.in(pageChildIds)
+			})
+			.orderBy('completionTime', 'desc')
+			.get();
+
+		// 7. 构建最终结果
 		const result = paginatedData.map(child => {
+			const reports = pageReportsRes.data.filter(report => report.childId === child._id);
+
 			return {
 				...child,
-				lastAssessmentDate: child.hasReports
-					? formatDate(child.reports[0].completionTime)
+				reports: reports,
+				lastAssessmentDate: reports.length > 0
+					? formatDate(reports[0].completionTime)
 					: '暂无评估记录',
-				assessmentNumber: `共评估${child.reports.length}次`,
-				// 移除临时字段
+				assessmentNumber: `共评估${reports.length}次`,
 				hasReports: undefined,
 				latestReportTime: undefined
 			};
@@ -100,6 +116,8 @@ exports.main = async (event, context) => {
 		};
 	}
 };
+
+// ... formatDate函数保持不变 ...
 
 // 辅助函数：格式化时间戳为日期字符串
 function formatDate(timestamp) {
