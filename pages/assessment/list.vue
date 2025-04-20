@@ -1,6 +1,6 @@
 <template>
     <view class="dashboard">
-        <custom-nav :xcxName="'成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" />
+        <custom-nav :xcxName="'成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" />
         <view class="user-profile">
             <!-- 左侧内容容器 -->
 
@@ -32,9 +32,12 @@
             暂无评估报告数据
         </view>
 
-        <QcSuspendBtn :mainBtn="suspen.mainBtn" :childSize="suspen.childSize" :childBtns="suspen.childBtns"
-            :openType="suspen.openType" :padding="suspen.padding" @childClick="childClick">
-        </QcSuspendBtn>
+        <view style="position: fixed; right: 30rpx; bottom: 120rpx; z-index: 9999;">
+            <QcSuspendBtn :mainBtn="btnConfig.suspen.mainBtn" :childSize="btnConfig.suspen.childSize"
+                :childBtns="btnConfig.suspen.childBtns" :openType="btnConfig.suspen.openType"
+                :padding="btnConfig.suspen.padding" @childClick="btnConfig.childClick">
+            </QcSuspendBtn>
+        </view>
     </view>
 </template>
 
@@ -43,6 +46,7 @@ import customNav from '@/components/customNav'
 import { ref, onMounted, computed, reactive } from "vue";
 import { onShow, onLoad } from '@dcloudio/uni-app'
 import QcSuspendBtn from '@/components/qc-suspendBtn/qc-suspendBtn.vue'
+import btnConfig from '@/common/suspen-btn/config.js'
 const CACHE_KEY = 'teacher_assessment_list';
 const CACHE_EXPIRY = 3600 * 1000; // 1小时有效期
 const assessmentList = ref([]);

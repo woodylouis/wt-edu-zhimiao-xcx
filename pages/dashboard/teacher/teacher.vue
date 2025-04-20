@@ -39,8 +39,9 @@
         </view>
 
         <view style="position: fixed; right: 30rpx; bottom: 120rpx; z-index: 9999;">
-            <QcSuspendBtn :mainBtn="suspen.mainBtn" :childSize="suspen.childSize" :childBtns="suspen.childBtns"
-                :openType="suspen.openType" :padding="suspen.padding" @childClick="childClick">
+            <QcSuspendBtn :mainBtn="btnConfig.suspen.mainBtn" :childSize="btnConfig.suspen.childSize"
+                :childBtns="btnConfig.suspen.childBtns" :openType="btnConfig.suspen.openType"
+                :padding="btnConfig.suspen.padding" @childClick="btnConfig.childClick">
             </QcSuspendBtn>
         </view>
 
@@ -53,6 +54,7 @@ import { ref, onMounted, computed, reactive } from "vue";
 import { onShow, onLoad, onUnload, onReachBottom } from '@dcloudio/uni-app'
 import QcSuspendBtn from '@/components/qc-suspendBtn/qc-suspendBtn.vue'
 import StudentList from './components/student-list'
+import btnConfig from '@/common/suspen-btn/config.js'
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
@@ -63,39 +65,6 @@ const loading = ref(true); // 新增加载状态
 const loadingMore = ref(false) // 新增加载更多状态
 const noMoreData = ref(false) // 新增无更多数据标志
 
-const suspen = reactive({
-    openType: 'LineUp', //LineUp LineDown LineLeft LineRight SectorLeft SectorRight
-    mainBtn: {
-        size: 52,
-        bgImg:
-            'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/more-down.png', // 按钮背景图仅支持网络图片 如使用文字 请使用text
-        initX: 400,
-        initY: 100,
-    },
-    childSize: 44, // 子按钮大小
-    childBtns: [
-        {
-            bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/assessment.png',
-            // textBg: {
-            //     content: '评估', //文字内容
-            //     textStyle: '', //文字样式
-            //     bgColor: 'red', // 背景色
-            // },
-        },
-        {
-            bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/home.png',
-            // textBg: {
-            //     content: '首页', //文字内容
-            //     textStyle: '', //文字样式
-            //     bgColor: 'red', // 背景色
-            // },
-        },
-    ],
-    padding: 0,
-})
-const childClick = (i) => {
-    console.log('点击了子按钮', i)
-}
 const studentList = ref([])
 // 新增用户信息获取
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
