@@ -3,7 +3,7 @@ import { reactive } from "vue";
 // 修改导出方式
 export default {
     suspen: reactive({
-        openType: 'LineUp', //LineUp LineDown LineLeft LineRight SectorLeft SectorRight
+        openType: 'LineLeft', //LineUp LineDown LineLeft LineRight SectorLeft SectorRight
         mainBtn: {
             size: 52,
             bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png',

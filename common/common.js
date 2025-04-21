@@ -16,5 +16,9 @@ export default {
             months += 12;
         }
         return `${years}岁${months}个月`
+    },
+    formatDate(timestamp) {
+        const date = new Date(timestamp);
+        return `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
     }
 }

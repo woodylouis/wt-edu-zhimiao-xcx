@@ -8,10 +8,11 @@
                 <view class="profile-left">
                     <image class="avatar-image" :src="avatarUrl" />
                     <view class="info">
-                        <view class="name">{{ displayName }}的评估报告</view>
+                        <view class="name">{{ displayName }}的评估报告<span v-if="dateString"> ({{ dateString }})</span>
+                        </view>
                         <view class="class">
                             <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{ classDisplay
-                            }}</view>
+                                }}</view>
                             <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                         </view>
                     </view>
@@ -46,6 +47,7 @@ const totalScore = ref(0);
 const sectionScores = ref({});
 const completionTime = ref('');
 const childAge = ref('');
+const dateString = ref('');
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 // 在setup中添加卸载生命周期
@@ -60,13 +62,16 @@ onLoad((options) => {
     const isHistory = true
     if (isHistory) {
         const studentReport = uni.getStorageSync('currentStudentReport');
+        const currentClass = uni.getStorageSync('currentClass');
         console.log('studentReport:', studentReport);
         if (studentReport) {
             displayName.value = studentReport.name || '未知姓名';
             classDisplay.value = studentReport.className || '未知班级';
+            classDisplay.value = currentClass.nickname || '未知班级';
             childAge.value = common.ageDisplay(studentReport.birthdate) || '未知年龄';
             sectionScores.value = studentReport.reports[0].sectionScores || {};
             analysisTextAI.value = studentReport.reports[0].aiResponse || '';
+            dateString.value = common.formatDate(studentReport.reports[0].completionTime) || '';
             // console.log("analysisTextAI", analysisTextAI.value)
         }
     } else {

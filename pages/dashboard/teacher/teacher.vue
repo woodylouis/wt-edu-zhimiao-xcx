@@ -38,11 +38,13 @@
             </view>
         </view>
 
-        <view style="position: fixed; right: 30rpx; bottom: 120rpx; z-index: 9999;background-color: red;">
-            <QcSuspendBtn :mainBtn="btnConfig.suspen.mainBtn" :childSize="btnConfig.suspen.childSize"
-                :childBtns="btnConfig.suspen.childBtns" :openType="btnConfig.suspen.openType"
-                :padding="btnConfig.suspen.padding" @childClick="btnConfig.childClick">
-            </QcSuspendBtn>
+        <view style=" right: 30rpx; bottom: 120rpx; z-index: 9999;">
+            <view style=" z-index: 9999;">
+                <QcSuspendBtn :mainBtn="btnConfig.suspen.mainBtn" :childSize="btnConfig.suspen.childSize"
+                    :childBtns="btnConfig.suspen.childBtns" :openType="btnConfig.suspen.openType"
+                    :padding="btnConfig.suspen.padding" @childClick="btnConfig.childClick">
+                </QcSuspendBtn>
+            </view>
         </view>
 
     </view>
