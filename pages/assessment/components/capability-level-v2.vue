@@ -162,7 +162,6 @@ const radarOption = computed(() => {
 });
 
 watch(() => [props.motorScore, props.languageScore, props.socialScore], () => {
-    console.log("props.socialScore", props.socialScore)
     if (chartRef.value && chartRef.value.chart) {
         chartRef.value.chart.setOption(option.value);
     }
@@ -181,6 +180,7 @@ const markdownIt = MarkdownIt({
 
 watchEffect(() => {
     if (props.analysisTextAI) {
+        console.log('analysisTextAI:', props.analysisTextAI);
         try {
             const tokens = markdownIt.parse(props.analysisTextAI, {}); // 移除.value
             nodes.value = parseTokens(tokens, markdownIt.options);

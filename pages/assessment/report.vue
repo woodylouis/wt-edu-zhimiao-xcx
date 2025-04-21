@@ -67,6 +67,7 @@ onLoad((options) => {
             childAge.value = common.ageDisplay(studentReport.birthdate) || '未知年龄';
             sectionScores.value = studentReport.reports[0].sectionScores || {};
             analysisTextAI.value = studentReport.reports[0].aiResponse || '';
+            // console.log("analysisTextAI", analysisTextAI.value)
         }
     } else {
         assessmentId.value = options.assessmentId; // 存储assessmentId
