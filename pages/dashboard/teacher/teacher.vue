@@ -38,12 +38,12 @@
             </view>
         </view>
 
-        <!-- <view style="position: fixed; right: 30rpx; bottom: 120rpx; z-index: 9999;">
+        <view style="position: fixed; right: 30rpx; bottom: 120rpx; z-index: 9999;">
             <QcSuspendBtn :mainBtn="btnConfig.suspen.mainBtn" :childSize="btnConfig.suspen.childSize"
                 :childBtns="btnConfig.suspen.childBtns" :openType="btnConfig.suspen.openType"
                 :padding="btnConfig.suspen.padding" @childClick="btnConfig.childClick">
             </QcSuspendBtn>
-        </view> -->
+        </view>
 
     </view>
 </template>
@@ -90,8 +90,12 @@ const avatarUrl = computed(() => {
         : defaultAvatarUrl.value;
 });
 
-const handleStudentClick = (i) => {
-    console.log('点击了学生', i);
+const handleStudentClick = (student) => {
+    console.log('点击了学生', student);
+    uni.setStorageSync('currentStudentReport', student);
+    uni.navigateTo({
+        url: `/pages/assessment/report?isHistory=yes}`
+    });
 }
 
 const onClickInvite = () => {

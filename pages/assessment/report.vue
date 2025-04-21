@@ -32,10 +32,11 @@
 
 <script setup>
 import customNav from '@/components/customNav';
-import developmentLevel from './components/development-level';
 import capabilityLevel from './components/capability-level-v2';
 import { onLoad } from '@dcloudio/uni-app'
-import { ref, onMounted, computed, onUnmounted } from "vue";
+import { ref, onUnmounted } from "vue";
+import common from '@/common/common.js';
+
 
 let displayName = ref('李思'); // 
 let classDisplay = ref('小班3班');
@@ -56,37 +57,47 @@ const handleNavBack = () => {
 };
 
 onLoad((options) => {
-    assessmentId.value = options.assessmentId; // 存储assessmentId
-    analysisTextAI.value = options.analysisTextAI;
-    const cacheKey = `assessment_67f61c06816a3f73442910de`;
-    const cachedData = uni.getStorageSync(cacheKey);
+    const isHistory = true
+    if (isHistory) {
+        const studentReport = uni.getStorageSync('currentStudentReport');
+        console.log('studentReport:', studentReport);
+        if (studentReport) {
+            displayName.value = studentReport.name || '未知姓名';
+            classDisplay.value = studentReport.className || '未知班级';
+            childAge.value = common.ageDisplay(studentReport.birthdate) || '未知年龄';
+            sectionScores.value = studentReport.reports[0].sectionScores || {};
+            analysisTextAI.value = studentReport.reports[0].aiResponse || '';
+        }
+    } else {
+        assessmentId.value = options.assessmentId; // 存储assessmentId
+        analysisTextAI.value = options.analysisTextAI;
+        const cacheKey = `assessment_67f61c06816a3f73442910de`;
+        const cachedData = uni.getStorageSync(cacheKey);
+        // 初始化数据绑定
+        if (cachedData) {
+            displayName.value = cachedData.childName || '未知姓名';
+            classDisplay.value = cachedData.className || '未知班级';
+            childAge.value = cachedData.childAge || '未知年龄';
+            totalScore.value = cachedData.totalScore || 0;
+            sectionScores.value = cachedData.sectionScores || {};
+            console.log("sectionScores", sectionScores.value)
 
-    // 初始化数据绑定
-    if (cachedData) {
-        displayName.value = cachedData.childName || '未知姓名';
-        classDisplay.value = cachedData.className || '未知班级';
-        childAge.value = cachedData.childAge || '未知年龄';
-        totalScore.value = cachedData.totalScore || 0;
-        sectionScores.value = cachedData.sectionScores || {};
-        console.log("sectionScores", sectionScores.value)
+            // 格式化年龄显示
+            // if (cachedData.childAge >= 2) {
+            //     const years = Math.floor(cachedData.childAge);
+            //     const months = Math.round((cachedData.childAge - years) * 10 * 1.2);
+            //     formattedAge.value = months === 0 ?
+            //         `${years}岁` :
+            //         `${years}岁${months}个月`;
+            // } else {
+            //     formattedAge.value = `${Math.round(cachedData.childAge * 10 * 1.2)}个月`;
+            // }
 
-        // 格式化年龄显示
-        // if (cachedData.childAge >= 2) {
-        //     const years = Math.floor(cachedData.childAge);
-        //     const months = Math.round((cachedData.childAge - years) * 10 * 1.2);
-        //     formattedAge.value = months === 0 ?
-        //         `${years}岁` :
-        //         `${years}岁${months}个月`;
-        // } else {
-        //     formattedAge.value = `${Math.round(cachedData.childAge * 10 * 1.2)}个月`;
-        // }
+            // 格式化完成时间
+            completionTime.value = new Date(cachedData.completionTime).toLocaleString();
+        }
 
-        // 格式化完成时间
-        completionTime.value = new Date(cachedData.completionTime).toLocaleString();
     }
-
-    // 添加调试日志
-    console.log('缓存数据:', cachedData);
 });
 
 onUnmounted(() => {

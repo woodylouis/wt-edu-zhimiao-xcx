@@ -22,7 +22,8 @@ const props = defineProps({
 })
 
 const handleStudentClick = (student) => {
-    $emits('handleStudentClick', student)  // 修改这里，使用emit而不是$emits
+    const plainStudent = JSON.parse(JSON.stringify(student));
+    $emits('handleStudentClick', plainStudent); // 修改这里，使用emit而不是$emits
 }
 
 </script>
