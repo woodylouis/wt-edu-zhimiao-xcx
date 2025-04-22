@@ -21,30 +21,33 @@
                         </view>
                     </view>
                 </view>
-                <view class="profile-right">
+                <view class="profile-right" @click="handleClickHistory">
                     <image class="report-list-image" :src="listIconUrl" />
                 </view>
             </view>
-            <view class="report">
+            <!-- <view class="report">
                 <view class="part">
-                    <!-- <developmentLevel :totalScore="totalScore" /> -->
                     <capability-level :displayName="displayName" :analysisTextAI="analysisTextAI"
                         :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交"
                         :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0"
                         :selfcare-score="sectionScores.生活自理 || 0" :age="childAge" />
                 </view>
-            </view>
+            </view> -->
+        </view>
+        <view style="z-index: 9999;">
+            <popup :show="showHistory" @update:show="val => showHistory = val" @closed="handlePopupClosed" />
         </view>
     </view>
 </template>
 
 <script setup>
-import customNav from '@/components/customNav';
-import capabilityLevel from './components/capability-level-v2';
+
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, onUnmounted } from "vue";
 import common from '@/common/common.js';
-
+import customNav from '@/components/customNav';
+import capabilityLevel from './components/capability-level-v2';
+import popup from './components/popup';
 
 let displayName = ref('李思'); // 
 let classDisplay = ref('小班3班');
@@ -55,7 +58,7 @@ const sectionScores = ref({});
 const completionTime = ref('');
 const childAge = ref('');
 const dateString = ref('');
-
+const showHistory = ref(false);
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 // 在setup中添加卸载生命周期
 const assessmentId = ref('');
@@ -64,8 +67,16 @@ const listIconUrl = "../../static/general/list.png";
 
 const handleNavBack = () => {
     uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
-
 };
+
+const handleClickHistory = () => {
+    showHistory.value = true;
+}
+
+const handlePopupClosed = () => {
+    // 这里可以添加父页面需要执行的逻辑
+    console.log('popup已关闭')
+}
 
 onLoad((options) => {
     const isHistory = true
@@ -136,8 +147,10 @@ onUnmounted(() => {
                 linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);
             display: flex;
             justify-content: space-between;
-            padding: 0 40rpx;
+            align-items: center; // 新增这行实现垂直居中
+            padding: 0 40rpx 20rpx 40rpx;
             box-shadow: inset 0 -20rpx 30rpx rgba(255, 255, 255, 0.8);
+
 
             .profile-left {
                 display: flex;
