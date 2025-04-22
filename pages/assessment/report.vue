@@ -8,14 +8,21 @@
                 <view class="profile-left">
                     <image class="avatar-image" :src="avatarUrl" />
                     <view class="info">
-                        <view class="name">{{ displayName }}的评估报告<span v-if="dateString"> ({{ dateString }})</span>
-                        </view>
+                        <view class="name">{{ displayName }}的评估报告</view>
                         <view class="class">
-                            <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{ classDisplay
-                                }}</view>
-                            <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
+                            <view style="display: flex;">
+                                <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
+                                    classDisplay
+                                    }}</view>
+                                <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
+                            </view>
+
+                            <view><span style="font-weight: bold;">评估日期：</span>{{ dateString }}</view>
                         </view>
                     </view>
+                </view>
+                <view class="profile-right">
+                    <image class="report-list-image" :src="listIconUrl" />
                 </view>
             </view>
             <view class="report">
@@ -53,6 +60,8 @@ const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, 
 // 在setup中添加卸载生命周期
 const assessmentId = ref('');
 const analysisTextAI = ref('');
+const listIconUrl = "../../static/general/list.png";
+
 const handleNavBack = () => {
     uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
 
@@ -122,7 +131,7 @@ onUnmounted(() => {
         height: calc(100vh - 100vh / 8);
 
         .user-profile {
-            height: calc(100vh / 8);
+            // height: calc(100vh / 8);
             background:
                 linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);
             display: flex;
@@ -135,6 +144,16 @@ onUnmounted(() => {
                 gap: 24rpx;
                 height: 60%;
                 align-items: center;
+            }
+
+            .profile-right {
+                height: 60%;
+                align-items: center;
+
+                .report-list-image {
+                    width: 90rpx;
+                    height: 90rpx;
+                }
             }
 
             .avatar-image {
@@ -157,7 +176,6 @@ onUnmounted(() => {
                 }
 
                 .class {
-                    display: flex;
                     gap: 8rpx;
                     color: #3D464A;
                     font-family: "PingFang SC";
