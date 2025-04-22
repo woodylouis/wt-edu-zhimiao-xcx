@@ -8,7 +8,7 @@ export default {
             size: 52,
             bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png',
             initX: 400,
-            initY: 100,
+            initY: 0,
         },
         childSize: 44,
         childBtns: [
