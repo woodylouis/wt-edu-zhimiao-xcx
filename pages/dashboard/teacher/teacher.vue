@@ -150,9 +150,14 @@ const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
         // 检查是否有缓存数据
         const cacheKey = `current_class_students`;
         const cachedData = uni.getStorageSync(cacheKey);
+        
+        // 检查缓存是否有效：存在缓存数据且缓存中的学生属于当前班级
+        const isCacheValid = cachedData && cachedData.some(student => 
+            student.class_id === currentClass.value._id
+        );
 
-        // 如果是第一页且有缓存数据，则使用缓存
-        if (pageNum === 1 && cachedData) {
+        // 如果是第一页且缓存有效，则使用缓存
+        if (pageNum === 1 && isCacheValid) {
             studentList.value = cachedData;
             loading.value = false;
             return;
