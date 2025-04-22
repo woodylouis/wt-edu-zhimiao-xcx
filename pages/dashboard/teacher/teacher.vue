@@ -94,10 +94,18 @@ const avatarUrl = computed(() => {
 
 const handleStudentClick = (student) => {
     console.log('点击了学生', student);
-    uni.setStorageSync('currentStudentReport', student);
-    uni.navigateTo({
-        url: `/pages/assessment/report?isHistory=yes}`
-    });
+    if (student.reports.length > 0) {
+        uni.setStorageSync('currentStudentReport', student);
+        uni.navigateTo({
+            url: `/pages/assessment/report?isHistory=yes}`
+        });
+    } else {
+        uni.showToast({
+            title: '暂无该学生历史报告，请先进行评估',
+            icon: 'none'
+        });
+    }
+
 }
 
 const onClickInvite = () => {
@@ -150,9 +158,9 @@ const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
         // 检查是否有缓存数据
         const cacheKey = `current_class_students`;
         const cachedData = uni.getStorageSync(cacheKey);
-        
+
         // 检查缓存是否有效：存在缓存数据且缓存中的学生属于当前班级
-        const isCacheValid = cachedData && cachedData.some(student => 
+        const isCacheValid = cachedData && cachedData.some(student =>
             student.class_id === currentClass.value._id
         );
 
