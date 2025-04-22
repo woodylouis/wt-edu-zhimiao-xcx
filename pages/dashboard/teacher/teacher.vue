@@ -147,8 +147,19 @@ const onClickProfile = () => {
 
 const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
     try {
-        loading.value = pageNum === 1; // 第一页显示加载动画
-        loadingMore.value = pageNum > 1; // 非第一页显示加载更多
+        // 检查是否有缓存数据
+        const cacheKey = `current_class_students`;
+        const cachedData = uni.getStorageSync(cacheKey);
+
+        // 如果是第一页且有缓存数据，则使用缓存
+        if (pageNum === 1 && cachedData) {
+            studentList.value = cachedData;
+            loading.value = false;
+            return;
+        }
+
+        loading.value = pageNum === 1;
+        loadingMore.value = pageNum > 1;
 
         const res = await uniCloud.callFunction({
             name: 'wt-fetch-report-history',
@@ -161,13 +172,14 @@ const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
 
         if (res.result.code === 0) {
             if (pageNum === 1) {
-                studentList.value = res.result.data.list
+                studentList.value = res.result.data.list;
+                // 缓存第一页数据
+                uni.setStorageSync(cacheKey, res.result.data.list);
             } else {
-                studentList.value = [...studentList.value, ...res.result.data.list]
+                studentList.value = [...studentList.value, ...res.result.data.list];
             }
 
-            // 判断是否还有更多数据
-            noMoreData.value = res.result.data.list.length < pageSizeNum
+            noMoreData.value = res.result.data.list.length < pageSizeNum;
         }
     } catch (e) {
         console.error('加载失败:', e);
@@ -175,6 +187,12 @@ const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
         loading.value = false;
         loadingMore.value = false;
     }
+};
+
+// 在切换班级或需要刷新数据时清除缓存
+const clearStudentsCache = (classId) => {
+    const cacheKey = `class_${classId}_students`;
+    uni.removeStorageSync(cacheKey);
 };
 
 
@@ -256,7 +274,6 @@ const checkLoginStatus = () => {
 onMounted(() => {
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
     currentClass.value = uni.getStorageSync('currentClass') || {};
-
 });
 
 
