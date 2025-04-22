@@ -35,7 +35,7 @@
             </view> -->
         </view>
         <view style="z-index: 9999;">
-            <popup :show="showHistory" @update:show="val => showHistory = val" @closed="handlePopupClosed" />
+            <popup :historyReports="historyReports" :show="showHistory" @update:show="val => showHistory = val" />
         </view>
     </view>
 </template>
@@ -64,6 +64,22 @@ const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, 
 const assessmentId = ref('');
 const analysisTextAI = ref('');
 const listIconUrl = "../../static/general/list.png";
+const historyReports = ref([
+
+    {
+        title: 'ABLLS-R',
+        date: '2025.4.2',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2024.8.12',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2024.3.12',
+    }
+
+])
 
 const handleNavBack = () => {
     uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
@@ -73,10 +89,6 @@ const handleClickHistory = () => {
     showHistory.value = true;
 }
 
-const handlePopupClosed = () => {
-    // 这里可以添加父页面需要执行的逻辑
-    console.log('popup已关闭')
-}
 
 onLoad((options) => {
     const isHistory = true

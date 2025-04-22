@@ -32,6 +32,12 @@ export default {
             type: Boolean,
             default: false,
         },
+        historyReports: {
+            type: Array,
+            default: () => [
+
+            ]
+        }
     },
     data() {
         return {
@@ -43,20 +49,6 @@ export default {
                 closeable: true,
                 closeOnClickOverlay: true
             },
-            historyReports: [
-                {
-                    title: 'ABLLS-R',
-                    date: '2025.4.2',
-                },
-                {
-                    title: 'ABLLS-R',
-                    date: '2024.8.12',
-                },
-                {
-                    title: 'ABLLS-R',
-                    date: '2024.3.12',
-                }
-            ]
         }
     },
     methods: {
