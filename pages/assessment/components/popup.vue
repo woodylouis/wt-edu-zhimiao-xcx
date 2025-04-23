@@ -41,7 +41,7 @@ export default {
     },
     data() {
         return {
-            currentReportIndex: 1, // 新增这行，默认第一个报告为当前报告
+            currentReportIndex: 0, // 新增这行，默认第一个报告为当前报告
             popupData: {
                 overlay: true,
                 mode: 'left',
@@ -68,8 +68,8 @@ export default {
             this.$emit('update:show', false)  // 修改为emit事件
         },
         onclickReportCard(i) {
-            this.currentReportIndex = i; // 新增这行，更新当前选中报告索引
-            console.log('点击了报告卡片', i);
+            this.currentReportIndex = i;
+            this.$emit('onclickReportCard', i);
         }
     }
 }

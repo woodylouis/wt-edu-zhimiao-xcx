@@ -35,7 +35,8 @@
             </view>
         </view>
         <view style="z-index: 9999;">
-            <popup :historyReports="historyReports" :show="showHistory" @update:show="val => showHistory = val" />
+            <popup :historyReports="historyReports" :show="showHistory" @update:show="val => showHistory = val"
+                @onclickReportCard="onclickReportCard" />
         </view>
     </view>
 </template>
@@ -133,7 +134,10 @@ const handleClickHistory = () => {
     showHistory.value = true;
 }
 
-
+const onclickReportCard = (index) => {
+    console.log("onclickReportCard received index:", index);
+    console.log("Current report data:", historyReports.value[index]);
+}
 onLoad((options) => {
     console.log('onLoad:', options);
     const isHistory = true
