@@ -99,16 +99,18 @@ export default {
 
 
             .report-card {
-                background-color: #f2f7f6;
+                // background-color: #f2f7f6;
                 border-radius: 10px;
                 padding: 12px;
                 height: 120rpx;
                 position: relative;
+                box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1); //
+
 
                 .report-title {
                     font-size: 30rpx;
                     color: #272727;
-                    font-weight: 500;
+                    font-weight: bold;
                     align-items: center;
                     justify-content: center;
 

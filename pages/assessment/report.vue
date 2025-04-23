@@ -25,14 +25,14 @@
                     <image class="report-list-image" :src="listIconUrl" />
                 </view>
             </view>
-            <!-- <view class="report">
+            <view class="report">
                 <view class="part">
                     <capability-level :displayName="displayName" :analysisTextAI="analysisTextAI"
                         :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交"
                         :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0"
                         :selfcare-score="sectionScores.生活自理 || 0" :age="childAge" />
                 </view>
-            </view> -->
+            </view>
         </view>
         <view style="z-index: 9999;">
             <popup :historyReports="historyReports" :show="showHistory" @update:show="val => showHistory = val" />
@@ -135,6 +135,7 @@ const handleClickHistory = () => {
 
 
 onLoad((options) => {
+    console.log('onLoad:', options);
     const isHistory = true
     if (isHistory) {
         const studentReport = uni.getStorageSync('currentStudentReport');

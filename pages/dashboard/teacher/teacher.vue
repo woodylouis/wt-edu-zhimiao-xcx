@@ -97,7 +97,7 @@ const handleStudentClick = (student) => {
     if (student.reports.length > 0) {
         uni.setStorageSync('currentStudentReport', student);
         uni.navigateTo({
-            url: `/pages/assessment/report?isHistory=yes}`
+            url: `/pages/assessment/report?isHistory=true`
         });
     } else {
         uni.showToast({
