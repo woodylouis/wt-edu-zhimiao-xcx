@@ -77,6 +77,42 @@ const historyReports = ref([
     {
         title: 'ABLLS-R',
         date: '2024.3.12',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2025.4.2',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2024.8.12',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2024.3.12',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2025.4.2',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2024.8.12',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2024.3.12',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2025.4.2',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2024.8.12',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2024.3.12',
     }
 
 ])

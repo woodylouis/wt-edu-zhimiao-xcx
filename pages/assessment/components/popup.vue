@@ -5,8 +5,8 @@
             :closeable="popupData.closeable" :closeOnClickOverlay="popupData.closeOnClickOverlay" @close="close"
             @open="open">
             <view class="u-popup-slot">
-                <view class="report">
-                    <view class="title">查看历史报告</view>
+                <scroll-view class="report" scroll-y>
+                    <!-- <view class="title">查看历史报告</view> -->
                     <view v-for="(report, index) in historyReports" :key="index" class="report-list"
                         @click="onclickReportCard(index)">
                         <view class="report-card">
@@ -19,7 +19,7 @@
                             </view>
                         </view>
                     </view>
-                </view>
+                </scroll-view>
             </view>
         </u-popup>
     </view>
@@ -78,16 +78,16 @@ export default {
 <style lang="scss">
 .u-popup-slot {
     width: 60vw;
-    // height: 150px;
-    @include flex;
+    height: 90vh;
+    display: flex;
     justify-content: center;
-    align-items: center;
     background-color: red;
 
 
     .report {
         width: 80%;
-        margin-top: 80rpx;
+        height: 100%;
+        background-color: green;
 
         .title {
             font-size: 32rpx;
