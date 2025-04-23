@@ -139,6 +139,14 @@ onLoad((options) => {
     const isHistory = true
     if (isHistory) {
         const studentReport = uni.getStorageSync('currentStudentReport');
+        historyReports.value = studentReport.reports.map(report => {
+            const assessmentList = uni.getStorageSync('teacher_assessment_list')?.list || [];
+            const assessment = assessmentList.find(item => item._id === report.id);
+            return {
+                title: assessment?.title || '未知评估',
+                date: common.formatDate(report.completionTime)
+            };
+        });
         const currentClass = uni.getStorageSync('currentClass');
         console.log('studentReport:', studentReport);
         if (studentReport) {
