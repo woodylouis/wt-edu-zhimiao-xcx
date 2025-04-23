@@ -113,6 +113,14 @@ const historyReports = ref([
     {
         title: 'ABLLS-R',
         date: '2024.3.12',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2024.3.12',
+    },
+    {
+        title: 'ABLLS-R',
+        date: '2021.3.12',
     }
 
 ])

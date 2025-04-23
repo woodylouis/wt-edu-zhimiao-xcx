@@ -78,16 +78,14 @@ export default {
 <style lang="scss">
 .u-popup-slot {
     width: 60vw;
-    height: 90vh;
+    height: 92vh;
     display: flex;
     justify-content: center;
-    background-color: red;
 
 
     .report {
         width: 80%;
         height: 100%;
-        background-color: green;
 
         .title {
             font-size: 32rpx;
