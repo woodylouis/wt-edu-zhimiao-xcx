@@ -87,6 +87,8 @@ export default {
         width: 100%;
         height: 100%;
 
+
+
         .title {
             font-size: 32rpx;
             color: #00214d;
@@ -96,11 +98,15 @@ export default {
 
         .report-list {
             margin-top: 40rpx;
+            // 这里实现居中
+            display: flex;
+            justify-content: center;
+            align-items: center;
 
 
             .report-card {
                 width: 80%;
-                background: linear-gradient(135deg, #f2f7f6 0%, #e0f0ed 80%);
+                background: linear-gradient(to right, #F1FCF5, #F9FCEF);
                 border-radius: 10px;
                 padding: 12px;
                 margin: 0 10rpx;
