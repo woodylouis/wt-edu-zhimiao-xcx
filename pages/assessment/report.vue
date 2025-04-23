@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                    }}</view>
+                                }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -137,6 +137,7 @@ const handleClickHistory = () => {
 const onclickReportCard = (index) => {
     console.log("onclickReportCard received index:", index);
     console.log("Current report data:", historyReports.value[index]);
+
 }
 onLoad((options) => {
     console.log('onLoad:', options);
