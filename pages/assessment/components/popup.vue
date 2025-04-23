@@ -84,7 +84,7 @@ export default {
 
 
     .report {
-        width: 80%;
+        width: 100%;
         height: 100%;
 
         .title {
@@ -99,9 +99,11 @@ export default {
 
 
             .report-card {
-                // background-color: #f2f7f6;
+                width: 80%;
+                background: linear-gradient(135deg, #f2f7f6 0%, #e0f0ed 80%);
                 border-radius: 10px;
                 padding: 12px;
+                margin: 0 10rpx;
                 height: 120rpx;
                 position: relative;
                 box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1); //
