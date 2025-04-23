@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                }}</view>
+                                    }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -137,6 +137,14 @@ const handleClickHistory = () => {
 const onclickReportCard = (index) => {
     console.log("onclickReportCard received index:", index);
     console.log("Current report data:", historyReports.value[index]);
+    const selectedReport = historyReports.value[index];
+    // 更新页面显示的报告数据
+    sectionScores.value = selectedReport.sectionScores || {};
+    analysisTextAI.value = selectedReport.aiResponse || '';
+    dateString.value = common.formatDate(selectedReport.completionTime) || '';
+
+    // 关闭历史报告弹窗
+    showHistory.value = false;
 
 }
 onLoad((options) => {

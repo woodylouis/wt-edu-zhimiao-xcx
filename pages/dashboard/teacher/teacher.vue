@@ -187,12 +187,31 @@ const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
             if (pageNum === 1) {
                 studentList.value = res.result.data.list;
                 // 缓存第一页数据
-                uni.setStorageSync(cacheKey, res.result.data.list);
+                // uni.setStorageSync(cacheKey, res.result.data.list);
             } else {
                 studentList.value = [...studentList.value, ...res.result.data.list];
             }
 
             noMoreData.value = res.result.data.list.length < pageSizeNum;
+        }
+        const pagination = ref({ page: 1, pageSize: 10, total: 0 });
+        const res1 = await uniCloud.callFunction({
+            name: 'wt-fetch-assessment-list',
+            data: {
+                page: pagination.value.page,
+                pageSize: pagination.value.pageSize
+            }
+        });
+
+        if (res1.result.code === 0) {
+            // 更新缓存（包含时间戳）
+            const CACHE_KEY = 'teacher_assessment_list';
+            uni.setStorageSync(CACHE_KEY, {
+                list: res1.result.data.list,
+                total: res1.result.data.total,
+                timestamp: Date.now()
+            });
+            console.log('teacher_assessment_list:', uni.getStorageSync(CACHE_KEY));
         }
     } catch (e) {
         console.error('加载失败:', e);
