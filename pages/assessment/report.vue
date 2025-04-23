@@ -147,6 +147,7 @@ onLoad((options) => {
             const assessmentList = uni.getStorageSync('teacher_assessment_list')?.list || [];
             const assessment = assessmentList.find(item => item._id === report.id);
             return {
+                ...report,
                 title: assessment?.title || '未知评估',
                 date: common.formatDate(report.completionTime)
             };
