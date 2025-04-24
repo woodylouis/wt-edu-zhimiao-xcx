@@ -63,7 +63,6 @@ const props = defineProps({
     analysisTextAI: String,
     age: String,
 });
-console.log(props)
 const option = computed(() => ({
     tooltip: {
         trigger: 'axis',
@@ -180,7 +179,6 @@ const markdownIt = MarkdownIt({
 
 watchEffect(() => {
     if (props.analysisTextAI) {
-        console.log('analysisTextAI:', props.analysisTextAI);
         try {
             const tokens = markdownIt.parse(props.analysisTextAI, {}); // 移除.value
             nodes.value = parseTokens(tokens, markdownIt.options);
