@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                    }}</view>
+                                }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -152,6 +152,7 @@ onLoad((options) => {
     const isHistory = true
     if (isHistory) {
         const studentReport = uni.getStorageSync('currentStudentReport');
+        console.log('studentReport:', studentReport);
         historyReports.value = studentReport.reports.map(report => {
             const assessmentList = uni.getStorageSync('teacher_assessment_list')?.list || [];
             const assessment = assessmentList.find(item => item._id === report.id);

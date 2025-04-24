@@ -92,20 +92,38 @@ const avatarUrl = computed(() => {
         : defaultAvatarUrl.value;
 });
 
-const handleStudentClick = (student) => {
+const handleStudentClick = async (student) => {
     console.log('点击了学生', student);
-    if (student.reports.length > 0) {
-        uni.setStorageSync('currentStudentReport', student);
-        uni.navigateTo({
-            url: `/pages/assessment/report?isHistory=true`
+
+    try {
+        const res = await uniCloud.callFunction({
+            name: 'wt-fetch-child-report-history',
+            data: {
+                childId: student._id
+            }
         });
-    } else {
+
+        if (res.result.code === 200 && res.result.data.length > 0) {
+            uni.setStorageSync('currentStudentReport', {
+                ...student,
+                reports: res.result.data
+            });
+            uni.navigateTo({
+                url: `/pages/assessment/report?isHistory=true`
+            });
+        } else {
+            uni.showToast({
+                title: '暂无该学生历史报告，请先进行评估',
+                icon: 'none'
+            });
+        }
+    } catch (e) {
+        console.error('获取报告失败:', e);
         uni.showToast({
-            title: '暂无该学生历史报告，请先进行评估',
+            title: '获取报告失败',
             icon: 'none'
         });
     }
-
 }
 
 const onClickInvite = () => {
