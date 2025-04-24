@@ -139,7 +139,7 @@ onLoad(async function (options) {
     } else {
         assessmentId.value = options.assessmentId; // 存储assessmentId
         analysisTextAI.value = options.analysisTextAI;
-        const cacheKey = `assessment_67f61c06816a3f73442910de`;
+        const cacheKey = `assessment_${assessmentId.value}`;
         const cachedData = uni.getStorageSync(cacheKey);
         // 初始化数据绑定
         if (cachedData) {
@@ -148,6 +148,8 @@ onLoad(async function (options) {
             childAge.value = cachedData.childAge || '未知年龄';
             totalScore.value = cachedData.totalScore || 0;
             sectionScores.value = cachedData.sectionScores || {};
+            dateString.value = common.formatDate(cachedData.completionTime) || '';
+
             console.log("sectionScores", sectionScores.value)
 
             // 格式化年龄显示
