@@ -90,37 +90,47 @@ const onclickReportCard = (index) => {
 }
 
 const fetchChildReportHistory = async (childId) => {
-    // 1. 查询学生报告数据
-    const res = await uniCloud.callFunction({
-        name: 'wt-fetch-child-report-history',
-        data: { childId }
-    });
+    // 显示加载提示
 
-    if (res.result.code !== 200 || !res.result.data.length) {
-        uni.showToast({
-            title: '暂无该学生历史报告，请先进行评估',
-            icon: 'none'
+    try {
+        // 1. 查询学生报告数据
+        const res = await uniCloud.callFunction({
+            name: 'wt-fetch-child-report-history',
+            data: { childId }
         });
-        return [];
-    }
 
-    // 2. 转换报告数据格式
-    const assessmentList = uni.getStorageSync('teacher_assessment_list')?.list || [];
-    return res.result.data.map(report => {
-        const assessment = assessmentList.find(item => item._id === report.id);
-        return {
-            ...report,
-            title: assessment?.title || '未知评估',
-            date: common.formatDate(report.completionTime)
-        };
-    });
+        if (res.result.code !== 200 || !res.result.data.length) {
+            uni.showToast({
+                title: '暂无该学生历史报告，请先进行评估',
+                icon: 'none'
+            });
+            return [];
+        }
+
+        // 2. 转换报告数据格式
+        const assessmentList = uni.getStorageSync('teacher_assessment_list')?.list || [];
+        return res.result.data.map(report => {
+            const assessment = assessmentList.find(item => item._id === report.id);
+            return {
+                ...report,
+                title: assessment?.title || '未知评估',
+                date: common.formatDate(report.completionTime)
+            };
+        });
+    } finally {
+        // 无论成功失败都关闭加载提示
+        uni.hideLoading();
+    }
 };
 
-let studentReport = []
 onLoad(async function (options) {
-    console.log('onLoad:', options);
     if (options.isHistory == "true") {
         const student = uni.getStorageSync('current_student');
+        uni.showLoading({
+            title: '加载中...',
+            mask: true
+        });
+
         historyReports.value = await fetchChildReportHistory(student._id);
 
         if (historyReports.value.length > 0) {
