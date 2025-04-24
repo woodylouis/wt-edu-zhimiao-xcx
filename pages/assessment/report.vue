@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                }}</view>
+                                    }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -90,54 +90,47 @@ const onclickReportCard = (index) => {
 }
 
 const fetchChildReportHistory = async (childId) => {
+    // 1. 查询学生报告数据
     const res = await uniCloud.callFunction({
         name: 'wt-fetch-child-report-history',
         data: { childId }
     });
 
-    if (res.result.code === 200 && res.result.data.length > 0) {
-        return res.result.data;
-    } else {
+    if (res.result.code !== 200 || !res.result.data.length) {
         uni.showToast({
             title: '暂无该学生历史报告，请先进行评估',
             icon: 'none'
         });
         return [];
     }
+
+    // 2. 转换报告数据格式
+    const assessmentList = uni.getStorageSync('teacher_assessment_list')?.list || [];
+    return res.result.data.map(report => {
+        const assessment = assessmentList.find(item => item._id === report.id);
+        return {
+            ...report,
+            title: assessment?.title || '未知评估',
+            date: common.formatDate(report.completionTime)
+        };
+    });
 };
 
 let studentReport = []
 onLoad(async function (options) {
     console.log('onLoad:', options);
     if (options.isHistory == "true") {
-        // 查询该学生的历史报告
         const student = uni.getStorageSync('current_student');
-        studentReport = await fetchChildReportHistory(student._id);
+        historyReports.value = await fetchChildReportHistory(student._id);
 
-        // 将学生报告数据转换为历史报告列表格式：
-        // 1. 从本地缓存获取教师评估列表
-        // 2. 匹配每个报告的评估ID获取评估标题
-        // 3. 格式化返回包含标题、日期和原始报告数据的对象数组
-        historyReports.value = studentReport.map(report => {
-            const assessmentList = uni.getStorageSync('teacher_assessment_list')?.list || [];
-            const assessment = assessmentList.find(item => item._id === report.id);
-            return {
-                ...report,
-                title: assessment?.title || '未知评估',
-                date: common.formatDate(report.completionTime)
-            };
-        });
-        const currentClass = uni.getStorageSync('currentClass');
-        console.log('studentReport:', studentReport);
-        if (studentReport) {
+        if (historyReports.value.length > 0) {
+            const currentClass = uni.getStorageSync('currentClass');
             displayName.value = student.name || '未知姓名';
-            classDisplay.value = student.className || '未知班级';
             classDisplay.value = currentClass.nickname || '未知班级';
             childAge.value = common.ageDisplay(student.birthdate) || '未知年龄';
-            sectionScores.value = studentReport[0].sectionScores || {};
-            analysisTextAI.value = studentReport[0].aiResponse || '';
-            dateString.value = common.formatDate(studentReport[0].completionTime) || '';
-            // console.log("analysisTextAI", analysisTextAI.value)
+            sectionScores.value = historyReports.value[0].sectionScores || {};
+            analysisTextAI.value = historyReports.value[0].aiResponse || '';
+            dateString.value = historyReports.value[0].date || '';
         }
     } else {
         assessmentId.value = options.assessmentId; // 存储assessmentId
@@ -153,6 +146,7 @@ onLoad(async function (options) {
             sectionScores.value = cachedData.sectionScores || {};
             dateString.value = common.formatDate(cachedData.completionTime) || '';
             completionTime.value = new Date(cachedData.completionTime).toLocaleString();
+            historyReports.value = await fetchChildReportHistory(cachedData.childId);
 
         }
 
