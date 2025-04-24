@@ -65,66 +65,7 @@ const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, 
 const assessmentId = ref('');
 const analysisTextAI = ref('');
 const listIconUrl = "../../static/general/list.png";
-const historyReports = ref([
-
-    {
-        title: 'ABLLS-R',
-        date: '2025.4.2',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2024.8.12',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2024.3.12',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2025.4.2',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2024.8.12',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2024.3.12',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2025.4.2',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2024.8.12',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2024.3.12',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2025.4.2',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2024.8.12',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2024.3.12',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2024.3.12',
-    },
-    {
-        title: 'ABLLS-R',
-        date: '2021.3.12',
-    }
-
-])
+const historyReports = ref([])
 
 const handleNavBack = () => {
     uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
@@ -171,7 +112,10 @@ onLoad(async function (options) {
             });
         }
 
-        console.log('studentReport:', studentReport);
+        // 将学生报告数据转换为历史报告列表格式：
+        // 1. 从本地缓存获取教师评估列表
+        // 2. 匹配每个报告的评估ID获取评估标题
+        // 3. 格式化返回包含标题、日期和原始报告数据的对象数组
         historyReports.value = studentReport.map(report => {
             const assessmentList = uni.getStorageSync('teacher_assessment_list')?.list || [];
             const assessment = assessmentList.find(item => item._id === report.id);
