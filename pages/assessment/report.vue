@@ -89,27 +89,30 @@ const onclickReportCard = (index) => {
 
 }
 
+const fetchChildReportHistory = async (childId) => {
+    const res = await uniCloud.callFunction({
+        name: 'wt-fetch-child-report-history',
+        data: { childId }
+    });
+
+    if (res.result.code === 200 && res.result.data.length > 0) {
+        return res.result.data;
+    } else {
+        uni.showToast({
+            title: '暂无该学生历史报告，请先进行评估',
+            icon: 'none'
+        });
+        return [];
+    }
+};
+
 let studentReport = []
 onLoad(async function (options) {
     console.log('onLoad:', options);
     if (options.isHistory == "true") {
         // 查询该学生的历史报告
         const student = uni.getStorageSync('current_student');
-        const res = await uniCloud.callFunction({
-            name: 'wt-fetch-child-report-history',
-            data: {
-                childId: student._id
-            }
-        });
-
-        if (res.result.code === 200 && res.result.data.length > 0) {
-            studentReport = res.result.data;
-        } else {
-            uni.showToast({
-                title: '暂无该学生历史报告，请先进行评估',
-                icon: 'none'
-            });
-        }
+        studentReport = await fetchChildReportHistory(student._id);
 
         // 将学生报告数据转换为历史报告列表格式：
         // 1. 从本地缓存获取教师评估列表
@@ -149,22 +152,8 @@ onLoad(async function (options) {
             totalScore.value = cachedData.totalScore || 0;
             sectionScores.value = cachedData.sectionScores || {};
             dateString.value = common.formatDate(cachedData.completionTime) || '';
-
-            console.log("sectionScores", sectionScores.value)
-
-            // 格式化年龄显示
-            // if (cachedData.childAge >= 2) {
-            //     const years = Math.floor(cachedData.childAge);
-            //     const months = Math.round((cachedData.childAge - years) * 10 * 1.2);
-            //     formattedAge.value = months === 0 ?
-            //         `${years}岁` :
-            //         `${years}岁${months}个月`;
-            // } else {
-            //     formattedAge.value = `${Math.round(cachedData.childAge * 10 * 1.2)}个月`;
-            // }
-
-            // 格式化完成时间
             completionTime.value = new Date(cachedData.completionTime).toLocaleString();
+
         }
 
     }

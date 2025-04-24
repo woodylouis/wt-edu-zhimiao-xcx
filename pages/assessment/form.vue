@@ -374,7 +374,7 @@ const handleNextQuestion = () => {
 
                     // 这里需要加一个uni.loading.hide()，因为testAI是一个异步函数，它可能会在一段时间后才返回结果
                     uni.navigateTo({
-                        url: `/pages/assessment/report?assessmentId=${assessmentId.value}&analysisTextAI=${analysisTextAIRes}`
+                        url: `/pages/assessment/report?assessmentId=${assessmentId.value}&analysisTextAI=${analysisTextAIRes}&childId=${assessmentMeta.value.childId}`
                     });
                 }
             }
