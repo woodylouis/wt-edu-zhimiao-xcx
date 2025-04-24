@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                    }}</view>
+                                }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -92,8 +92,7 @@ const onclickReportCard = (index) => {
 let studentReport = []
 onLoad(async function (options) {
     console.log('onLoad:', options);
-    const isHistory = true
-    if (isHistory) {
+    if (options.isHistory == "true") {
         // 查询该学生的历史报告
         const student = uni.getStorageSync('current_student');
         const res = await uniCloud.callFunction({

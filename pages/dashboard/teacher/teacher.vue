@@ -180,7 +180,7 @@ const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
             if (pageNum === 1) {
                 studentList.value = res.result.data.list;
                 // 缓存第一页数据
-                uni.setStorageSync(cacheKey, res.result.data.list);
+                // uni.setStorageSync(cacheKey, res.result.data.list);
             } else {
                 studentList.value = [...studentList.value, ...res.result.data.list];
             }

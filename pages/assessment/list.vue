@@ -32,12 +32,12 @@
             暂无评估报告数据
         </view>
 
-        <view style="position: fixed; right: 30rpx; bottom: 120rpx; z-index: 9999;">
+        <!-- <view style="position: fixed; right: 30rpx; bottom: 120rpx; z-index: 9999;">
             <QcSuspendBtn :mainBtn="btnConfig.suspen.mainBtn" :childSize="btnConfig.suspen.childSize"
                 :childBtns="btnConfig.suspen.childBtns" :openType="btnConfig.suspen.openType"
                 :padding="btnConfig.suspen.padding" @childClick="btnConfig.childClick">
             </QcSuspendBtn>
-        </view>
+        </view> -->
     </view>
 </template>
 
@@ -258,6 +258,7 @@ onMounted(() => {
 });
 
 const handleAssessmentClick = (item) => {
+    console.log('点击了评估项:', item);
     let classId = currentClass.value?._id ? currentClass.value?._id : currentClass.value?.id;
     if (!classId) {
         uni.showToast({ title: '请先选择班级', icon: 'none' });
