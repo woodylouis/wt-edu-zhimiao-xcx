@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                }}</view>
+                                    }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -147,13 +147,32 @@ const onclickReportCard = (index) => {
     showHistory.value = false;
 
 }
-onLoad((options) => {
+
+let studentReport = []
+onLoad(async function (options) {
     console.log('onLoad:', options);
     const isHistory = true
     if (isHistory) {
-        const studentReport = uni.getStorageSync('currentStudentReport');
+        // 查询该学生的历史报告
+        const student = uni.getStorageSync('current_student');
+        const res = await uniCloud.callFunction({
+            name: 'wt-fetch-child-report-history',
+            data: {
+                childId: student._id
+            }
+        });
+
+        if (res.result.code === 200 && res.result.data.length > 0) {
+            studentReport = res.result.data;
+        } else {
+            uni.showToast({
+                title: '暂无该学生历史报告，请先进行评估',
+                icon: 'none'
+            });
+        }
+
         console.log('studentReport:', studentReport);
-        historyReports.value = studentReport.reports.map(report => {
+        historyReports.value = studentReport.map(report => {
             const assessmentList = uni.getStorageSync('teacher_assessment_list')?.list || [];
             const assessment = assessmentList.find(item => item._id === report.id);
             return {
@@ -165,13 +184,13 @@ onLoad((options) => {
         const currentClass = uni.getStorageSync('currentClass');
         console.log('studentReport:', studentReport);
         if (studentReport) {
-            displayName.value = studentReport.name || '未知姓名';
-            classDisplay.value = studentReport.className || '未知班级';
+            displayName.value = student.name || '未知姓名';
+            classDisplay.value = student.className || '未知班级';
             classDisplay.value = currentClass.nickname || '未知班级';
-            childAge.value = common.ageDisplay(studentReport.birthdate) || '未知年龄';
-            sectionScores.value = studentReport.reports[0].sectionScores || {};
-            analysisTextAI.value = studentReport.reports[0].aiResponse || '';
-            dateString.value = common.formatDate(studentReport.reports[0].completionTime) || '';
+            childAge.value = common.ageDisplay(student.birthdate) || '未知年龄';
+            sectionScores.value = studentReport[0].sectionScores || {};
+            analysisTextAI.value = studentReport[0].aiResponse || '';
+            dateString.value = common.formatDate(studentReport[0].completionTime) || '';
             // console.log("analysisTextAI", analysisTextAI.value)
         }
     } else {
