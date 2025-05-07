@@ -1,0 +1,20 @@
+[
+    {
+        "order": 1,
+        "assessment_id": "67f61c06816a3f73442910de",
+        "section_id": "LANG_1",
+        "section": "语言与沟通技能",
+        "desc": "本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。",
+        "create_time": 1710000000000,
+        "update_time": 1710000000000
+    },
+    {
+        "order": 6,
+        "assessment_id": "67f61c06816a3f73442910de",
+        "section_id": "FOCUS_1",
+        "section": "专注与执行技能",
+        "desc": "本模块根据ABLLS-R量表编排，包含合作及强化物效果和课堂纪律。",
+        "create_time": 1710000000000,
+        "update_time": 1710000000000
+    }
+]

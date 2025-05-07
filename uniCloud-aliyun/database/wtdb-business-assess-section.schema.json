@@ -1,0 +1,48 @@
+{
+	"bsonType": "object",
+	"required": [],
+	"properties": {
+		"_id": {
+			"description": "ID，系统自动生成"
+		},
+		"assessment_id": {
+			"bsonType": "string",
+			"description": "所属评估量表ID"
+		},
+		"order": {
+			"bsonType": "int",
+			"description": "排序"
+		},
+		"section_id": {
+			"bsonType": "string",
+			"description": "自动生成的分类ID",
+			"pattern": "^[a-zA-Z0-9]_{1,5}$",
+			"autoGenerate": true
+		},
+		"section": {
+			"bsonType": "string",
+			"description": "上级分类"
+		},
+		"desc": {
+			"bsonType": "string",
+			"description": "上级分类描述"
+		},
+		"create_time": {
+			"bsonType": "timestamp",
+			"description": "创建时间戳(毫秒)",
+			"defaultValue": {
+				"$env": "now"
+			}
+		},
+		"update_time": {
+			"bsonType": "timestamp",
+			"description": "最后修改时间戳(毫秒)",
+			"defaultValue": {
+				"$env": "now"
+			},
+			"forceDefaultValue": {
+				"$env": "now"
+			}
+		}
+	}
+}

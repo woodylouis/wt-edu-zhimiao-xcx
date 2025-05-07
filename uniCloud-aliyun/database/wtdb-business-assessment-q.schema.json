@@ -1,23 +1,22 @@
 {
     "bsonType": "object",
-    "required": [
-        "assessment_id",
-        "type",
-        "content",
-        "section"
-    ],
+    "required": [],
     "properties": {
         "_id": {
-            "description": "题目ID"
+            "description": "题目ID（MongoDB自动生成）"
         },
         "assessment_id": {
             "bsonType": "string",
-            "foreignKey": "assessment._id",
-            "title": "所属量表ID"
+            "description": "可选，所属评估量表ID"
+        },
+        "section_id": {
+            "bsonType": "string",
+            "description": "上级大分类section_id, 关联分类表，例如 '语言与沟通技能' 的id是section_001"
         },
         "order": {
             "bsonType": "int",
-            "title": "题目顺序"
+            "minimum": 0,
+            "description": "题目的顺序编号"
         },
         "type": {
             "bsonType": "string",
@@ -26,21 +25,45 @@
                 "checkbox",
                 "text"
             ],
-            "defaultValue": "radio",
-            "title": "题型"
+            "description": "题目类型，如单选、复选、文本"
         },
         "content": {
             "bsonType": "string",
-            "title": "题目内容"
+            "description": "题目的内容（题干）"
         },
-        "section": {
+        "ablls_r_section": {
             "bsonType": "string",
-            "title": "所属章节",
-            "description": "题目所属的章节或分类"
+            "description": "ABLLS-R领域分类名，如语言理解"
+        },
+        "ablls_r_section_alphabet": {
+            "bsonType": "string",
+            "description": "ABLLS-R领域分类字母，如 C"
+        },
+        "ablls_r_section_order": {
+            "bsonType": "string",
+            "description": "ABLLS-R小分类顺序标识，如 1"
+        },
+        "task_name": {
+            "bsonType": "string",
+            "description": "任务名称，简要描述评估任务"
+        },
+        "task_object": {
+            "bsonType": "string",
+            "description": "任务目标，详细描述评估任务的具体目标"
+        },
+        "task_sample": {
+            "bsonType": "string",
+            "description": "(可选) 示例描述，可用于展示例子",
+            "default": ""
+        },
+        "description": {
+            "bsonType": "string",
+            "description": "(可选) 备注或其他补充说明",
+            "default": ""
         },
         "options": {
             "bsonType": "array",
-            "title": "选项",
+            "description": "选项列表，每个选项包含文本及对应得分",
             "items": {
                 "bsonType": "object",
                 "required": [
@@ -50,28 +73,35 @@
                 "properties": {
                     "text": {
                         "bsonType": "string",
-                        "title": "选项文本"
+                        "description": "选项文本"
                     },
                     "score": {
                         "bsonType": "int",
-                        "minimum": 0,
-                        "title": "得分值",
-                        "description": "选择该选项获得的分数"
+                        "description": "该选项对应的得分"
                     }
                 }
             }
         },
-        "correct_answer": {
+        "age_standards": {
             "bsonType": "array",
-            "title": "正确答案（选项索引）",
+            "description": "各年龄段的期望得分标准",
             "items": {
-                "bsonType": "int"
+                "bsonType": "object",
+                "required": [
+                    "age",
+                    "expected_score"
+                ],
+                "properties": {
+                    "age": {
+                        "bsonType": "int",
+                        "description": "适用的年龄（整数，单位岁）"
+                    },
+                    "expected_score": {
+                        "bsonType": "int",
+                        "description": "该年龄段预期达到的分数"
+                    }
+                }
             }
-        },
-        "score": {
-            "bsonType": "int",
-            "minimum": 0,
-            "title": "题目分值"
         }
     }
 }

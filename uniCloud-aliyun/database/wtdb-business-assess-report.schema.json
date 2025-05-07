@@ -31,8 +31,7 @@
         },
         "childAge": {
             "bsonType": "number",
-            "minimum": 0,
-            "description": "儿童年龄（精确到小数点后一位）"
+            "description": "儿童年龄（如3.7岁）"
         },
         "classId": {
             "bsonType": "string",
@@ -56,7 +55,7 @@
         },
         "currentIndex": {
             "bsonType": "int",
-            "description": "当前题目"
+            "description": "当前题目索引"
         },
         "duration": {
             "bsonType": "int",
@@ -70,14 +69,15 @@
         },
         "sectionScores": {
             "bsonType": "object",
+            "description": "各维度得分",
             "additionalProperties": {
                 "bsonType": "int",
                 "minimum": 0
-            },
-            "description": "各维度得分（键为维度名称，值为分数）"
+            }
         },
         "questions": {
             "bsonType": "array",
+            "description": "评估时题目的快照",
             "items": {
                 "bsonType": "object",
                 "required": [
@@ -110,11 +110,26 @@
                         "items": {
                             "bsonType": "object",
                             "properties": {
-                                "score": {
-                                    "bsonType": "int"
-                                },
                                 "text": {
                                     "bsonType": "string"
+                                },
+                                "score": {
+                                    "bsonType": "int"
+                                }
+                            }
+                        }
+                    },
+                    "age_standards": {
+                        "bsonType": "array",
+                        "description": "(新增，可选) 题目对应各年龄段标准",
+                        "items": {
+                            "bsonType": "object",
+                            "properties": {
+                                "age": {
+                                    "bsonType": "int"
+                                },
+                                "expected_score": {
+                                    "bsonType": "int"
                                 }
                             }
                         }
@@ -124,6 +139,7 @@
         },
         "answers": {
             "bsonType": "object",
+            "description": "用户作答结果",
             "additionalProperties": {
                 "bsonType": "object",
                 "required": [
@@ -136,6 +152,14 @@
                     "question": {
                         "bsonType": "object",
                         "description": "题目快照"
+                    },
+                    "expectedScore": {
+                        "bsonType": "int",
+                        "description": "(新增，可选) 当前儿童年龄段期望得分"
+                    },
+                    "isPassed": {
+                        "bsonType": "bool",
+                        "description": "(新增，可选) 是否达标"
                     }
                 }
             }
@@ -143,6 +167,31 @@
         "uuid": {
             "bsonType": "string",
             "description": "评估记录唯一标识"
+        },
+        "aiSummary": {
+            "bsonType": "object",
+            "description": "(新增，可选) AI生成的简单总结",
+            "properties": {
+                "passedSections": {
+                    "bsonType": "array",
+                    "items": {
+                        "bsonType": "string"
+                    }
+                },
+                "needsImprovementSections": {
+                    "bsonType": "array",
+                    "items": {
+                        "bsonType": "string"
+                    }
+                },
+                "totalPassRate": {
+                    "bsonType": "double"
+                }
+            }
+        },
+        "aiResponse": {
+            "bsonType": "string",
+            "description": "(新增，可选) 完整AI生成报告"
         }
     }
 }
