@@ -46,15 +46,16 @@
 import customNav from '@/components/customNav';
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, onMounted, computed, onUnmounted } from "vue";
+import { generateFullYearPlan } from '@/common/ai-model/deepseek.js';
 
 let childId = ref(''); // 通过childId获取儿童名字以及年龄
 let classId = ref(''); // 通过班级id获取班级名字
 let assessmentId = ref('');
-// let current = ref(3);
-// let count = ref(10);
-// let section = ref('运动');
-// let persentage = ref('30%');
-// let question = ref('喜欢长时间的自身旋转。');
+const initialReport = ref('');
+const detailedAdvice = ref('');
+const interventionPlan = ref('');
+const loading = ref(false);
+
 let buttonStyle1 = {
     backgroundColor: "rgba(110, 221, 138, 1)",
     color: "rgba(0, 33, 77, 1)",
@@ -121,109 +122,27 @@ const assessmentMeta = ref({
     uuid: Date.now().toString(36) + Math.random().toString(36).substr(2) // 新增基于时间的UUID
 });
 
-const testAI = async (answers) => {
-    // 先显示确认模态框
-    const shouldProceed = await new Promise((resolve) => {
-        uni.showModal({
-            title: '提示',
-            content: 'AI模型实时分析量表，大概30秒左右的等待时间。',
-            confirmText: '我知道了',
-            showCancel: false,
-            success: ({ confirm }) => {
-                resolve(confirm);
-            }
-        });
-    });
+async function handleGenerateReport(answers) {
 
-    if (!shouldProceed) return '';
-
-    // 用户确认后显示轮播提示
-    let timer;
-    const messages = [
-        '生成报告中...',
-        '请勿触碰屏幕...',
-        '请勿关闭页面...',
-        'AI分析中...',
-        '请耐心等待...'
-    ];
-    let index = 0;
-
-    timer = setInterval(() => {
-        uni.showLoading({
-            title: messages[index],
-            mask: true
-        });
-        index = (index + 1) % messages.length;
-    }, 1000); // 每2秒切换一次提示
-    let aiResponse = '';
 
     try {
-        const res = await uni.request({
-            url: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
-            method: 'POST',
-            header: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer 005aeb28-621e-425f-8540-14503fe172a6'
-            },
-            data: {
-                model: "deepseek-v3-250324",
-                messages: [
-                    {
-                        role: "system",
-                        content: `  角色：BACB认证行为分析师+儿童心理学专家
-                                    任务：基于ABLLS-R（部分运动/语言题目/社交题目）评估结果分析
-                                    评分规则：得分>0=“是”（不重复题目）
-                                    报告结构：
-                                    ‌个体分析‌：1. 结合年龄的专业能力的详细分析 2. 与当前年龄相关的专业建议
-                                    ‌建议‌：与当前年龄的未达标项（得分=0或未达到满分）的详细建议
-                                    ‌干预计划‌（递进式）：
-                                    年度目标 → 季度分解 → 月度方案 → 周任务（需逻辑闭环）
-                                    要求：
-                                    1. 所有建议/计划需引用发展里程碑
-                                    2. 必要时明确标注个体年龄
-                                    3. 需要详细、专业
-                                    4. 提示题目不全，仅做参考` // 直接使用字符串
+        loading.value = true;
+        uni.showLoading({ title: '生成报告中...' });
 
-                    },
-                    {
-                        role: "user",
-                        content: JSON.stringify(answers)
-                    }
-                ]
-            }
-        });
+        const result = await generateFullYearPlan(JSON.stringify(answers));
 
-        if (res.statusCode === 200 && res.data?.choices?.[0]?.message?.content) {
-            aiResponse = res.data.choices[0].message.content;
 
-            // 确保AI分析完成后再上传
-            await uploadAIResponse(aiResponse);
-
-            return aiResponse;
-        }
-        return '';
-    } catch (e) {
-        const shouldRetry = await new Promise((resolve) => {
-            uni.showModal({
-                title: '提示',
-                content: '服务异常，是否重试？',
-                confirmText: '重试',
-                cancelText: '取消',
-                success: ({ confirm }) => {
-                    resolve(confirm);
-                }
-            });
-        });
-
-        if (shouldRetry) {
-            return await testAI(answers); // 递归调用重试
-        }
-        return '';
+        console.log('result:', result);
+        uni.showToast({ title: '生成成功', icon: 'success' });
+        await uploadAIResponse(result);
+    } catch (err) {
+        console.error(err);
+        uni.showToast({ title: '生成失败', icon: 'error' });
     } finally {
-        clearInterval(timer);
         uni.hideLoading();
+        loading.value = false;
     }
-};
+}
 
 const uploadAIResponse = async (aiResponse) => {
     try {
@@ -368,10 +287,9 @@ const handleNextQuestion = () => {
                         title: '生成报告中...',
                         mask: true
                     });// 新增加载提示
-                    const analysisTextAIRes = await testAI(answersArray);
+                    const analysisTextAIRes = await handleGenerateReport(answersArray);
                     uni.hideLoading();
                     uni.removeStorageSync('current_class_students')
-                    // 这里需要加一个uni.loading.hide()，因为testAI是一个异步函数，它可能会在一段时间后才返回结果
                     uni.navigateTo({
                         url: `/pages/assessment/report?assessmentId=${assessmentId.value}&analysisTextAI=${analysisTextAIRes}&childId=${assessmentMeta.value.childId}`
                     });
