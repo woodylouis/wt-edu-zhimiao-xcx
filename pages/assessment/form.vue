@@ -46,7 +46,7 @@
 import customNav from '@/components/customNav';
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, onMounted, computed, onUnmounted } from "vue";
-import { generateFullYearPlan } from '@/common/ai-model/deepseek.js';
+import { generatePartialPlan } from '@/common/ai-model/deepseek.js';
 
 let childId = ref(''); // 通过childId获取儿童名字以及年龄
 let classId = ref(''); // 通过班级id获取班级名字
@@ -129,7 +129,7 @@ async function handleGenerateReport(answers) {
         loading.value = true;
         uni.showLoading({ title: '生成报告中...' });
 
-        const result = await generateFullYearPlan(JSON.stringify(answers));
+        const result = await generatePartialPlan(JSON.stringify(answers), 1, 3);
 
 
         console.log('result:', result);

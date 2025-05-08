@@ -3,14 +3,19 @@
 const BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
 const AUTH_TOKEN = 'Bearer 005aeb28-621e-425f-8540-14503fe172a6';
 
-/**
- * 通用 DeepSeek 请求函数
- */
+function stripMarkdownCodeBlock(content) {
+    return content
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
+}
+
 async function requestDeepseek(messages) {
     const res = await uni.request({
         url: BASE_URL,
         method: 'POST',
-        timeout: 20000,
+        timeout: 60000,
         header: {
             'Content-Type': 'application/json',
             'Authorization': AUTH_TOKEN
@@ -23,7 +28,9 @@ async function requestDeepseek(messages) {
 
     if (res.statusCode === 200 && res.data.choices) {
         try {
-            return JSON.parse(res.data.choices[0].message.content);
+            const rawContent = res.data.choices[0].message.content;
+            const cleaned = stripMarkdownCodeBlock(rawContent);
+            return JSON.parse(cleaned);
         } catch (e) {
             throw new Error('JSON 解析失败：' + res.data.choices[0].message.content);
         }
@@ -32,24 +39,11 @@ async function requestDeepseek(messages) {
     }
 }
 
-/**
- * 年度目标
- */
 export async function generateYearGoal(qnaJsonText) {
     return await requestDeepseek([
         {
             role: 'system',
-            content: `你是儿童康复专家。我会提供一组问答形式的评估数据，请你：
-
-1. 找出所有回答为“否”的题目；
-2. 根据这些未达标能力，生成全年干预的“年度目标”；
-3. 返回格式如下：
-
-{
-  "yearGoal": "..."
-}
-
-只输出有效 JSON。数据是数组，每项包含 questions 和 answer 字段。`
+            content: `你是儿童康复专家。我会提供一组问答形式的评估数据，请你：\n1. 找出所有回答为“否”的题目；\n2. 根据这些未达标能力，生成全年干预的“年度目标”；\n3. 返回格式如下：\n{\n  "yearGoal": "..."\n}\n只输出有效 JSON。数据是数组，每项包含 questions 和 answer 字段。`
         },
         {
             role: 'user',
@@ -58,19 +52,11 @@ export async function generateYearGoal(qnaJsonText) {
     ]);
 }
 
-/**
- * 月目标
- */
 export async function generateMonthGoal(monthIndex, yearGoalText) {
     return await requestDeepseek([
         {
             role: 'system',
-            content: `你是儿童康复专家。请根据年度目标，为第 ${monthIndex} 月生成月度干预目标，返回格式如下：
-{
-  "month": "${monthIndex}月",
-  "goal": "..."
-}
-只输出 JSON。`
+            content: `你是儿童康复专家。请根据年度目标，为第 ${monthIndex} 月生成月度干预目标，返回格式如下：\n{\n  "month": "${monthIndex}月",\n  "goal": "..."\n}\n只输出 JSON。`
         },
         {
             role: 'user',
@@ -79,65 +65,54 @@ export async function generateMonthGoal(monthIndex, yearGoalText) {
     ]);
 }
 
-/**
- * 周目标（4周）
- */
-export async function generateWeekGoals(monthGoalText, weekCount = 4) {
+export async function generateWeekGoalByIndex(monthGoal, weekIndex) {
+    const simplified = {
+        month: monthGoal.month,
+        goal: monthGoal.goal
+    };
     return await requestDeepseek([
         {
             role: 'system',
-            content: `你是儿童康复专家。请根据以下月目标，生成 ${weekCount} 个周目标，返回格式如下：
-{
-  "weeks": [
-    { "week": "第1周", "goal": "..." },
-    ...
-  ]
-}
-只输出 JSON。`
+            content: `你是儿童康复专家。根据以下月目标，生成第${weekIndex}周的干预目标，格式如下：\n{\n  "week": "第${weekIndex}周",\n  "goal": "..."\n}\n只输出 JSON。`
         },
         {
             role: 'user',
-            content: JSON.stringify(monthGoalText)
+            content: JSON.stringify(simplified)
         }
     ]);
 }
 
-/**
- * 每周每日任务
- */
-export async function generateDailyTasks(weekGoalText) {
+export async function generateWeeklyDailyTasks(weekGoal) {
+    const simplified = {
+        week: weekGoal.week,
+        goal: weekGoal.goal
+    };
     return await requestDeepseek([
         {
             role: 'system',
-            content: `你是儿童康复专家。请根据以下周目标，生成 7 天每日干预任务，返回格式如下：
-            {
-            "days": [
-                { "day": "周一", "task": "..." },
-                ...
-            ]
-            }
-            只输出 JSON。`
+            content: `你是儿童康复专家。请根据以下周目标，生成该周7天的每日训练任务，格式如下：\n{\n  "days": [\n    { "day": "周一", "task": "..." },\n    { "day": "周二", "task": "..." },\n    ...\n    { "day": "周日", "task": "..." }\n  ]\n}\n只输出 JSON，不要附加解释。`
         },
         {
             role: 'user',
-            content: JSON.stringify(weekGoalText)
+            content: JSON.stringify(simplified)
         }
     ]);
 }
 
-/**
- * 高阶函数：生成全年计划（年 → 12月 → 每周 → 每日）
- */
-export async function generateFullYearPlan(qnaJsonText) {
-    const fullPlan = {
+export async function generatePartialPlan(qnaJsonText, monthStart, monthEnd, yearGoalCache = null) {
+    if (monthStart < 1 || monthEnd > 12 || monthStart > monthEnd) {
+        throw new Error('月份范围错误：起始月必须 >=1 且 <= 结束月 <=12');
+    }
+
+    const plan = {
         yearGoal: '',
         months: []
     };
 
-    const year = await generateYearGoal(qnaJsonText);
-    fullPlan.yearGoal = year.yearGoal;
+    const year = yearGoalCache || await generateYearGoal(qnaJsonText);
+    plan.yearGoal = year.yearGoal;
 
-    for (let monthIndex = 1; monthIndex <= 12; monthIndex++) {
+    for (let monthIndex = monthStart; monthIndex <= monthEnd; monthIndex++) {
         const month = await generateMonthGoal(monthIndex, year);
         const monthBlock = {
             month: month.month,
@@ -145,22 +120,22 @@ export async function generateFullYearPlan(qnaJsonText) {
             weeks: []
         };
 
-        const weekGoals = await generateWeekGoals(month, 4);
-        for (const week of weekGoals.weeks) {
+        for (let weekIndex = 1; weekIndex <= 4; weekIndex++) {
+            const week = await generateWeekGoalByIndex(month, weekIndex);
             const weekBlock = {
                 week: week.week,
                 goal: week.goal,
                 days: []
             };
 
-            const dayTasks = await generateDailyTasks(week);
-            weekBlock.days = dayTasks.days;
+            const dailyTasks = await generateWeeklyDailyTasks(week);
+            weekBlock.days = dailyTasks.days;
 
             monthBlock.weeks.push(weekBlock);
         }
 
-        fullPlan.months.push(monthBlock);
+        plan.months.push(monthBlock);
     }
 
-    return fullPlan;
+    return plan;
 }
