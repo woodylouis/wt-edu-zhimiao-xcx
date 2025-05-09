@@ -137,7 +137,27 @@ async function handleGenerateReport(answers) {
         await uploadAIResponse(result);
     } catch (err) {
         console.error(err);
-        uni.showToast({ title: '生成失败', icon: 'error' });
+        uni.showModal({
+            title: '生成失败',
+            content: '报告生成失败，是否重试？',
+            confirmText: '重试',
+            cancelText: '取消',
+            success: async (res) => {
+                if (res.confirm) {
+                    try {
+                        uni.showLoading({ title: '重新生成中...' });
+                        const result = await generatePartialPlan(JSON.stringify(answers), 1, 3);
+                        await uploadAIResponse(result);
+                        uni.showToast({ title: '生成成功', icon: 'success' });
+                    } catch (retryErr) {
+                        console.error(retryErr);
+                        uni.showToast({ title: '重试失败', icon: 'error' });
+                    } finally {
+                        uni.hideLoading();
+                    }
+                }
+            }
+        });
     } finally {
         uni.hideLoading();
         loading.value = false;
