@@ -143,8 +143,8 @@ onLoad(async function (options) {
             dateString.value = historyReports.value[0].date || '';
         }
     } else {
-        assessmentId.value = options.assessmentId; // 存储assessmentId
-        analysisTextAI.value = options.analysisTextAI;
+        console.log(options)
+        assessmentId.value = options.assessmentId;
         const cacheKey = `assessment_${assessmentId.value}`;
         const cachedData = uni.getStorageSync(cacheKey);
         // 初始化数据绑定
@@ -156,8 +156,10 @@ onLoad(async function (options) {
             sectionScores.value = cachedData.sectionScores || {};
             dateString.value = common.formatDate(cachedData.completionTime) || '';
             completionTime.value = new Date(cachedData.completionTime).toLocaleString();
-            historyReports.value = await fetchChildReportHistory(cachedData.childId);
-
+        }
+        historyReports.value = await fetchChildReportHistory(options.childId);
+        if (historyReports.value.length > 0) {
+            analysisTextAI.value = historyReports.value[0].aiResponse || '';
         }
 
     }

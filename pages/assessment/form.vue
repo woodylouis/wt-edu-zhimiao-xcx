@@ -129,12 +129,13 @@ async function handleGenerateReport(answers) {
         loading.value = true;
         uni.showLoading({ title: '生成报告中...' });
 
-        const result = await generatePartialPlan(JSON.stringify(answers), 1, 3);
+        const result = await generatePartialPlan(JSON.stringify(answers), 1, 1);
 
 
         console.log('result:', result);
         uni.showToast({ title: '生成成功', icon: 'success' });
         await uploadAIResponse(result);
+        return result; // 返回AI响应，以便后续处理或展示
     } catch (err) {
         console.error(err);
         uni.showModal({
@@ -146,7 +147,7 @@ async function handleGenerateReport(answers) {
                 if (res.confirm) {
                     try {
                         uni.showLoading({ title: '重新生成中...' });
-                        const result = await generatePartialPlan(JSON.stringify(answers), 1, 3);
+                        const result = await generatePartialPlan(JSON.stringify(answers), 1, 1);
                         await uploadAIResponse(result);
                         uni.showToast({ title: '生成成功', icon: 'success' });
                     } catch (retryErr) {
@@ -184,6 +185,9 @@ const uploadAIResponse = async (aiResponse) => {
                     assessorId: cachedData.assessorId // 确保上传时包含评估者ID
                 }
             }
+        });
+        uni.navigateTo({
+            url: `/pages/assessment/report?assessmentId=${assessmentId.value}&childId=${assessmentMeta.value.childId}`
         });
 
         if (res.result.code) {
@@ -314,9 +318,9 @@ const handleNextQuestion = () => {
                     const analysisTextAIRes = await handleGenerateReport(answersObj);
                     uni.hideLoading();
                     uni.removeStorageSync('current_class_students')
-                    uni.navigateTo({
-                        url: `/pages/assessment/report?assessmentId=${assessmentId.value}&analysisTextAI=${analysisTextAIRes}&childId=${assessmentMeta.value.childId}`
-                    });
+                    // uni.navigateTo({
+                    //     url: `/pages/assessment/report?assessmentId=${assessmentId.value}&analysisTextAI=${analysisTextAIRes}&childId=${assessmentMeta.value.childId}`
+                    // });
                 }
             }
         });
