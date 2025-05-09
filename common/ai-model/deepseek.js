@@ -44,9 +44,20 @@ export async function generateYearGoal(qnaJsonText) {
         {
             role: 'system',
             content: `你是儿童康复专家。我会提供一组问答形式的评估数据，
-                        请你：\n1. 找出所有回答标记为“无法完成”或者“否”的题目；\n
-                        2. 根据这些未达标能力，根据生成全年干预的“年度目标”；\n
-                        3. 返回格式如下：\n{\n  "yearGoal": "..."\n}\n只输出有效 JSON。数据是数组，每项包含 questions 和 answer 字段。`
+                        数据结构如下：
+                        {
+                            answers: {
+                                question,
+                                answer,
+                            }   
+                            childName
+                            childAge,
+                            sectionScores
+                        }
+                        请你：\n
+                        1. 找出所有回答标记为“无法完成”或者“否”的题目；\n
+                        2. 根据这些未达标能力，根据sectionScores里面的分类，"生成全年干预的“年度目标”；\n
+                        3. 返回格式如下：\n{\n  "yearGoal": "..."\n}\n只输出有效 JSON。`
         },
         {
             role: 'user',

@@ -277,19 +277,21 @@ const handleNextQuestion = () => {
                     }
 
                     // 整理答案数据
-                    const answersArray = Object.values(finalData.answers).map(answer => ({
-                        childName: assessmentMeta.value.childName, // 新增儿童姓名
-                        childAge: assessmentMeta.value.childAge,   // 新增儿童年龄
-                        question: answer.question?.content || '未知题目',
-                        answer: answer.score > 0 ? '是' : '否',
-                        section: cachedData.sectionScores
-                    }));
-
+                    const answersObj = {
+                        answers: Object.values(finalData.answers).map(answer => ({
+                            question: answer.question?.content || '未知题目',
+                            answer: answer.score > 0 ? '是' : '否'
+                        })),
+                        childName: assessmentMeta.value.childName,
+                        childAge: assessmentMeta.value.childAge,
+                        sectionScores: cachedData.sectionScores
+                    };
+                    console.log('answersObj:', answersObj);
                     uni.showLoading({
                         title: '生成报告中...',
                         mask: true
                     });// 新增加载提示
-                    const analysisTextAIRes = await handleGenerateReport(answersArray);
+                    const analysisTextAIRes = await handleGenerateReport(answersObj);
                     uni.hideLoading();
                     uni.removeStorageSync('current_class_students')
                     uni.navigateTo({
