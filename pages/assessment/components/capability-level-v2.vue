@@ -5,10 +5,10 @@
             <view class="capability-bar">
 
                 <view class="chart-container">
-                    <!-- <l-echart ref="chartRef"></l-echart> -->
+                    <l-echart ref="chartRef"></l-echart>
                 </view>
                 <view class="chart-container-2" style="margin-top: 48rpx;">
-                    <!-- <l-echart ref="radarChartRef"></l-echart> -->
+                    <l-echart ref="radarChartRef"></l-echart>
                 </view>
 
                 <!-- 新增：干预计划展示 -->
@@ -50,9 +50,10 @@ const echarts = require('../../../uni_modules/lime-echart/static/echarts.min');
 
 const convertScoreToStage = (score, type) => {
     const thresholds = {
-        motor: [0, 7, 23, 37, 51, 57], // 运动维度各阶阈值
-        language: [0, 24, 46, 50, 50, 50],  // 语言维度各阶阈值
-        social: [0, 0, 0, 0, 23, 24] // 社交维度各阶阈值
+        ziFaXingYuYan: [0, 13, 26, 28, 28, 28, 28],
+        juFaHeYuFa: [0, 0, 16, 27, 41, 43, 44],
+        heZuoJiQiangHuaWuXiaoGuo: [0, 25, 48, 52, 52, 52, 52],
+        keTangJiLv: [0, 0, 0, 0, 23, 24, 24]
     };
 
     // 找到分数所在的区间
@@ -75,9 +76,10 @@ const convertScoreToStage = (score, type) => {
 const chartRef = ref(null)
 const radarChartRef = ref(null)
 const props = defineProps({
-    motorScore: Number,
-    languageScore: Number,
-    socialScore: Number,
+    ziFaXingYuYanScore: Number,
+    juFaHeYuFaScore: Number,
+    heZuoJiQiangHuaWuXiaoGuoScore: Number,
+    keTangJiLvScore: Number,
     displayName: String,
     analysisTextAI: String,
     age: String,
@@ -91,7 +93,7 @@ const option = computed(() => ({
         }
     },
     legend: {
-        data: ['运动', '语言', '社交'],
+        data: ['自发性语言', '句法和语法', '合作及强化物效果', '课堂纪律'],
         position: 'top',
     },
     grid: {
@@ -103,10 +105,10 @@ const option = computed(() => ({
     xAxis: {
         type: 'value',
         min: 1,
-        max: 6,
+        max: 7,
         axisLabel: {
             formatter: function (value) {
-                const stages = ['', '一阶', '二阶', '三阶', '四阶', '五阶', '六阶'];
+                const stages = ['', '一阶', '二阶', '三阶', '四阶', '五阶', '六阶', '七阶'];
                 return stages[value] || value;
             }
         }
@@ -119,22 +121,28 @@ const option = computed(() => ({
     },
     series: [
         {
-            name: '运动',
+            name: '自发性语言',
             type: 'bar',
-            data: [convertScoreToStage(props.motorScore, 'motor')],
+            data: [convertScoreToStage(props.ziFaXingYuYanScore, 'ziFaXingYuYan')],
             itemStyle: { color: '#1890FF' }
         },
         {
-            name: '语言',
+            name: '句法和语法',
             type: 'bar',
-            data: [convertScoreToStage(props.languageScore, 'language')],
+            data: [convertScoreToStage(props.juFaHeYuFaScore, 'juFaHeYuFa')],
             itemStyle: { color: '#91CB74' }
         },
         {
-            name: '社交',
+            name: '合作及强化物效果',
             type: 'bar',
-            data: [convertScoreToStage(props.socialScore, 'social')],
+            data: [convertScoreToStage(props.heZuoJiQiangHuaWuXiaoGuoScore, 'heZuoJiQiangHuaWuXiaoGuo')],
             itemStyle: { color: '#FFA34D' }
+        },
+        {
+            name: '课堂纪律',
+            type: 'bar',
+            data: [convertScoreToStage(props.keTangJiLvScore, 'keTangJiLv')],
+            itemStyle: { color: '#b83b5e' }
         }
     ]
 }));
@@ -146,32 +154,37 @@ const radarOption = computed(() => {
     return {
         radar: {
             indicator: [
-                { name: '运动', max: 6 },
-                { name: '语言', max: 6 },
-                { name: '社交', max: 6 }
+                { name: '自发性语言', max: 7 },
+                { name: '句法和语法', max: 7 },
+                { name: '合作及强化物效果', max: 7 },
+                { name: '课堂纪律', max: 7 }
+
             ],
         },
-        legend: {
-            top: 'bottom',
-            data: ['理想值', '当前'],
-        },
+        // legend: {
+        //     top: 'right',
+        //     data: ['理想值', '当前'],
+        // },
 
         series: [{
             type: 'radar',
             data: [
                 {
                     value: [
-                        convertScoreToStage(props.motorScore, 'motor'),
-                        convertScoreToStage(props.languageScore, 'language'),
-                        convertScoreToStage(props.socialScore, 'social')
+                        convertScoreToStage(props.ziFaXingYuYanScore, 'ziFaXingYuYan'),
+                        convertScoreToStage(props.juFaHeYuFaScore, 'juFaHeYuFa'),
+                        convertScoreToStage(props.heZuoJiQiangHuaWuXiaoGuoScore, 'heZuoJiQiangHuaWuXiaoGuo'),
+                        convertScoreToStage(props.keTangJiLvScore, 'keTangJiLv')
+
                     ],
                     name: '当前',
                 },
                 {
                     value: [
-                        Math.min(ageYears, 6), // 限制最大为6岁
-                        Math.min(ageYears, 6),
-                        Math.min(ageYears, 6)
+                        Math.min(ageYears, 7), // 限制最大为6岁
+                        Math.min(ageYears, 7),
+                        Math.min(ageYears, 7),
+                        Math.min(ageYears, 7),
                     ],
                     name: '理想值',
                 }
@@ -180,7 +193,7 @@ const radarOption = computed(() => {
     };
 });
 
-watch(() => [props.motorScore, props.languageScore, props.socialScore], () => {
+watch(() => [props.ziFaXingYuYanScore, props.juFaHeYuFaScore, props.heZuoJiQiangHuaWuXiaoGuoScore], () => {
     if (chartRef.value && chartRef.value.chart) {
         chartRef.value.chart.setOption(option.value);
     }
@@ -190,27 +203,6 @@ watch(() => [props.motorScore, props.languageScore, props.socialScore], () => {
 });
 
 
-// const nodes = ref(null);
-// const markdownIt = MarkdownIt({
-//     typographer: true,
-//     linkify: true,
-//     html: true // 添加HTML支持
-// });
-
-watchEffect(() => {
-    // if (props.analysisTextAI) {
-    //     try {
-    //         const tokens = markdownIt.parse(props.analysisTextAI, {}); // 移除.value
-    //         nodes.value = parseTokens(tokens, markdownIt.options);
-    //     } catch (e) {
-    //         console.error('Markdown解析失败:', e);
-    //         nodes.value = null;
-    //     }
-    // }
-});
-// 根据报错信息，将analysisTextAI改为analysisText
-// const tokens = markdownIt.parse(props.analysisTextAI, {});
-// nodes.value = parseTokens(tokens, markdownIt.options);
 
 
 
