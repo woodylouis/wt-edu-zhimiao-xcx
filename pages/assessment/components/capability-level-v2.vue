@@ -5,18 +5,37 @@
             <view class="capability-bar">
 
                 <view class="chart-container">
-                    <l-echart ref="chartRef"></l-echart>
+                    <!-- <l-echart ref="chartRef"></l-echart> -->
                 </view>
                 <view class="chart-container-2" style="margin-top: 48rpx;">
-                    <l-echart ref="radarChartRef"></l-echart>
+                    <!-- <l-echart ref="radarChartRef"></l-echart> -->
                 </view>
 
-                <view class="analysis-text-overall">
-                    <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
-                    <!-- <template v-else>
-                        {{ analysisText }}
-                    </template> -->
+                <!-- 新增：干预计划展示 -->
+                <view v-if="plan">
+                    <view class="card-title" style="margin-top: 24px;">🎯 个性化计划</view>
+                    <text>{{ plan.yearGoal }}</text>
+
+                    <view v-for="(month, mIndex) in plan.months" :key="mIndex" class="card-block">
+                        <text class="subtitle">{{ month.month }}目标：{{ month.goal }}</text>
+
+                        <view v-for="(week, wIndex) in month.weeks" :key="wIndex" class="week-block">
+                            <view class="week">{{ week.week }}：{{ week.goal }}</view>
+
+                            <view class="day-row" v-for="(day, dIndex) in week.days" :key="dIndex">
+                                <view class="day-label">{{ day.day }}</view>
+                                <view class="day-task">{{ day.task }}</view>
+                            </view>
+                        </view>
+
+                    </view>
                 </view>
+                <!-- <view class="analysis-text-overall">
+                    <rich-text v-if="nodes" :nodes="nodes" :tag-style="{ p: 'margin: 8px 0; line-height: 1.6;' }" />
+                    <template v-else>
+                        {{ analysisText }}
+                    </template>
+</view> -->
 
             </view>
         </view>
@@ -25,7 +44,7 @@
 
 <script setup>
 import { ref, computed, watchEffect, onMounted, watch } from "vue";
-import { MarkdownIt, parseTokens } from "@/uni_modules/wtto-markdown/js_sdk/index";
+// import { MarkdownIt, parseTokens } from "@/uni_modules/wtto-markdown/js_sdk/index";
 import "@/uni_modules/wtto-markdown/js_sdk/markdown.css";
 const echarts = require('../../../uni_modules/lime-echart/static/echarts.min');
 
@@ -62,6 +81,7 @@ const props = defineProps({
     displayName: String,
     analysisTextAI: String,
     age: String,
+    plan: Object // 新增：计划数据
 });
 const option = computed(() => ({
     tooltip: {
@@ -170,27 +190,27 @@ watch(() => [props.motorScore, props.languageScore, props.socialScore], () => {
 });
 
 
-const nodes = ref(null);
-const markdownIt = MarkdownIt({
-    typographer: true,
-    linkify: true,
-    html: true // 添加HTML支持
-});
+// const nodes = ref(null);
+// const markdownIt = MarkdownIt({
+//     typographer: true,
+//     linkify: true,
+//     html: true // 添加HTML支持
+// });
 
 watchEffect(() => {
-    if (props.analysisTextAI) {
-        try {
-            const tokens = markdownIt.parse(props.analysisTextAI, {}); // 移除.value
-            nodes.value = parseTokens(tokens, markdownIt.options);
-        } catch (e) {
-            console.error('Markdown解析失败:', e);
-            nodes.value = null;
-        }
-    }
+    // if (props.analysisTextAI) {
+    //     try {
+    //         const tokens = markdownIt.parse(props.analysisTextAI, {}); // 移除.value
+    //         nodes.value = parseTokens(tokens, markdownIt.options);
+    //     } catch (e) {
+    //         console.error('Markdown解析失败:', e);
+    //         nodes.value = null;
+    //     }
+    // }
 });
 // 根据报错信息，将analysisTextAI改为analysisText
-const tokens = markdownIt.parse(props.analysisTextAI, {});
-nodes.value = parseTokens(tokens, markdownIt.options);
+// const tokens = markdownIt.parse(props.analysisTextAI, {});
+// nodes.value = parseTokens(tokens, markdownIt.options);
 
 
 
@@ -211,7 +231,6 @@ onMounted(() => {
 
 
 </script>
-
 
 
 <style lang="scss" scoped>
@@ -236,34 +255,6 @@ onMounted(() => {
     margin-bottom: 10px;
 }
 
-.analysis-text-overall {
-    color: #00214d;
-    font-size: 14px;
-    background-color: #f2f7f6;
-    border-radius: 13px;
-    padding: 12px;
-    margin-top: 16px;
-
-    h3,
-    h4 {
-        color: #00214d;
-        margin: 12px 0;
-    }
-
-    ul,
-    ol {
-        padding-left: 20px;
-    }
-
-    li {
-        margin: 6px 0;
-    }
-
-    strong {
-        color: #0071F1;
-    }
-}
-
 .capability-bar {
     margin-top: 40rpx;
 
@@ -273,107 +264,128 @@ onMounted(() => {
         align-items: center;
         margin-bottom: 20rpx;
 
-
         .title {
             font-size: 16px;
             margin-right: 12px;
             font-weight: 300;
-            // width: 20rpx;
-
         }
     }
 }
 
-
-.u-percentage-slot {
-    padding: 1px 5px;
-    background-color: $u-warning;
-    color: #fff;
-    border-radius: 100px;
-    font-size: 12px;
-    // margin-right: -1px;
-    height: 17px;
-    z-index: 999;
-}
-
-.analysis-section {
-    margin-top: 24px;
-}
-
-.strength-section {
-    background-color: rgba(110, 221, 138, 0.15);
-    border-radius: 12px;
-    padding: 16px;
-}
-
-.concern-section {
-    background-color: rgba(255, 84, 112, 0.15);
-    border-radius: 12px;
-    padding: 16px;
-    margin-top: 12px;
-}
-
-.section-header {
-    color: #00214d;
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 20px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.indicator {
-    width: 4px;
-    height: 12px;
-    border-radius: 4px;
-}
-
-.strength {
-    background-color: #00bf71;
-}
-
-.concern {
-    background-color: #ff5470;
-}
-
-.analysis-item {
-    margin-top: 16px;
-}
-
-.analysis-title {
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 20px;
-}
-
-.strength-section .analysis-title {
-    color: #00bf71;
-}
-
-.concern-section .analysis-title {
-    color: #ff5470;
-}
-
-.analysis-text {
-    color: #00214d;
-    font-size: 12px;
-    line-height: 18px;
-}
-
-.chart-container {
-    width: 100%;
-    height: 400rpx;
-    /* 设置固定高度 */
-    position: relative;
-    /* 确保图表容器定位正确 */
-}
-
+.chart-container,
 .chart-container-2 {
     width: 100%;
     height: 400rpx;
-    /* 设置固定高度 */
     position: relative;
-    /* 确保图表容器定位正确 */
+}
+
+.gen-btn {
+    background-color: #007aff;
+    color: white;
+    margin-top: 30rpx;
+    padding: 20rpx;
+    border-radius: 12rpx;
+    text-align: center;
+    font-size: 32rpx;
+}
+
+.card-block {
+    background: #f5f5f5;
+    border-radius: 16rpx;
+    padding: 20rpx;
+    margin-top: 24rpx;
+}
+
+.subtitle {
+    font-weight: bold;
+    font-size: 28rpx;
+    color: #333;
+}
+
+.week-block {
+    margin-top: 24rpx;
+    background-color: #ffffff;
+    border-radius: 12rpx;
+    border: 1px solid #e0e0e0;
+    padding: 16rpx;
+    overflow-x: auto;
+}
+
+.week {
+    font-weight: bold;
+    color: #444;
+    margin-bottom: 12rpx;
+    font-size: 28rpx;
+}
+
+.day-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 26rpx;
+    background-color: #fff;
+    margin-top: 8rpx;
+}
+
+.day-table thead tr {
+    background-color: #f5f5f5;
+}
+
+.day-table th,
+.day-table td {
+    border: 1px solid #ddd;
+    padding: 16rpx;
+    text-align: left;
+    vertical-align: top;
+}
+
+.day-table th {
+    font-weight: 600;
+    color: #333;
+}
+
+.day-table td {
+    color: #555;
+    line-height: 1.6;
+    background-color: #fafafa;
+}
+
+.week-block {
+    margin-top: 24rpx;
+    background-color: #ffffff;
+    border-radius: 12rpx;
+    border: 1px solid #e0e0e0;
+    padding: 16rpx;
+}
+
+.week {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 16rpx;
+    font-size: 28rpx;
+}
+
+.day-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 12rpx 0;
+    border-bottom: 1px solid #f0f0f0;
+
+    &:last-child {
+        border-bottom: none;
+    }
+}
+
+.day-label {
+    width: 100rpx;
+    font-weight: 500;
+    color: #007aff;
+}
+
+.day-task {
+    flex: 1;
+    color: #444;
+    font-size: 26rpx;
+    line-height: 1.5;
+    padding-left: 8rpx;
 }
 </style>

@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                    }}</view>
+                                }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -27,7 +27,7 @@
             </view>
             <view class="report">
                 <view class="part">
-                    <capability-level :displayName="displayName" :analysisTextAI="analysisTextAI"
+                    <capability-level :displayName="displayName" :plan="analysisTextAI"
                         :perception-score="sectionScores.感知觉 || 0" :social-score="sectionScores.社交"
                         :motor-score="sectionScores.运动 || 0" :language-score="sectionScores.语言 || 0"
                         :selfcare-score="sectionScores.生活自理 || 0" :age="childAge" />
