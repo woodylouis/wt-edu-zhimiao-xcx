@@ -43,7 +43,10 @@ export async function generateYearGoal(qnaJsonText) {
     return await requestDeepseek([
         {
             role: 'system',
-            content: `你是儿童康复专家。我会提供一组问答形式的评估数据，请你：\n1. 找出所有回答为“无法完成”的题目；\n2. 根据这些未达标能力，生成全年干预的“年度目标”；\n3. 返回格式如下：\n{\n  "yearGoal": "..."\n}\n只输出有效 JSON。数据是数组，每项包含 questions 和 answer 字段。`
+            content: `你是儿童康复专家。我会提供一组问答形式的评估数据，
+                        请你：\n1. 找出所有回答标记为“无法完成”或者“否”的题目；\n
+                        2. 根据这些未达标能力，根据生成全年干预的“年度目标”；\n
+                        3. 返回格式如下：\n{\n  "yearGoal": "..."\n}\n只输出有效 JSON。数据是数组，每项包含 questions 和 answer 字段。`
         },
         {
             role: 'user',

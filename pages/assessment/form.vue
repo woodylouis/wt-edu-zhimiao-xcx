@@ -282,7 +282,9 @@ const handleNextQuestion = () => {
                         childAge: assessmentMeta.value.childAge,   // 新增儿童年龄
                         question: answer.question?.content || '未知题目',
                         answer: answer.score > 0 ? '是' : '否',
+                        section: cachedData.sectionScores
                     }));
+
                     uni.showLoading({
                         title: '生成报告中...',
                         mask: true
