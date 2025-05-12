@@ -92,7 +92,36 @@ const avatarUrl = computed(() => {
         : defaultAvatarUrl.value;
 });
 
+// 新增检查报告函数
+const checkStudentReport = async (childId) => {
+    try {
+        const res = await uniCloud.callFunction({
+            name: 'wt-fetch-child-report-history',
+            data: { childId }
+        });
+        if (res.result.data.length > 0) {
+            return true
+        }
+        return false
+    } catch (e) {
+        console.error('检查报告失败:', e);
+        return false;
+    }
+};
+
 const handleStudentClick = async (student) => {
+    console.log('点击学生:', student); // 调试用，确保学生信息正确传递
+    // 检查学生是否有报告
+    const hasReport = await checkStudentReport(student._id);
+
+    if (!hasReport) {
+        uni.showToast({
+            title: '该学生暂无评估报告',
+            icon: 'none'
+        });
+        return;
+    }
+
     uni.setStorageSync('current_student', {
         ...student
     });
@@ -180,7 +209,7 @@ const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
             if (pageNum === 1) {
                 studentList.value = res.result.data.list;
                 // 缓存第一页数据
-                uni.setStorageSync(cacheKey, res.result.data.list);
+                // uni.setStorageSync(cacheKey, res.result.data.list);
             } else {
                 studentList.value = [...studentList.value, ...res.result.data.list];
             }
