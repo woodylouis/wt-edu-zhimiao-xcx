@@ -2,11 +2,15 @@
 const db = uniCloud.database();
 
 exports.main = async (event) => {
-
+	// event = {
+	// 	sectionId: 'LANG_1',
+	// 	abllsSectionAlphabet: 'I',
+	// 	age: 2,
+	// };
 	const { sectionId, abllsSectionAlphabet, age } = event;
 	// const sectionId = 'LANG_1';
-	// const abllsSectionAlphabet = 'J';
-	// const age = 7;
+	// const abllsSectionAlphabet = 'I';
+	// const age = 2;
 	if (!sectionId || !abllsSectionAlphabet || age === undefined || age === null || age === '') {
 		return {
 			code: 400,
@@ -36,7 +40,10 @@ exports.main = async (event) => {
 			code: 200,
 			data: {
 				questions: output,
-				totalQuestions: output.length
+				totalQuestions: output.length,
+				age: age,
+				sectionId: sectionId,
+				abllsSectionAlphabet: abllsSectionAlphabet
 			}
 		};
 
