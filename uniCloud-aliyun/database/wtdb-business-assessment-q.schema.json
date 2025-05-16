@@ -13,11 +13,6 @@
             "bsonType": "string",
             "description": "上级大分类section_id, 关联分类表，例如 '语言与沟通技能' 的id是section_001"
         },
-        "order": {
-            "bsonType": "int",
-            "minimum": 0,
-            "description": "题目的顺序编号"
-        },
         "type": {
             "bsonType": "string",
             "enum": [
@@ -26,10 +21,6 @@
                 "text"
             ],
             "description": "题目类型，如单选、复选、文本"
-        },
-        "content": {
-            "bsonType": "string",
-            "description": "题目的内容（题干）"
         },
         "ablls_r_section": {
             "bsonType": "string",
@@ -40,16 +31,25 @@
             "description": "ABLLS-R领域分类字母，如 C"
         },
         "ablls_r_section_order": {
-            "bsonType": "string",
+            "bsonType": "int",
+            "minimum": 0,
             "description": "ABLLS-R小分类顺序标识，如 1"
         },
         "task_name": {
             "bsonType": "string",
             "description": "任务名称，简要描述评估任务"
         },
+        "task_name_eng": {
+            "bsonType": "string",
+            "description": "任务名称（英文），简要描述评估任务"
+        },
         "task_object": {
             "bsonType": "string",
             "description": "任务目标，详细描述评估任务的具体目标"
+        },
+        "content": {
+            "bsonType": "string",
+            "description": "题目的内容（题干）"
         },
         "task_sample": {
             "bsonType": "string",
