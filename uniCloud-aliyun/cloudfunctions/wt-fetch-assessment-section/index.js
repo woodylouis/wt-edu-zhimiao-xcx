@@ -61,6 +61,7 @@ exports.main = async (event) => {
 		const groupedResult = output.reduce((acc, question) => {
 			const sectionId = question.section_id;
 			const abllsSection = question.ablls_r_section;
+			const abllsSectionAlphabet = question.ablls_r_section_alphabet; // 新增的字段，用于区分同一个section_id下的不同ablls_r_section
 
 			if (!acc[sectionId]) {
 				acc[sectionId] = {};
@@ -68,6 +69,7 @@ exports.main = async (event) => {
 
 			if (!acc[sectionId][abllsSection]) {
 				acc[sectionId][abllsSection] = {
+					abllsSectionAlphabet: abllsSectionAlphabet,
 					sectionName: abllsSection,
 					questionCount: 0
 				};
