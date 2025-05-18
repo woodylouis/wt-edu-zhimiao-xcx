@@ -16,11 +16,18 @@
 			}
 		},
 		{
-			"path": "pages/dashboard/teacher/teacher",
+			"path" : "pages/assessment/listMoudules",
+			"style" : 
+			{
+				"navigationBarTitleText" : "",
+				"enablePullDownRefresh" : false,
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/assessment/form",
 			"style": {
-				"navigationStyle": "custom",
-				"navigationBarTitleText": "知苗成长",
-				"onReachBottomDistance": 100
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -37,9 +44,11 @@
 			}
 		},
 		{
-			"path": "pages/assessment/form",
+			"path": "pages/dashboard/teacher/teacher",
 			"style": {
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "知苗成长",
+				"onReachBottomDistance": 100
 			}
 		},
 		{
