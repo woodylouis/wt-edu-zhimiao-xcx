@@ -22,19 +22,24 @@
         </u-sticky>
 
         <!-- 折叠模板和列表 -->
-        <view class="collapse" v-for="(item, index) in 5" :key="index">
+        <view class="collapse" v-for="(assessmentSection, index) in assessmentSections.value" :key="index">
             <u-collapse @change="change" @close="close" @open="open" :border=false>
-                <u-collapse-item title="语言与沟通技能" name="Docs guide">
-                    <text class="u-collapse-content"
-                        style="font-size: 26rpx;">本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。</text>
+                <u-collapse-item>
+                    <template #title>
+                        <text> {{ assessmentSection.section }}</text>
+                    </template>
+                    <text>{{ assessmentSection.desc }}</text>
+                    <view v-for="(abllsSections, index) in assessmentSection.abllsSections" :key="index">
+                        <uni-list>
+                            <uni-list-item :title="abllsSections.sectionName" :rightText="abllsSections.questionCount"
+                                @click="toForm" :clickable="true" :show-switch="true"></uni-list-item>
+                        </uni-list>
+                    </view>
 
-                    <uni-list>
-                        <uni-list-item title="心理健康" rightText="共57项" @click="toForm" :clickable="true"
-                            :show-switch="true"></uni-list-item>
-                    </uni-list>
                 </u-collapse-item>
             </u-collapse>
         </view>
+
 
         <up-overlay :show="show">
             <view class="warp">
@@ -57,7 +62,7 @@ const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cd
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
 const currentStudet = {
     ageInt: "3",
-    assessmentId: "681c62d67ad52db7e72cb994",
+    assessmentId: "6826d1093d029cca22a1ee0b",
     assessmentTitle: "ABLLS-R",
     avatar: "https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/boy.png",
     childAge: "3岁9个月",
@@ -66,6 +71,40 @@ const currentStudet = {
     classId: "67d2841d8a5c78c37ff0b54b",
     className: "小班6班"
 };
+const assessmentSections = [
+    // {
+    //     abllsSections: [
+    //         {
+    //             questionCount: "10题",
+    //             sectionName: "语言理解"
+    //         },
+    //         {
+    //             questionCount: "10题",
+    //             sectionName: "要求"
+    //         }
+    //     ],
+    //     assessment_id: "6826d1093d029cca22a1ee0b",
+    //     create_time: 1710000000000,
+    //     desc: "本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。",
+    //     order: 1,
+    //     section: "语言与沟通技能",
+    //     section_id: "LANG_1",
+    //     update_time: 1710000000000,
+    //     _id: "681b033621821bbfdb469a48",
+    // },
+    // {
+    //     assessment_id: "6826d1093d029cca22a1ee0b",
+    //     create_time: 1710000000000,
+    //     desc: "本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。",
+    //     order: 1,
+    //     section: "语言与沟通技能2",
+    //     section_id: "LANG_1",
+    //     update_time: 1710000000000,
+    //     _id: "681b033621821bbfdb469a48",
+    // }
+
+]
+const abllsSections = []
 
 const show = ref(false);
 const confirmInfo = ref([
@@ -86,6 +125,24 @@ const navigateToLogin = () => {
     });
 }
 
+const loadAssessmentSections = async (assessmentId, age) => {
+    try {
+        const res = await uniCloud.callFunction({
+            name: 'wt-fetch-assessment-section',
+            data: {
+                assessmentId,
+                age
+            }
+        })
+        if (res.result.code === 200) {
+            assessmentSections.value = res.result.data.section;
+            console.log('assessmentSections:', assessmentSections.value)
+        }
+
+    } catch (e) {
+        console.error('加载失败:', e);
+    }
+}
 const handleConfirm = () => {
     const { id, name, age } = selectedChildInfo.value;
 
@@ -143,14 +200,19 @@ onReachBottom(() => {
 onLoad((options) => {
     console.log('onLoad options:', options);
     // 读取从switchClass页面传递的selectedClass参数
-    if (options) {
-        try {
-            currentStudet.value = options;
-            console.log('currentStudet:', currentStudet.value);
-        } catch (e) {
-            console.error('解析selectedClass参数失败:', e);
+    // if (options) {
+    try {
+        // currentStudet.value = options;
+        // 如果age是字符串类型，则转换为数字类型
+        if (typeof currentStudet.ageInt === 'string') {
+            currentStudet.ageInt = parseInt(currentStudet.ageInt);
         }
+        loadAssessmentSections(currentStudet.assessmentId, currentStudet.ageInt);
+
+    } catch (e) {
+        console.error('解析selectedClass参数失败:', e);
     }
+    // }
 
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
 
@@ -370,5 +432,29 @@ onMounted(() => {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
+}
+
+.u-page {
+    padding: 0;
+
+    &__item {
+
+        &__title {
+            color: $u-tips-color;
+            background-color: $u-bg-color;
+            padding: 15px;
+            font-size: 15px;
+
+            &__slot-title {
+                color: $u-primary;
+                font-size: 14px;
+            }
+        }
+    }
+}
+
+.u-collapse-content {
+    color: $u-tips-color;
+    font-size: 14px;
 }
 </style>

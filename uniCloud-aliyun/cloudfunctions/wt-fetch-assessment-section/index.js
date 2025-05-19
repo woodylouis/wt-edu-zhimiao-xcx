@@ -8,7 +8,7 @@ exports.main = async (event) => {
 	// 	assessmentId: '6826d1093d029cca22a1ee0b',
 	// 	age: 2,
 	// };
-	const { assessmentId, age } = event;
+	const { assessmentId, age } = event;	
 	const assessmentSectionDbName = 'wtdb-business-assess-section';
 	const assessmentQuestionDbName = 'wtdb-business-assessment-q';
 	const sectionIdList = []; // 存储section_id的数组
