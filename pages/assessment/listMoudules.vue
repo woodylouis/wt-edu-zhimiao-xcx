@@ -1,17 +1,18 @@
 <template>
     <view class="dashboard">
         <u-sticky>
-            <custom-nav :xcxName="currentStudet.assessmentTitle" :navCustomStyle="navCustomStyle" :needBar="false" />
+            <custom-nav :xcxName="currentStudent.assessmentTitle" :navCustomStyle="navCustomStyle" :needBar="false"
+                :needBack="true" />
             <view class="user-profile">
                 <!-- 左侧内容容器 -->
 
                 <view class="profile-left">
-                    <image class="avatar-image" :src="currentStudet.avatar" />
+                    <image class="avatar-image" :src="currentStudent.avatar" />
                     <view class="info" style="width: 100%;">
-                        <view class="name">{{ currentStudet.childName }}</view>
-                        <view class="class">班级：{{ currentStudet.className }}
+                        <view class="name">{{ currentStudent.childName }}</view>
+                        <view class="class">班级：{{ currentStudent.className }}
 
-                            <view class="class">年龄：{{ currentStudet.childAge }}
+                            <view class="class">年龄：{{ currentStudent.childAge }}
 
                             </view>
                         </view>
@@ -49,7 +50,7 @@
 
 <script setup>
 import customNav from '@/components/customNav'
-import { ref, onMounted, computed, reactive } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { onShow, onLoad, onUnload, onReachBottom } from '@dcloudio/uni-app'
 import modalBox from '../../components/modalBox-v3/modalBox.vue';
 
@@ -57,17 +58,17 @@ const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, 
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
 // 新增用户信息获取
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
-const currentStudet = {
-    ageInt: "3",
-    assessmentId: "6826d1093d029cca22a1ee0b",
-    assessmentTitle: "ABLLS-R",
-    avatar: "https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/boy.png",
-    childAge: "3岁9个月",
-    childId: "6803b3a02ab442235e289bc5",
-    childName: "武昊天",
-    classId: "67d2841d8a5c78c37ff0b54b",
-    className: "小班6班"
-};
+const currentStudent = ref({
+    // ageInt: "3",
+    // assessmentId: "6826d1093d029cca22a1ee0b",
+    // assessmentTitle: "ABLLS-R",
+    // avatar: "https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/boy.png",
+    // childAge: "3岁10个月",
+    // childId: "6803b3a02ab442235e289bc5",
+    // childName: "武昊天1",
+    // classId: "67d2841d8a5c78c37ff0b54b",
+    // className: "小班8班"
+});
 const assessmentSections = ref([]);
 // {
 //     abllsSections: [
@@ -123,6 +124,7 @@ const navigateToLogin = () => {
 }
 
 const loadAssessmentSections = async (assessmentId, age) => {
+    console.log('loadAssessmentSections:', assessmentId, age)
     try {
         const res = await uniCloud.callFunction({
             name: 'wt-fetch-assessment-section',
@@ -197,24 +199,17 @@ onReachBottom(() => {
 
 onLoad((options) => {
     console.log('onLoad options:', options);
-    // 读取从switchClass页面传递的selectedClass参数
-    // if (options) {
-    try {
-        // currentStudet.value = options;
-        // 如果age是字符串类型，则转换为数字类型
-        if (typeof currentStudet.ageInt === 'string') {
-            currentStudet.ageInt = parseInt(currentStudet.ageInt);
-        }
-        loadAssessmentSections(currentStudet.assessmentId, currentStudet.ageInt);
-
-    } catch (e) {
-        console.error('解析selectedClass参数失败:', e);
+    if (options) {
+        currentStudent.value = {
+            ...options,
+            ageInt: Number(options.ageInt) || 0
+        };
+        console.log('currentStudent:', currentStudent.value);
+        loadAssessmentSections(options.assessmentId, Number(options.ageInt));
     }
-    // }
-
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
-
 });
+
 
 onUnload(() => {
     uni.$off('reachBottom', onReachBottom)
