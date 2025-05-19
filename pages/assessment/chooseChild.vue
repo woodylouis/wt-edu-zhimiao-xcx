@@ -133,7 +133,9 @@ const show = ref(false);
 const selectedChildInfo = ref({
     id: '',
     name: '',
-    age: ''
+    age: '',
+    ageInt: '', // 新增年龄整数部分
+    avatar: '' // 新增头像
 });
 
 const handleSelectChild = (id) => {
@@ -162,7 +164,9 @@ const handleSelectChild = (id) => {
     selectedChildInfo.value = {
         id,
         name: selectedChild.name,
-        age: `${years}岁${months}个月`
+        age: `${years}岁${months}个月`,
+        ageInt: years,
+        avatar: selectedChild.avatar
     };
 
     // 更新确认框内容
@@ -176,7 +180,7 @@ const handleSelectChild = (id) => {
 };
 
 const handleConfirm = () => {
-    const { id, name, age } = selectedChildInfo.value;
+    const { id, name, age, ageInt, avatar } = selectedChildInfo.value;
 
     // 加入搜索历史
     updateSearchHistory(name);
@@ -199,26 +203,28 @@ const handleConfirm = () => {
     }
     // 跳转
     uni.navigateTo({
-        url: `/pages/assessment/form?classId=${classId.value}` +
+        url: `/pages/assessment/listMoudules?classId=${classId.value}` +
             `&className=${className.value}` +
             `&childId=${id}` +
+            `&avatar=${avatar}` +
             `&childName=${name}` +
             `&childAge=${age}` +
+            `&ageInt=${ageInt}` +
             `&assessmentId=${assessmentId.value}` +
             `&assessmentTitle=${assessmentTitle.value}`
     });
-	// uni.navigateTo({
-	//     url: `/pages/assessment/form?classId=67d2841d8a5c78c37ff0b54b` +
-	//         `&className=小班6班` +
-	//         `&childId=6803b3a02ab442235e289bc3` +
-	//         `&childName=陆一凡` +
-	//         `&childAge=3岁4个月` +
-	//         `&assessmentId=681c62d67ad52db7e72cb994` +
-	//         `&assessmentTitle=ABLLS-R`
-	// });
-	// uni.navigateTo({
-	// 	url:`/pages/assessment/listMoudule`
-	// })
+    // uni.navigateTo({
+    //     url: `/pages/assessment/form?classId=67d2841d8a5c78c37ff0b54b` +
+    //         `&className=小班6班` +
+    //         `&childId=6803b3a02ab442235e289bc3` +
+    //         `&childName=陆一凡` +
+    //         `&childAge=3岁4个月` +
+    //         `&assessmentId=681c62d67ad52db7e72cb994` +
+    //         `&assessmentTitle=ABLLS-R`
+    // });
+    // uni.navigateTo({
+    // 	url:`/pages/assessment/listMoudule`
+    // })
 
     show.value = false;
 };

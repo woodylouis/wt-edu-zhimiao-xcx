@@ -10,49 +10,40 @@
                     <view class="info" style="width: 100%;">
                         <view class="name">{{ displayName }}</view>
                         <view class="class">班级：{{ classDisplay }}
-                         
-						   <view class="class">年龄：{{ classDisplay }}
-						    
-						   </view>
+
+                            <view class="class">年龄：{{ classDisplay }}
+
+                            </view>
                         </view>
-						
+
                     </view>
                 </view>
 
-                <!-- 右侧切换按钮 -->
-                <view class="switch-class" @click="onClickSwitch">
-                    <image class="switch-class-image" :src="switchIconUrl"></image>
-                </view>
+
             </view>
         </u-sticky>
-		
-		<!-- 折叠模板和列表 -->
-		<view class="collapse" v-for="(item,index) in 5" :key="index">
-			<u-collapse
-			    @change="change"
-			    @close="close"
-			    @open="open"
-				:border=false
-			  >
-			    <u-collapse-item
-			      title="语言与沟通技能"
-			      name="Docs guide"
-			    >
-			      <text class="u-collapse-content" style="font-size: 26rpx;">本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。</text>
-				  
-				  <uni-list>
-				  	<uni-list-item  title="心理健康" rightText="共57项" @click="toForm" :clickable="true" :show-switch="true"></uni-list-item>
-				  </uni-list>
-			    </u-collapse-item>
-			  </u-collapse>
-		</view>
-		
-		<up-overlay :show="show">
-		    <view class="warp">
-		        <modal-box v-if="show" confirmText="确定" @cancel="show = false" cancelText="先不退出"
-		            @create="handleConfirm" />
-		    </view>
-		</up-overlay>
+
+        <!-- 折叠模板和列表 -->
+        <view class="collapse" v-for="(item, index) in 5" :key="index">
+            <u-collapse @change="change" @close="close" @open="open" :border=false>
+                <u-collapse-item title="语言与沟通技能" name="Docs guide">
+                    <text class="u-collapse-content"
+                        style="font-size: 26rpx;">本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。</text>
+
+                    <uni-list>
+                        <uni-list-item title="心理健康" rightText="共57项" @click="toForm" :clickable="true"
+                            :show-switch="true"></uni-list-item>
+                    </uni-list>
+                </u-collapse-item>
+            </u-collapse>
+        </view>
+
+        <up-overlay :show="show">
+            <view class="warp">
+                <modal-box v-if="show" confirmText="确定" @cancel="show = false" cancelText="先不退出"
+                    @create="handleConfirm" />
+            </view>
+        </up-overlay>
     </view>
 </template>
 
@@ -60,25 +51,16 @@
 import customNav from '@/components/customNav'
 import { ref, onMounted, computed, reactive } from "vue";
 import { onShow, onLoad, onUnload, onReachBottom } from '@dcloudio/uni-app'
-import QcSuspendBtn from '@/components/qc-suspendBtn/qc-suspendBtn.vue'
-// import StudentList from './components/student-list'
-import btnConfig from '@/common/suspen-btn/config.js'
 import modalBox from '../../components/modalBox-v3/modalBox.vue';
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
 const switchIconUrl = "../../../static/general/switch.png";
-const page = ref(1)
-const pageSize = ref(14)
-const loading = ref(true); // 新增加载状态
-const loadingMore = ref(false) // 新增加载更多状态
-const noMoreData = ref(false) // 新增无更多数据标志
 
-const studentList = ref([])
 // 新增用户信息获取
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
 const currentClass = ref(uni.getStorageSync('currentClass') || {});
-const role = ref('teacher'); // 默认值设为teacher
+
 // 修改用户信息显示部分
 let userNickname = ref('');
 const displayName = computed(() => {
@@ -94,7 +76,7 @@ const confirmInfo = ref([
 ]);
 
 const toForm = () => {
-	show.value = true
+    show.value = true
 };
 
 
@@ -145,61 +127,7 @@ const avatarUrl = computed(() => {
         : defaultAvatarUrl.value;
 });
 
-// 新增检查报告函数
-const checkStudentReport = async (childId) => {
-    try {
-        const res = await uniCloud.callFunction({
-            name: 'wt-fetch-child-report-history',
-            data: { childId }
-        });
-        if (res.result.data.length > 0) {
-            return true
-        }
-        return false
-    } catch (e) {
-        console.error('检查报告失败:', e);
-        return false;
-    }
-};
 
-const handleStudentClick = async (student) => {
-    console.log('点击学生:', student); // 调试用，确保学生信息正确传递
-    // 检查学生是否有报告
-    const hasReport = await checkStudentReport(student._id);
-
-    if (!hasReport) {
-        uni.showToast({
-            title: '该学生暂无评估报告',
-            icon: 'none'
-        });
-        return;
-    }
-
-    uni.setStorageSync('current_student', {
-        ...student
-    });
-    uni.navigateTo({
-        url: `/pages/assessment/report?isHistory=true`
-    });
-}
-
-const onClickInvite = () => {
-    if (!currentClass.value?.code) {
-        uni.showToast({ title: '暂无班级码', icon: 'none' });
-        return;
-    }
-
-    // 复制班级码到剪贴板
-    uni.setClipboardData({
-        data: currentClass.value.code,
-        success: () => {
-            uni.showToast({ title: '班级码已复制', icon: 'success' });
-        },
-        fail: () => {
-            uni.showToast({ title: '复制失败', icon: 'none' });
-        }
-    });
-};
 // 修改班级显示逻辑
 const classDisplay = computed(() => {
     if (currentClass.value.grade && currentClass.value.class) {
@@ -208,20 +136,11 @@ const classDisplay = computed(() => {
     return '暂无班级信息';
 });
 
-const onClickSwitch = () => {
-    uni.navigateTo({
-        url: '/pages/enter-class/switchClass'
-    }).then(() => {
-        // 新增返回后强制更新
-        userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
-        currentClass.value = uni.getStorageSync('currentClass') || {};
-    });
-}
 
 const onClickProfile = () => {
     uni.navigateTo({
         // url: '/uni_modules/uni-id-pages/pages/userinfo/userinfo'
-		url:'/pages/assessment/listMoudule'
+        url: '/pages/assessment/listMoudule'
     }).then(() => {
         // 新增返回后强制更新
         userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
@@ -229,73 +148,7 @@ const onClickProfile = () => {
     });
 }
 
-const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
-    try {
-        // 检查是否有缓存数据
-        const cacheKey = `current_class_students`;
-        const cachedData = uni.getStorageSync(cacheKey);
 
-        // 检查缓存是否有效：存在缓存数据且缓存中的学生属于当前班级
-        const isCacheValid = cachedData && cachedData.some(student =>
-            student.class_id === currentClass.value._id
-        );
-
-        // 如果是第一页且缓存有效，则使用缓存
-        if (pageNum === 1 && isCacheValid) {
-            studentList.value = cachedData;
-            loading.value = false;
-            return;
-        }
-
-        loading.value = pageNum === 1;
-        loadingMore.value = pageNum > 1;
-
-        const res = await uniCloud.callFunction({
-            name: 'wt-fetch-report-history',
-            data: {
-                classId,
-                page: pageNum,
-                pageSize: pageSizeNum
-            }
-        })
-
-        if (res.result.code === 0) {
-            if (pageNum === 1) {
-                studentList.value = res.result.data.list;
-                // 缓存第一页数据
-                // uni.setStorageSync(cacheKey, res.result.data.list);
-            } else {
-                studentList.value = [...studentList.value, ...res.result.data.list];
-            }
-
-            noMoreData.value = res.result.data.list.length < pageSizeNum;
-        }
-        const pagination = ref({ page: 1, pageSize: 10, total: 0 });
-        const res1 = await uniCloud.callFunction({
-            name: 'wt-fetch-assessment-list',
-            data: {
-                page: pagination.value.page,
-                pageSize: pagination.value.pageSize
-            }
-        });
-
-        if (res1.result.code === 0) {
-            // 更新缓存（包含时间戳）
-            const CACHE_KEY = 'teacher_assessment_list';
-            uni.setStorageSync(CACHE_KEY, {
-                list: res1.result.data.list,
-                total: res1.result.data.total,
-                timestamp: Date.now()
-            });
-            console.log('teacher_assessment_list:', uni.getStorageSync(CACHE_KEY));
-        }
-    } catch (e) {
-        console.error('加载失败:', e);
-    } finally {
-        loading.value = false;
-        loadingMore.value = false;
-    }
-};
 
 // 在切换班级或需要刷新数据时清除缓存
 const clearStudentsCache = (classId) => {
@@ -313,19 +166,7 @@ onShow(() => {
 
 onReachBottom(() => {
     console.log('onReachBottom');
-    if (loadingMore.value) return;
 
-    if (noMoreData.value) {
-        uni.showToast({
-            title: '没有更多数据了~',
-            icon: 'none',
-            duration: 1500
-        });
-        return;
-    }
-
-    page.value += 1
-    loadStudentsWithData(currentClass.value._id, page.value, pageSize.value)
 })
 
 onLoad((options) => {
@@ -339,16 +180,11 @@ onLoad((options) => {
             console.error('解析selectedClass参数失败:', e);
         }
     }
-    if (options.role) {
-        role.value = options.role;
-    }
 
     // 保持原有的currentClass逻辑不变
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
     currentClass.value = uni.getStorageSync('currentClass') || {};
 
-    loadStudentsWithData(currentClass.value._id, page.value, pageSize.value);
-    uni.$on('reachBottom', onReachBottom)
 });
 
 onUnload(() => {
@@ -390,19 +226,21 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .dashboard {
-	.warp {
-	    display: flex;
-	    align-items: center;
-	    justify-content: center;
-	    height: 100%;
-	}
-	.collapse {
-		border-radius: 8px;
-		border: 1px solid #E9E9E9;
-		background: #FFF;
-		box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
-		margin: 22rpx 40rpx;
-	}
+    .warp {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+    }
+
+    .collapse {
+        border-radius: 8px;
+        border: 1px solid #E9E9E9;
+        background: #FFF;
+        box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+        margin: 22rpx 40rpx;
+    }
+
     .user-profile {
         height: calc(100vh / 8);
         background:
