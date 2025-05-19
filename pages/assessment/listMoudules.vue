@@ -1,17 +1,17 @@
 <template>
     <view class="dashboard">
         <u-sticky>
-            <custom-nav :xcxName="'成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" />
+            <custom-nav :xcxName="currentStudet.assessmentTitle" :navCustomStyle="navCustomStyle" :needBar="false" />
             <view class="user-profile">
                 <!-- 左侧内容容器 -->
 
                 <view class="profile-left" @click="onClickProfile">
-                    <image class="avatar-image" :src="avatarUrl" />
+                    <image class="avatar-image" :src="currentStudet.avatar" />
                     <view class="info" style="width: 100%;">
-                        <view class="name">{{ displayName }}</view>
-                        <view class="class">班级：{{ classDisplay }}
+                        <view class="name">{{ currentStudet.childName }}</view>
+                        <view class="class">班级：{{ currentStudet.className }}
 
-                            <view class="class">年龄：{{ classDisplay }}
+                            <view class="class">年龄：{{ currentStudet.childAge }}
 
                             </view>
                         </view>
@@ -55,12 +55,19 @@ import modalBox from '../../components/modalBox-v3/modalBox.vue';
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
-const switchIconUrl = "../../../static/general/switch.png";
-
 // 新增用户信息获取
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
-const currentClass = ref(uni.getStorageSync('currentClass') || {});
-
+const currentStudet = {
+    ageInt: "3",
+    assessmentId: "681c62d67ad52db7e72cb994",
+    assessmentTitle: "ABLLS-R",
+    avatar: "https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/boy.png",
+    childAge: "3岁9个月",
+    childId: "6803b3a02ab442235e289bc5",
+    childName: "武昊天",
+    classId: "67d2841d8a5c78c37ff0b54b",
+    className: "小班6班"
+};
 // 修改用户信息显示部分
 let userNickname = ref('');
 const displayName = computed(() => {
@@ -128,13 +135,7 @@ const avatarUrl = computed(() => {
 });
 
 
-// 修改班级显示逻辑
-const classDisplay = computed(() => {
-    if (currentClass.value.grade && currentClass.value.class) {
-        return `${currentClass.value.grade}${currentClass.value.class}班`;
-    }
-    return '暂无班级信息';
-});
+
 
 
 const onClickProfile = () => {
@@ -144,7 +145,6 @@ const onClickProfile = () => {
     }).then(() => {
         // 新增返回后强制更新
         userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
-        currentClass.value = uni.getStorageSync('currentClass') || {};
     });
 }
 
@@ -160,7 +160,6 @@ const clearStudentsCache = (classId) => {
 onShow(() => {
     // 新增用户信息更新逻辑
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
-    currentClass.value = uni.getStorageSync('currentClass') || {};
     checkLoginStatus();
 })
 
@@ -172,18 +171,16 @@ onReachBottom(() => {
 onLoad((options) => {
     console.log('onLoad options:', options);
     // 读取从switchClass页面传递的selectedClass参数
-    if (options.userNickname) {
+    if (options) {
         try {
-            // 给displayName
-            userNickname.value = options.userNickname;
+            currentStudet.value = options;
+            console.log('currentStudet:', currentStudet.value);
         } catch (e) {
             console.error('解析selectedClass参数失败:', e);
         }
     }
 
-    // 保持原有的currentClass逻辑不变
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
-    currentClass.value = uni.getStorageSync('currentClass') || {};
 
 });
 
@@ -217,7 +214,6 @@ const checkLoginStatus = () => {
 
 onMounted(() => {
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
-    currentClass.value = uni.getStorageSync('currentClass') || {};
 });
 
 
