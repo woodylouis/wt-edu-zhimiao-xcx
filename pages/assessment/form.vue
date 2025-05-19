@@ -45,8 +45,8 @@
                 <u-divider></u-divider>
 
                 <view class="question-part">
-                    <p style="color: #3D464A;font-size: 18px;font-style: normal;font-weight: 600;line-height: 24px;"> {{
-                        question }} </p>
+                    <p style="color: #3D464A;font-size: 18px;font-style: normal;font-weight: 600;line-height: 24px;">
+                        {{ question }} </p>
                     <view style="padding-top: 6rpx;">
                         <u-radio-group v-model="radiovalue1" placement="column" @change="groupChange">
                             <u-radio :customStyle="{ marginBottom: '8px' }"
@@ -157,29 +157,6 @@ const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 const questions = ref([]);          // 题目列表
 const currentIndex = ref(0);        // 当前题目索引
 const answers = ref({});            // 答案存储对象
-
-// 计算属性改造
-const persentage = computed(() => {
-    return ((currentIndex.value + 1) / questions.value.length * 100).toFixed(0);
-});
-
-const radiolist1 = ref([{
-    name: '苹果',
-    disabled: false
-},
-{
-    name: '香蕉',
-    disabled: false
-},
-{
-    name: '橙子',
-    disabled: false
-}, {
-    name: '榴莲',
-    disabled: false
-}
-])
-
 const current = computed(() => currentIndex.value + 1);
 const count = computed(() => questions.value.length);
 const section = computed(() => questions.value[currentIndex.value]?.section || '');
@@ -196,84 +173,6 @@ const radioChange = () => {
     handleSubmit(questions[currentIndex]?.options[current].score)
 }
 
-async function handleGenerateReport(answers) {
-
-
-    try {
-        loading.value = true;
-        uni.showLoading({ title: '生成报告中...' });
-
-        const result = await generatePartialPlan(JSON.stringify(answers), 1, 1);
-
-
-        console.log('result:', result);
-        uni.showToast({ title: '生成成功', icon: 'success' });
-        await uploadAIResponse(result);
-        return result; // 返回AI响应，以便后续处理或展示
-    } catch (err) {
-        console.error(err);
-        uni.showModal({
-            title: '生成失败',
-            content: '报告生成失败，是否重试？',
-            confirmText: '重试',
-            cancelText: '取消',
-            success: async (res) => {
-                if (res.confirm) {
-                    try {
-                        uni.showLoading({ title: '重新生成中...' });
-                        const result = await generatePartialPlan(JSON.stringify(answers), 1, 1);
-                        await uploadAIResponse(result);
-                        uni.showToast({ title: '生成成功', icon: 'success' });
-                    } catch (retryErr) {
-                        console.error(retryErr);
-                        uni.showToast({ title: '重试失败', icon: 'error' });
-                    } finally {
-                        uni.hideLoading();
-                    }
-                }
-            }
-        });
-    } finally {
-        uni.hideLoading();
-        loading.value = false;
-    }
-}
-
-const uploadAIResponse = async (aiResponse) => {
-    try {
-        console.log('上传AI分析结果');
-        const cacheKey = `assessment_${assessmentId.value}`;
-        const cachedData = uni.getStorageSync(cacheKey);
-
-        if (!cachedData) {
-            throw new Error('未找到评估数据');
-        }
-
-        const res = await uniCloud.callFunction({
-            name: 'wt-business-report-gen',
-            data: {
-                uuid: assessmentMeta.value.uuid,
-                assessmentData: {
-                    ...cachedData,
-                    aiResponse: aiResponse,
-                    assessorId: cachedData.assessorId // 确保上传时包含评估者ID
-                }
-            }
-        });
-        uni.navigateTo({
-            url: `/pages/assessment/report?assessmentId=${assessmentId.value}&childId=${assessmentMeta.value.childId}`
-        });
-
-        if (res.result.code) {
-            console.error('AI分析结果上传失败:', res.result.message);
-            throw new Error(res.result.message);
-        }
-    } catch (e) {
-        console.error('AI分析结果上传异常:', e);
-        throw e;
-    }
-};
-
 const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
     try {
         const res = await uniCloud.callFunction({
@@ -282,176 +181,10 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
         });
 
         console.log('res:', res);
+
     } catch (e) {
         uni.showToast({ title: '题目加载失败', icon: 'none' });
     }
-};
-
-// 重构跳转逻辑
-const handleNextQuestion = () => {
-    if (currentIndex.value < questions.value.length - 1) {
-        currentIndex.value++;
-    } else {
-        const totalScore = calculateTotalScore();
-        const sectionScores = calculateSectionScores();
-
-        // 构建分数详情字符串
-        let scoreDetails = '';
-        for (const [section, score] of Object.entries(sectionScores)) {
-            scoreDetails += `${section}得分：${score}\n`;
-        }
-
-        uni.showModal({
-            title: '评估完成，确定要查看报告吗？',
-            content: `${scoreDetails}\n`,
-            success: async (res) => {
-                if (res.confirm) {
-                    // 强制提交最后一次答案
-                    updateCache();
-
-                    const cacheKey = `assessment_${assessmentId.value}`;
-                    const cachedData = uni.getStorageSync(cacheKey);
-
-                    const finalData = {
-                        ...cachedData,
-                        completionTime: Date.now()
-                    };
-
-                    uni.setStorageSync(cacheKey, finalData);
-                    try {
-                        const res = await uniCloud.callFunction({
-                            name: 'wt-business-report-gen',
-                            data: {
-                                uuid: assessmentMeta.value.uuid,
-                                assessmentData: finalData // 使用包含完成时间的最新数据
-                            }
-                        });
-
-                        if (res.result.code) {
-                            console.error('最终保存失败:', res.result.message);
-                        }
-                    } catch (e) {
-                        console.error('最终云函数调用失败:', e);
-                    }
-
-                    // 整理答案数据
-                    const answersObj = {
-                        answers: Object.values(finalData.answers).map(answer => ({
-                            question: answer.question?.content || '未知题目',
-                            answer: answer.score > 0 ? '是' : '否'
-                        })),
-                        childName: assessmentMeta.value.childName,
-                        childAge: assessmentMeta.value.childAge,
-                        sectionScores: cachedData.sectionScores
-                    };
-                    console.log('answersObj:', answersObj);
-                    uni.showLoading({
-                        title: '生成报告中...',
-                        mask: true
-                    });// 新增加载提示
-                    const analysisTextAIRes = await handleGenerateReport(answersObj);
-                    uni.hideLoading();
-                    uni.removeStorageSync('current_class_students')
-                    // uni.navigateTo({
-                    //     url: `/pages/assessment/report?assessmentId=${assessmentId.value}&analysisTextAI=${analysisTextAIRes}&childId=${assessmentMeta.value.childId}`
-                    // });
-                }
-            }
-        });
-    }
-};
-
-const updateCache = () => {
-    // 获取当前用户信息
-    const userInfo = uni.getStorageSync('uni-id-pages-userInfo') || {};
-
-    const cacheData = {
-        ...assessmentMeta.value,
-        classId: assessmentMeta.value.classId,
-        className: assessmentMeta.value.className,
-        childId: assessmentMeta.value.childId,
-        childName: assessmentMeta.value.childName,
-        childAge: assessmentMeta.value.childAge,
-        assessorId: userInfo._id, // 新增评估者ID
-        questions: questions.value,
-        answers: answers.value,
-        currentIndex: currentIndex.value,
-        totalScore: calculateTotalScore(),
-        sectionScores: calculateSectionScores(),
-        lastUpdated: Date.now()
-    };
-    uni.setStorageSync(`assessment_${assessmentId.value}`, cacheData);
-};
-
-const debounce = ref(false); // 新增防抖状态
-
-const handleSubmit = async (score) => {
-    if (debounce.value) return; // 防抖拦截
-    debounce.value = true;      // 开启防抖
-
-    const currentQid = questions.value[currentIndex.value]._id;
-
-    answers.value = {
-        ...answers.value,
-        [currentQid]: {
-            score: score,
-            question: questions.value[currentIndex.value]
-        }
-    };
-
-    updateCache(); // 统一使用缓存更新方法
-
-    try {
-        const cacheKey = `assessment_${assessmentId.value}`;
-        const cachedData = uni.getStorageSync(cacheKey);
-
-        const res = await uniCloud.callFunction({
-            name: 'wt-business-report-gen',
-            data: {
-                uuid: assessmentMeta.value.uuid,
-                assessmentData: cachedData
-            }
-        });
-
-        if (res.result.code) {
-            console.error('保存失败:', res.result.message);
-        }
-    } catch (e) {
-        console.error('云函数调用失败:', e);
-    }
-
-    // 200ms后释放防抖
-    setTimeout(() => {
-        debounce.value = false;
-        handleNextQuestion();
-    }, 50);
-};
-
-// 新增分数计算逻辑
-const calculateTotalScore = () => {
-    return Object.values(answers.value).reduce((sum, item) => sum + (item?.score || 0), 0);
-};
-
-// 新增样式计算逻辑
-const getButtonStyle = (score) => {
-    const currentQid = questions.value[currentIndex.value]?._id;
-    return {
-        ...optionStyles.value.base,
-        ...(answers.value[currentQid]?.score === score ?
-            optionStyles.value.selected :
-            optionStyles.value.unselected)
-    };
-};
-
-// 新增维度分数计算
-const calculateSectionScores = () => {
-    return Object.values(answers.value).reduce((acc, item) => {
-        if (item?.score && item.question) {
-            const section = item.question.section;
-            acc[section] = (acc[section] || 0) + item.score;
-        }
-        return acc;
-    }, {});
 };
 
 // 在handleSubmit后添加返回上一题逻辑
@@ -462,39 +195,8 @@ const backToPrevious = () => {
 };
 
 
-const cacheKey = `assessment_${assessmentId.value}`;
-// 在loadQuestions后添加导航返回拦截
-const handleNavBack = () => {
-    if (Object.keys(answers.value).length > 0) {
-        uni.showModal({
-            title: '提示',
-            content: '评估进度将在30天后自动清除，确定要离开吗？',
-            success: (res) => {
-                if (res.confirm) {
-                    uni.navigateBack();
-                    const cacheKey = `assessment_${assessmentId.value}`;
-                    uni.removeStorageSync(cacheKey);
-                    // TODO-提交评估进度
-                }
-            }
-        });
-    } else {
-        uni.navigateBack();
-    }
-};
-
-// 新增生命周期处理
-onUnmounted(() => {
-    const cacheKey = `assessment_${assessmentId.value}`;
-    uni.removeStorageSync(cacheKey);
-});
-
-// 改造onLoad
 onLoad(async (options) => {
     console.log("options", options)
-    const onLoadParms = {
-        ...options
-    }
     // 新增加载提示
     uni.showLoading({
         title: options.currentAbllsSection + '题目',
@@ -502,21 +204,6 @@ onLoad(async (options) => {
     });
 
     try {
-        assessmentId.value = options.assessmentId;
-        childId.value = options.childId;
-
-        assessmentMeta.value = {
-            assessmentId: assessmentId.value,
-            classId: options.classId,
-            className: options.className,
-            childId: options.childId,
-            childName: options.childName,
-            childAge: options.childAge,
-            startTimestamp: Date.now(),
-            duration: 0,
-            uuid: Date.now().toString(36) + Math.random().toString(36).substr(2)
-        };
-        // console.log("loadParms", onLoadParms)
 
         await loadQuestions(options.currentSectionId, options.currentAbllsSectionAlphabet, Number(options.age));
     } catch (e) {
