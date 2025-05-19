@@ -5,7 +5,7 @@
             <view class="user-profile">
                 <!-- 左侧内容容器 -->
 
-                <view class="profile-left" @click="onClickProfile">
+                <view class="profile-left">
                     <image class="avatar-image" :src="currentStudet.avatar" />
                     <view class="info" style="width: 100%;">
                         <view class="name">{{ currentStudet.childName }}</view>
@@ -18,8 +18,6 @@
 
                     </view>
                 </view>
-
-
             </view>
         </u-sticky>
 
@@ -68,11 +66,6 @@ const currentStudet = {
     classId: "67d2841d8a5c78c37ff0b54b",
     className: "小班6班"
 };
-// 修改用户信息显示部分
-let userNickname = ref('');
-const displayName = computed(() => {
-    return userNickname.value ? userNickname.value : userInfo.value.nickname || '小程序用户';
-});
 
 const show = ref(false);
 const confirmInfo = ref([
@@ -126,27 +119,6 @@ const handleConfirm = () => {
             `&assessmentTitle=${assessmentTitle.value}`
     });
 };
-
-const avatarUrl = computed(() => {
-    // 添加双重保护逻辑
-    return (userInfo.value.avatar_file && userInfo.value.avatar_file.url)
-        ? userInfo.value.avatar_file.url
-        : defaultAvatarUrl.value;
-});
-
-
-
-
-
-const onClickProfile = () => {
-    uni.navigateTo({
-        // url: '/uni_modules/uni-id-pages/pages/userinfo/userinfo'
-        url: '/pages/assessment/listMoudule'
-    }).then(() => {
-        // 新增返回后强制更新
-        userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
-    });
-}
 
 
 
