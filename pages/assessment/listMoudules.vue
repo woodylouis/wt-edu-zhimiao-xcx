@@ -30,7 +30,8 @@
                     <view v-for="(ablls, idx) in section.abllsSections" :key="idx">
                         <uni-list>
                             <uni-list-item :title="ablls.sectionName" :rightText="`共${ablls.questionCount}项`"
-                                @click="handleOnClickSection(ablls)" :clickable="true">
+                                @click="handleOnClickSection(section.section_id, section.section, section.abllsSections.length, idx, ablls, section.abllsSections)"
+                                :clickable="true">
                             </uni-list-item>
                         </uni-list>
                     </view>
@@ -113,23 +114,30 @@ const confirmInfo = ref([
     }
 ]);
 
-const handleOnClickSection = (section) => {
-    console.log('section', section)
+const handleOnClickSection = (sectionId, currentSection, currentAbllsSectionLength, currentAbllsSectionIdx, currentAbllsSectionObj, abllsSectionsObj) => {
+    console.log('assessmentSections', assessmentSections.value)
     currentStudent.value = {
         ...currentStudent.value,
-        ...section
+        allAssessmentSections: { ...assessmentSections.value },
+        section: {
+            abllsSectionsObj, // 大类
+            currentSection: {
+                currentSectionId: sectionId,
+                currentSection: currentSection,
+            },
+            currentAbllsSection: { ...currentAbllsSectionObj, currentAbllsSectionLength, currentAbllsSectionIdx },
+        },
     }
     uni.setStorageSync(ASSESS_STUDENT, currentStudent.value)
 
-    // uni.navigateTo({
-    //     url: `/pages/assessment/form?classId=${classId.value}` +
-    //         `&className=${className.value}` +
-    //         `&childId=${id}` +
-    //         `&childName=${name}` +
-    //         `&childAge=${age}` +
-    //         `&assessmentId=${assessmentId.value}` +
-    //         `&assessmentTitle=${assessmentTitle.value}`
-    // });
+    uni.navigateTo({
+        url: `/pages/assessment/form?currentSectionId=${sectionId}` +
+            `&currentSection=${currentSection}` +
+            `&currentAbllsSectionAlphabet=${currentAbllsSectionObj.abllsSectionAlphabet}` +
+            `&currentAbllsSectionIdx=${currentAbllsSectionIdx}` +
+            `&currentAbllsSection=${currentAbllsSectionObj.sectionName}` +
+            `&age=${currentStudent.value.ageInt}`
+    });
 };
 
 

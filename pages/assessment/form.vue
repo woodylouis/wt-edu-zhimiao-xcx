@@ -4,12 +4,13 @@
         <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true"
             :backHandler="handleNavBack" />
         <view class="content">
-			<view class="">
-				<u-steps current="0" inactiveIcon="/static/assessment-list/active.svg" activeIcon="/static/assessment-list/inactive.svg">
-					<u-steps-item title="" v-for="(item,index) in 3" :key="index" iconSize="24">
-					</u-steps-item>
-				</u-steps>
-			</view>
+            <view class="">
+                <u-steps current="0" inactiveIcon="/static/assessment-list/active.svg"
+                    activeIcon="/static/assessment-list/inactive.svg">
+                    <u-steps-item title="" v-for="(item, index) in 3" :key="index" iconSize="24">
+                    </u-steps-item>
+                </u-steps>
+            </view>
             <!-- <view class="progress">
                 <view class="title">
                     <view>进度</view>
@@ -21,70 +22,71 @@
                 </view>
                 <view class="current">{{ current }}/{{ count }} 问题</view>
             </view> -->
-			<!-- 题目 -->
-			<view class="" style="border-radius: 24px 24px 0px 0px;background: #FFF;height: 75vh;margin-top: 30rpx;padding: 0 34rpx;">
-				<view style="display: flex;width: 100%;padding-top: 40rpx;align-items: center;">
-					<p>第{{current}}题/共{{count}}题</p>
-					<u-tag text="语言理解" plain style="padding-left: 22rpx;"></u-tag>
-				</view>
-				<view class="" style="padding-top: 42rpx;">
-				     <view class="section"><p style="color: #3D464A;font-size: 22px;font-style: normal;font-weight: 600;line-height: normal;">{{ section }}</p> </view>
-				     <view class="" style="padding-top: 18rpx;"> <p style="color: #3D464A;font-size: 13px;font-style: normal;font-weight: 400;line-height: 20px; /* 153.846% */">{{ question }}</p></view>
-				 </view>
-				 
-				 <u-divider></u-divider>
-				 
-				  <view class="question-part"> 
-			            <p style="color: #3D464A;font-size: 18px;font-style: normal;font-weight: 600;line-height: 24px;"> {{ question }} </p>
-			            <view style="padding-top: 6rpx;">
-			            	<u-radio-group
-			            	    v-model="radiovalue1"
-			            	    placement="column"
-			            	    @change="groupChange"
-			            	  >
-			            	    <u-radio
-			            	      :customStyle="{marginBottom: '8px'}"
-			            	      v-for="(item, index) in questions[currentIndex]?.options"
-			            	      :key="index"
-			            	      :label="item.text"
-			            	      :name="item.text"
-			            	      @change="radioChange"
-			            	    >
-			            	    </u-radio>
-			            	  </u-radio-group>
-			            </view>
-				  </view>
-				
-				<!-- <view class="button-group">
+            <!-- 题目 -->
+            <view class=""
+                style="border-radius: 24px 24px 0px 0px;background: #FFF;height: 75vh;margin-top: 30rpx;padding: 0 34rpx;">
+                <view style="display: flex;width: 100%;padding-top: 40rpx;align-items: center;">
+                    <p>第{{ current }}题/共{{ count }}题</p>
+                    <u-tag text="语言理解" plain style="padding-left: 22rpx;"></u-tag>
+                </view>
+                <view class="" style="padding-top: 42rpx;">
+                    <view class="section">
+                        <p
+                            style="color: #3D464A;font-size: 22px;font-style: normal;font-weight: 600;line-height: normal;">
+                            {{ section }}</p>
+                    </view>
+                    <view class="" style="padding-top: 18rpx;">
+                        <p
+                            style="color: #3D464A;font-size: 13px;font-style: normal;font-weight: 400;line-height: 20px; /* 153.846% */">
+                            {{ question }}</p>
+                    </view>
+                </view>
+
+                <u-divider></u-divider>
+
+                <view class="question-part">
+                    <p style="color: #3D464A;font-size: 18px;font-style: normal;font-weight: 600;line-height: 24px;"> {{
+                        question }} </p>
+                    <view style="padding-top: 6rpx;">
+                        <u-radio-group v-model="radiovalue1" placement="column" @change="groupChange">
+                            <u-radio :customStyle="{ marginBottom: '8px' }"
+                                v-for="(item, index) in questions[currentIndex]?.options" :key="index"
+                                :label="item.text" :name="item.text" @change="radioChange">
+                            </u-radio>
+                        </u-radio-group>
+                    </view>
+                </view>
+
+                <!-- <view class="button-group">
 				     <u-button v-for="(option, index) in questions[currentIndex]?.options" :key="index"
 				         @click="handleSubmit(option.score)" :custom-style="getButtonStyle(option.score)">
 				         {{ option.text }}
 				     </u-button>
 				 </view> -->
-				 
-			</view>
 
-           <view class="nav-buttons">
+            </view>
+
+            <view class="nav-buttons">
                 <!-- <u-button v-if="true" @click="backToPrevious" :custom-style="{
                     ...buttonStyle1,
                     position: 'fixed',
                     bottom: '60rpx',
                     width: 'calc(100% - 80rpx)'
                 }">返回上一题</u-button> -->
-				<view style="display: flex;width: 100%;">
-					<u-button v-if="true" @click="backToPrevious" :custom-style="{
-					    ...buttonStyle1,
-					    position: 'fixed',
-					    bottom: '60rpx',
-						width:'250rpx'
-					}">上一题</u-button>
-					<!-- <u-button @click="backToPrevious" :custom-style="{
+                <view style="display: flex;width: 100%;">
+                    <u-button v-if="true" @click="backToPrevious" :custom-style="{
+                        ...buttonStyle1,
+                        position: 'fixed',
+                        bottom: '60rpx',
+                        width: '250rpx'
+                    }">上一题</u-button>
+                    <!-- <u-button @click="backToPrevious" :custom-style="{
 					    ...buttonStyle1,
 					    position: 'fixed',
 					    bottom: '60rpx',
 						width:'250rpx'
 					}">下一题</u-button> -->
-				</view>
+                </view>
             </view>
 
 
@@ -162,20 +164,20 @@ const persentage = computed(() => {
 });
 
 const radiolist1 = ref([{
-  name: '苹果',
-  disabled: false
+    name: '苹果',
+    disabled: false
 },
-  {
+{
     name: '香蕉',
     disabled: false
-  },
-  {
+},
+{
     name: '橙子',
     disabled: false
-  }, {
+}, {
     name: '榴莲',
     disabled: false
-  }
+}
 ])
 
 const current = computed(() => currentIndex.value + 1);
@@ -191,7 +193,7 @@ const assessmentMeta = ref({
 });
 
 const radioChange = () => {
-	handleSubmit(questions[currentIndex]?.options[current].score)
+    handleSubmit(questions[currentIndex]?.options[current].score)
 }
 
 async function handleGenerateReport(answers) {
@@ -272,54 +274,14 @@ const uploadAIResponse = async (aiResponse) => {
     }
 };
 
-const loadQuestions = async () => {
+const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
     try {
-        const cacheKey = `assessment_${assessmentId.value}`;
-        const cachedData = uni.getStorageSync(cacheKey);
+        const res = await uniCloud.callFunction({
+            name: 'wt-fetch-assessment-v2',
+            data: { sectionId, abllsSectionAlphabet, age }
+        });
 
-        if (cachedData) {
-            // 合并所有元数据字段
-            assessmentMeta.value = {
-                ...assessmentMeta.value,
-                childAge: cachedData.childAge, // 恢复年龄数据
-                assessmentId: cachedData.assessmentId || assessmentId.value,
-                classId: cachedData.classId,         // 新增
-                className: cachedData.className,     // 新增
-                childId: cachedData.childId,         // 新增
-                childName: cachedData.childName,     // 新增
-                startTimestamp: cachedData.startTimestamp || Date.now(),
-                duration: cachedData.duration || 0,
-                uuid: cachedData.uuid || Date.now().toString(36) + Math.random().toString(36).substr(2)
-            };
-
-            // 更新缓存结构确保包含最新字段
-            updateCache();
-        } else {
-            const res = await uniCloud.callFunction({
-                name: 'wt-fetch-assessment',
-                data: { assessmentId: assessmentId.value }
-            });
-
-            // 新的初始化结构
-            const initialAnswers = res.result.data.reduce((acc, cur) => {
-                acc[cur._id] = {
-                    score: null,
-                    question: cur // 存储完整题目对象
-                };
-                return acc;
-            }, {});
-
-            questions.value = res.result.data;
-            answers.value = initialAnswers;
-
-            uni.setStorageSync(cacheKey, {
-                questions: res.result.data,
-                answers: initialAnswers,
-                currentIndex: 0,
-                totalScore: 0,
-                sectionScores: {}
-            });
-        }
+        console.log('res:', res);
     } catch (e) {
         uni.showToast({ title: '题目加载失败', icon: 'none' });
     }
@@ -530,10 +492,12 @@ onUnmounted(() => {
 // 改造onLoad
 onLoad(async (options) => {
     console.log("options", options)
-
+    const onLoadParms = {
+        ...options
+    }
     // 新增加载提示
     uni.showLoading({
-        title: '题目加载中...',
+        title: options.currentAbllsSection + '题目',
         mask: true
     });
 
@@ -552,12 +516,13 @@ onLoad(async (options) => {
             duration: 0,
             uuid: Date.now().toString(36) + Math.random().toString(36).substr(2)
         };
+        // console.log("loadParms", onLoadParms)
 
-        await loadQuestions();
+        await loadQuestions(options.currentSectionId, options.currentAbllsSectionAlphabet, Number(options.age));
     } catch (e) {
         uni.showToast({ title: '加载失败，请返回重试', icon: 'none' });
     } finally {
-        uni.hideLoading(); // 无论成功失败都关闭加载
+        // uni.hideLoading(); // 无论成功失败都关闭加载
     }
 });
 </script>
