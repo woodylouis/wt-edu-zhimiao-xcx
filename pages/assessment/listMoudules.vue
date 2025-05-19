@@ -22,20 +22,17 @@
         </u-sticky>
 
         <!-- 折叠模板和列表 -->
-        <view class="collapse" v-for="(assessmentSection, index) in assessmentSections.value" :key="index">
+        <view class="collapse" v-for="(section, index) in assessmentSections" :key="index">
             <u-collapse @change="change" @close="close" @open="open" :border=false>
-                <u-collapse-item>
-                    <template #title>
-                        <text> {{ assessmentSection.section }}</text>
-                    </template>
-                    <text>{{ assessmentSection.desc }}</text>
-                    <view v-for="(abllsSections, index) in assessmentSection.abllsSections" :key="index">
+                <u-collapse-item :title="section.section">
+                    <text>{{ section.desc }}</text>
+                    <view v-for="(ablls, idx) in section.abllsSections" :key="idx">
                         <uni-list>
-                            <uni-list-item :title="abllsSections.sectionName" :rightText="abllsSections.questionCount"
-                                @click="toForm" :clickable="true" :show-switch="true"></uni-list-item>
+                            <uni-list-item :title="ablls.sectionName" :rightText="`共${ablls.questionCount}项`"
+                                @click="toForm" :clickable="true">
+                            </uni-list-item>
                         </uni-list>
                     </view>
-
                 </u-collapse-item>
             </u-collapse>
         </view>
@@ -71,39 +68,39 @@ const currentStudet = {
     classId: "67d2841d8a5c78c37ff0b54b",
     className: "小班6班"
 };
-const assessmentSections = [
-    // {
-    //     abllsSections: [
-    //         {
-    //             questionCount: "10题",
-    //             sectionName: "语言理解"
-    //         },
-    //         {
-    //             questionCount: "10题",
-    //             sectionName: "要求"
-    //         }
-    //     ],
-    //     assessment_id: "6826d1093d029cca22a1ee0b",
-    //     create_time: 1710000000000,
-    //     desc: "本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。",
-    //     order: 1,
-    //     section: "语言与沟通技能",
-    //     section_id: "LANG_1",
-    //     update_time: 1710000000000,
-    //     _id: "681b033621821bbfdb469a48",
-    // },
-    // {
-    //     assessment_id: "6826d1093d029cca22a1ee0b",
-    //     create_time: 1710000000000,
-    //     desc: "本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。",
-    //     order: 1,
-    //     section: "语言与沟通技能2",
-    //     section_id: "LANG_1",
-    //     update_time: 1710000000000,
-    //     _id: "681b033621821bbfdb469a48",
-    // }
+const assessmentSections = ref([]);
+// {
+//     abllsSections: [
+//         {
+//             questionCount: "10题",
+//             sectionName: "语言理解"
+//         },
+//         {
+//             questionCount: "10题",
+//             sectionName: "要求"
+//         }
+//     ],
+//     assessment_id: "6826d1093d029cca22a1ee0b",
+//     create_time: 1710000000000,
+//     desc: "本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。",
+//     order: 1,
+//     section: "语言与沟通技能",
+//     section_id: "LANG_1",
+//     update_time: 1710000000000,
+//     _id: "681b033621821bbfdb469a48",
+// },
+// {
+//     assessment_id: "6826d1093d029cca22a1ee0b",
+//     create_time: 1710000000000,
+//     desc: "本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。",
+//     order: 1,
+//     section: "语言与沟通技能2",
+//     section_id: "LANG_1",
+//     update_time: 1710000000000,
+//     _id: "681b033621821bbfdb469a48",
+// }
 
-]
+
 const abllsSections = []
 
 const show = ref(false);
@@ -135,7 +132,8 @@ const loadAssessmentSections = async (assessmentId, age) => {
             }
         })
         if (res.result.code === 200) {
-            assessmentSections.value = res.result.data.section;
+            // 确保数据结构正确
+            assessmentSections.value = res.result.data.section || [];
             console.log('assessmentSections:', assessmentSections.value)
         }
 
