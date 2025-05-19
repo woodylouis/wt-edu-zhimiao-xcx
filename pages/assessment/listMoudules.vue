@@ -30,7 +30,7 @@
                     <view v-for="(ablls, idx) in section.abllsSections" :key="idx">
                         <uni-list>
                             <uni-list-item :title="ablls.sectionName" :rightText="`共${ablls.questionCount}项`"
-                                @click="toForm" :clickable="true">
+                                @click="handleOnClickSection(ablls)" :clickable="true">
                             </uni-list-item>
                         </uni-list>
                     </view>
@@ -50,9 +50,10 @@
 
 <script setup>
 import customNav from '@/components/customNav'
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted } from "vue";
 import { onShow, onLoad, onUnload, onReachBottom } from '@dcloudio/uni-app'
 import modalBox from '../../components/modalBox-v3/modalBox.vue';
+import { ASSESS_STUDENT, CURRENT_ASSESSMENT_SECTION } from '@/lib/types/local_storage.js';
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
@@ -112,8 +113,23 @@ const confirmInfo = ref([
     }
 ]);
 
-const toForm = () => {
-    show.value = true
+const handleOnClickSection = (section) => {
+    console.log('section', section)
+    currentStudent.value = {
+        ...currentStudent.value,
+        ...section
+    }
+    uni.setStorageSync(ASSESS_STUDENT, currentStudent.value)
+
+    // uni.navigateTo({
+    //     url: `/pages/assessment/form?classId=${classId.value}` +
+    //         `&className=${className.value}` +
+    //         `&childId=${id}` +
+    //         `&childName=${name}` +
+    //         `&childAge=${age}` +
+    //         `&assessmentId=${assessmentId.value}` +
+    //         `&assessmentTitle=${assessmentTitle.value}`
+    // });
 };
 
 
@@ -143,39 +159,6 @@ const loadAssessmentSections = async (assessmentId, age) => {
         console.error('加载失败:', e);
     }
 }
-const handleConfirm = () => {
-    const { id, name, age } = selectedChildInfo.value;
-
-    // 加入搜索历史
-    updateSearchHistory(name);
-
-    // 计算格式化年龄
-    const ageParts = age.split('岁');
-    const years = parseInt(ageParts[0]);
-    const months = parseInt(ageParts[1].split('个月')[0]);
-    const totalMonths = years * 12 + months;
-
-    let ageDisplay;
-    if (totalMonths >= 24) {
-        const displayYears = Math.floor(totalMonths / 12);
-        const displayMonths = totalMonths % 12;
-        ageDisplay = displayMonths === 0 ?
-            `${displayYears}.0` :
-            `${displayYears}.${Math.round(displayMonths / 1.2)}`;
-    } else {
-        ageDisplay = (totalMonths / 10).toFixed(1);
-    }
-
-    uni.navigateTo({
-        url: `/pages/assessment/form?classId=${classId.value}` +
-            `&className=${className.value}` +
-            `&childId=${id}` +
-            `&childName=${name}` +
-            `&childAge=${age}` +
-            `&assessmentId=${assessmentId.value}` +
-            `&assessmentTitle=${assessmentTitle.value}`
-    });
-};
 
 
 
@@ -204,7 +187,7 @@ onLoad((options) => {
             ...options,
             ageInt: Number(options.ageInt) || 0
         };
-        console.log('currentStudent:', currentStudent.value);
+        uni.setStorageSync(ASSESS_STUDENT, currentStudent.value);
         loadAssessmentSections(options.assessmentId, Number(options.ageInt));
     }
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
@@ -213,6 +196,7 @@ onLoad((options) => {
 
 onUnload(() => {
     uni.$off('reachBottom', onReachBottom)
+    uni.removeStorageSync(ASSESS_STUDENT)
 })
 
 const checkLoginStatus = () => {
