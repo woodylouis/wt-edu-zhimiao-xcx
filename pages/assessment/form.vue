@@ -4,7 +4,13 @@
         <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true"
             :backHandler="handleNavBack" />
         <view class="content">
-            <view class="progress">
+			<view class="">
+				<u-steps current="0" inactiveIcon="/static/assessment-list/active.svg" activeIcon="/static/assessment-list/inactive.svg">
+					<u-steps-item title="" v-for="(item,index) in 3" :key="index" iconSize="24">
+					</u-steps-item>
+				</u-steps>
+			</view>
+            <!-- <view class="progress">
                 <view class="title">
                     <view>进度</view>
                     <view> {{ persentage }}% </view>
@@ -14,26 +20,71 @@
                         :showText="false"></u-line-progress>
                 </view>
                 <view class="current">{{ current }}/{{ count }} 问题</view>
-            </view>
-            <view class="question-part">
-                <view class="section"> {{ section }} </view>
-                <view class="question"> {{ question }} </view>
-            </view>
+            </view> -->
+			<!-- 题目 -->
+			<view class="" style="border-radius: 24px 24px 0px 0px;background: #FFF;height: 75vh;margin-top: 30rpx;padding: 0 34rpx;">
+				<view style="display: flex;width: 100%;padding-top: 40rpx;align-items: center;">
+					<p>第{{current}}题/共{{count}}题</p>
+					<u-tag text="语言理解" plain style="padding-left: 22rpx;"></u-tag>
+				</view>
+				<view class="" style="padding-top: 42rpx;">
+				     <view class="section"><p style="color: #3D464A;font-size: 22px;font-style: normal;font-weight: 600;line-height: normal;">{{ section }}</p> </view>
+				     <view class="" style="padding-top: 18rpx;"> <p style="color: #3D464A;font-size: 13px;font-style: normal;font-weight: 400;line-height: 20px; /* 153.846% */">{{ question }}</p></view>
+				 </view>
+				 
+				 <u-divider></u-divider>
+				 
+				  <view class="question-part"> 
+			            <p style="color: #3D464A;font-size: 18px;font-style: normal;font-weight: 600;line-height: 24px;"> {{ question }} </p>
+			            <view style="padding-top: 6rpx;">
+			            	<u-radio-group
+			            	    v-model="radiovalue1"
+			            	    placement="column"
+			            	    @change="groupChange"
+			            	  >
+			            	    <u-radio
+			            	      :customStyle="{marginBottom: '8px'}"
+			            	      v-for="(item, index) in questions[currentIndex]?.options"
+			            	      :key="index"
+			            	      :label="item.text"
+			            	      :name="item.text"
+			            	      @change="radioChange"
+			            	    >
+			            	    </u-radio>
+			            	  </u-radio-group>
+			            </view>
+				  </view>
+				
+				<!-- <view class="button-group">
+				     <u-button v-for="(option, index) in questions[currentIndex]?.options" :key="index"
+				         @click="handleSubmit(option.score)" :custom-style="getButtonStyle(option.score)">
+				         {{ option.text }}
+				     </u-button>
+				 </view> -->
+				 
+			</view>
 
-            <view class="button-group">
-                <u-button v-for="(option, index) in questions[currentIndex]?.options" :key="index"
-                    @click="handleSubmit(option.score)" :custom-style="getButtonStyle(option.score)">
-                    {{ option.text }}
-                </u-button>
-            </view>
-
-            <view class="nav-buttons">
-                <u-button v-if="currentIndex > 0" @click="backToPrevious" :custom-style="{
+           <view class="nav-buttons">
+                <!-- <u-button v-if="true" @click="backToPrevious" :custom-style="{
                     ...buttonStyle1,
                     position: 'fixed',
                     bottom: '60rpx',
                     width: 'calc(100% - 80rpx)'
-                }">返回上一题</u-button>
+                }">返回上一题</u-button> -->
+				<view style="display: flex;width: 100%;">
+					<u-button v-if="true" @click="backToPrevious" :custom-style="{
+					    ...buttonStyle1,
+					    position: 'fixed',
+					    bottom: '60rpx',
+						width:'250rpx'
+					}">上一题</u-button>
+					<!-- <u-button @click="backToPrevious" :custom-style="{
+					    ...buttonStyle1,
+					    position: 'fixed',
+					    bottom: '60rpx',
+						width:'250rpx'
+					}">下一题</u-button> -->
+				</view>
             </view>
 
 
@@ -110,6 +161,23 @@ const persentage = computed(() => {
     return ((currentIndex.value + 1) / questions.value.length * 100).toFixed(0);
 });
 
+const radiolist1 = ref([{
+  name: '苹果',
+  disabled: false
+},
+  {
+    name: '香蕉',
+    disabled: false
+  },
+  {
+    name: '橙子',
+    disabled: false
+  }, {
+    name: '榴莲',
+    disabled: false
+  }
+])
+
 const current = computed(() => currentIndex.value + 1);
 const count = computed(() => questions.value.length);
 const section = computed(() => questions.value[currentIndex.value]?.section || '');
@@ -121,6 +189,10 @@ const assessmentMeta = ref({
     duration: 0,
     uuid: Date.now().toString(36) + Math.random().toString(36).substr(2) // 新增基于时间的UUID
 });
+
+const radioChange = () => {
+	handleSubmit(questions[currentIndex]?.options[current].score)
+}
 
 async function handleGenerateReport(answers) {
 
@@ -493,7 +565,7 @@ onLoad(async (options) => {
 <style lang="scss" scoped>
 .assessment {
     .content {
-        padding: 0 40rpx;
+        // padding: 0 40rpx;
         background-color: #F2F7F6;
         height: calc(100vh - 100vh / 8);
 
@@ -509,7 +581,7 @@ onLoad(async (options) => {
 
         .nav-buttons {
             position: fixed;
-            bottom: 160rpx; // 调整底部导航位置
+            bottom: 40rpx; // 调整底部导航位置
             left: 40rpx;
             right: 40rpx;
         }

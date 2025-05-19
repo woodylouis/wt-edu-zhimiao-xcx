@@ -7,11 +7,15 @@
 
                 <view class="profile-left" @click="onClickProfile">
                     <image class="avatar-image" :src="avatarUrl" />
-                    <view class="info">
+                    <view class="info" style="width: 100%;">
                         <view class="name">{{ displayName }}</view>
-                        <view class="class">{{ classDisplay }}
-                            <view class="invite" @click.stop="onClickInvite">邀请加入本班</view>
+                        <view class="class">班级：{{ classDisplay }}
+                         
+						   <view class="class">年龄：{{ classDisplay }}
+						    
+						   </view>
                         </view>
+						
                     </view>
                 </view>
 
@@ -21,32 +25,34 @@
                 </view>
             </view>
         </u-sticky>
-        <view class="student-list">
-            <view v-if="loading" class="u-demo-block">
-                <view class="u-demo-block__content">
-                    <u-skeleton rows="6" :title="false" :rowsWidth="['100%', '100%', '100%', '100%', '100%', '100%']"
-                        :rowsHeight="['160rpx', '160rpx', '160rpx', '160rpx', '160rpx', '160rpx']" loading
-                        :animate="true"></u-skeleton>
-                </view>
-            </view>
-            <StudentList :studentList="studentList" @handleStudentClick="handleStudentClick" />
-        </view>
-
-        <view v-if="loadingMore">
-            <view class="u-page__loading-item">
-                <u-loading-icon mode="circle" timingFunction="linear"></u-loading-icon>
-            </view>
-        </view>
-
-        <view style=" right: 30rpx; bottom: 120rpx; z-index: 9999;">
-            <view style=" z-index: 9999;">
-                <QcSuspendBtn :mainBtn="btnConfig.suspen.mainBtn" :childSize="btnConfig.suspen.childSize"
-                    :childBtns="btnConfig.suspen.childBtns" :openType="btnConfig.suspen.openType"
-                    :padding="btnConfig.suspen.padding" @childClick="btnConfig.childClick">
-                </QcSuspendBtn>
-            </view>
-        </view>
-
+		
+		<!-- 折叠模板和列表 -->
+		<view class="collapse" v-for="(item,index) in 5" :key="index">
+			<u-collapse
+			    @change="change"
+			    @close="close"
+			    @open="open"
+				:border=false
+			  >
+			    <u-collapse-item
+			      title="语言与沟通技能"
+			      name="Docs guide"
+			    >
+			      <text class="u-collapse-content" style="font-size: 26rpx;">本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。</text>
+				  
+				  <uni-list>
+				  	<uni-list-item  title="心理健康" rightText="共57项" @click="toForm" :clickable="true" :show-switch="true"></uni-list-item>
+				  </uni-list>
+			    </u-collapse-item>
+			  </u-collapse>
+		</view>
+		
+		<up-overlay :show="show">
+		    <view class="warp">
+		        <modal-box v-if="show" confirmText="确定" @cancel="show = false" cancelText="先不退出"
+		            @create="handleConfirm" />
+		    </view>
+		</up-overlay>
     </view>
 </template>
 
@@ -55,8 +61,9 @@ import customNav from '@/components/customNav'
 import { ref, onMounted, computed, reactive } from "vue";
 import { onShow, onLoad, onUnload, onReachBottom } from '@dcloudio/uni-app'
 import QcSuspendBtn from '@/components/qc-suspendBtn/qc-suspendBtn.vue'
-import StudentList from './components/student-list'
+// import StudentList from './components/student-list'
 import btnConfig from '@/common/suspen-btn/config.js'
+import modalBox from '../../components/modalBox-v3/modalBox.vue';
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
@@ -78,12 +85,58 @@ const displayName = computed(() => {
     return userNickname.value ? userNickname.value : userInfo.value.nickname || '小程序用户';
 });
 
+const show = ref(false);
+const confirmInfo = ref([
+    {
+        label: "",
+        name: "系统检测评估还没有完成。如果退出，当前进度会保存30天。",
+    }
+]);
+
+const toForm = () => {
+	show.value = true
+};
+
 
 const navigateToLogin = () => {
     uni.navigateTo({
         url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
     });
 }
+
+const handleConfirm = () => {
+    const { id, name, age } = selectedChildInfo.value;
+
+    // 加入搜索历史
+    updateSearchHistory(name);
+
+    // 计算格式化年龄
+    const ageParts = age.split('岁');
+    const years = parseInt(ageParts[0]);
+    const months = parseInt(ageParts[1].split('个月')[0]);
+    const totalMonths = years * 12 + months;
+
+    let ageDisplay;
+    if (totalMonths >= 24) {
+        const displayYears = Math.floor(totalMonths / 12);
+        const displayMonths = totalMonths % 12;
+        ageDisplay = displayMonths === 0 ?
+            `${displayYears}.0` :
+            `${displayYears}.${Math.round(displayMonths / 1.2)}`;
+    } else {
+        ageDisplay = (totalMonths / 10).toFixed(1);
+    }
+
+    uni.navigateTo({
+        url: `/pages/assessment/form?classId=${classId.value}` +
+            `&className=${className.value}` +
+            `&childId=${id}` +
+            `&childName=${name}` +
+            `&childAge=${age}` +
+            `&assessmentId=${assessmentId.value}` +
+            `&assessmentTitle=${assessmentTitle.value}`
+    });
+};
 
 const avatarUrl = computed(() => {
     // 添加双重保护逻辑
@@ -167,8 +220,8 @@ const onClickSwitch = () => {
 
 const onClickProfile = () => {
     uni.navigateTo({
-        url: '/uni_modules/uni-id-pages/pages/userinfo/userinfo'
-		// url:'/pages/assessment/listMoudules'
+        // url: '/uni_modules/uni-id-pages/pages/userinfo/userinfo'
+		url:'/pages/assessment/listMoudule'
     }).then(() => {
         // 新增返回后强制更新
         userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
@@ -337,6 +390,19 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .dashboard {
+	.warp {
+	    display: flex;
+	    align-items: center;
+	    justify-content: center;
+	    height: 100%;
+	}
+	.collapse {
+		border-radius: 8px;
+		border: 1px solid #E9E9E9;
+		background: #FFF;
+		box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+		margin: 22rpx 40rpx;
+	}
     .user-profile {
         height: calc(100vh / 8);
         background:
