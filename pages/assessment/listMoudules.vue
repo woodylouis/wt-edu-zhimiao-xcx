@@ -23,7 +23,7 @@
 
         <!-- 折叠模板和列表 -->
         <view class="collapse" v-for="(section, index) in assessmentSections" :key="index">
-            <u-collapse @change="change" @close="close" @open="open" :border=false>
+            <u-collapse @change="change" @close="close" @open="open" :border=false :value="[0]">
                 <u-collapse-item :title="section.section">
                     <text>{{ section.desc }}</text>
                     <view v-for="(ablls, idx) in section.abllsSections" :key="idx">
