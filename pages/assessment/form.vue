@@ -1,7 +1,7 @@
 <template>
     <!-- // abc 量表报告 -->
     <view class="assessment">
-        <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true"
+        <custom-nav :xcxName="currentSection" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true"
             :backHandler="handleNavBack" />
         <view class="content">
             <view class="steps-container">
@@ -19,7 +19,8 @@
                 style="border-radius: 24px 24px 0px 0px;background: #FFF;height: 75vh;margin-top: 30rpx;padding: 0 34rpx;">
                 <view style="display: flex;width: 100%;padding-top: 40rpx;align-items: center;">
                     <p>第{{ current }}题/共{{ count }}题</p>
-                    <u-tag :text="section" plain style="padding-left: 22rpx;"></u-tag>
+                    <u-tag :text="section" plain type="warning" borderColor="#6EDD8A" bgColor="#6EDD8A" color="#00214D"
+                        shape="circle" style="padding-left: 22rpx;"></u-tag>
                 </view>
                 <view class="" style="padding-top: 42rpx;">
                     <view class="section">
@@ -93,6 +94,7 @@ console.log('accessStudentInfo:', accessStudentInfo)
 const allAssessmentSections = accessStudentInfo.allAssessmentSections;
 const childAgeInt = accessStudentInfo.ageInt;
 const currentSectionId = accessStudentInfo.section.currentSection.currentSectionId
+const currentSection = accessStudentInfo.section.currentSection.currentSection
 const currentAbllsSectionAlphabet = accessStudentInfo.section.currentAbllsSection.abllsSectionAlphabet;
 const currentAbllsSectionName = accessStudentInfo.section.currentAbllsSection.sectionName;
 const sections = Object.values(allAssessmentSections).map(section => ({
