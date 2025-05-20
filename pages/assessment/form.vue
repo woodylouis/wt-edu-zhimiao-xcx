@@ -4,17 +4,14 @@
         <custom-nav :xcxName="'儿童成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true"
             :backHandler="handleNavBack" />
         <view class="content">
-            <view class="">
-                <!-- <u-steps current="0" inactiveIcon="/static/assessment-list/active.svg"
-                    activeIcon="/static/assessment-list/inactive.svg">
-                    <u-steps-item title="" v-for="(item, index) in sectionNames" :key="index" iconSize="24" />
-                </u-steps> -->
-                <scroll-view scroll-x style="white-space: nowrap; display: flex;" class="steps-container">
-                    <u-steps :current="stepCurrentIndex">
-                        <view v-for="(item, key) in currentAbllsNameList">
-                            <u-steps-item :desc="item.sectionName" />
+            <view class="steps-container">
+                <scroll-view scroll-x class="steps-scroll" show-scrollbar="false">
+                    <view class="steps-wrapper">
+                        <view v-for="(item, index) in currentAbllsNameList" :key="index" class="step-item"
+                            :class="{ active: index === stepCurrentIndex }">
+                            {{ item.sectionName }}
                         </view>
-                    </u-steps>
+                    </view>
                 </scroll-view>
             </view>
             <!-- 题目 -->
@@ -92,7 +89,10 @@ const detailedAdvice = ref('');
 const interventionPlan = ref('');
 const loading = ref(false);
 const accessStudentInfo = uni.getStorageSync(ASSESS_STUDENT);
+console.log('accessStudentInfo:', accessStudentInfo)
 const allAssessmentSections = accessStudentInfo.allAssessmentSections;
+const childAgeInt = accessStudentInfo.ageInt;
+const currentSectionId = accessStudentInfo.section.currentSection.currentSectionId
 const currentAbllsSectionAlphabet = accessStudentInfo.section.currentAbllsSection.abllsSectionAlphabet;
 const currentAbllsSectionName = accessStudentInfo.section.currentAbllsSection.sectionName;
 const sections = Object.values(allAssessmentSections).map(section => ({
@@ -100,143 +100,141 @@ const sections = Object.values(allAssessmentSections).map(section => ({
     sectionName: section.abllsSections.map(item => item.sectionName)
 }));
 const currentAbllsNameList = accessStudentInfo.section.abllsSectionsObj;
-console.log('currentAbllsNameList:', currentAbllsNameList);
 const stepCurrentIndex = currentAbllsNameList.findIndex(item => item.abllsSectionAlphabet === currentAbllsSectionAlphabet);
-console.log('stepCurrentIndex:', stepCurrentIndex);
 
 
 
 const tempQuestions = ref(
-    {
-        "abllsSectionAlphabet": "C",
-        "age": 3,
-        "questions": [
-            {
-                "ablls_r_section": "语言理解",
-                "ablls_r_section_alphabet": "C",
-                "ablls_r_section_order": 3,
-                "age_standards": [
-                    { age: 2, expected_score: 2 },
-                    { age: 3, expected_score: 2 },
-                    { age: 4, expected_score: 2 },
-                    { age: 5, expected_score: 2 },
-                    { age: 6, expected_score: 2 },
-                    { age: 7, expected_score: 2 },
-                ],
-                "content": "如果你拿着一个强化物，并要求学生看着它，学生会看着它吗?",
-                "description": "",
-                "expected_score": 2,
-                "options": [
-                    { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
-                    { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
-                    { text: "无法完成", score: 0 }
-                ],
-                "section_id": "LANG_1",
-                "task_name": "听从命令看着某个强化物",
-                "task_name_eng": "Follow instructions tolook at a reinforcing item",
-                "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
-                "task_sample": "nan",
-                "type": "radio",
-                "_id": "6826dda51021b06f3150457c",
-            },
-            {
-                "ablls_r_section": "语言理解",
-                "ablls_r_section_alphabet": "C",
-                "ablls_r_section_order": 4,
-                "age_standards": [
-                    { age: 2, expected_score: 2 },
-                    { age: 3, expected_score: 2 },
-                    { age: 4, expected_score: 2 },
-                    { age: 5, expected_score: 2 },
-                    { age: 6, expected_score: 2 },
-                    { age: 7, expected_score: 2 },
-                ],
-                "content": "如果你拿着一个学生渴望的东西，在他面前不同位置移动，学生会根据指令伸出手，摸或抓该东西吗?",
-                "description": "",
-                "expected_score": 2,
-                "options": [
-                    { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
-                    { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
-                    { text: "无法完成", score: 0 }
-                ],
-                "section_id": "LANG_1",
-                "task_name": "听从命令看着某个强化物",
-                "task_name_eng": "Follow instructions tolook at a reinforcing item",
-                "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
-                "task_sample": "nan",
-                "type": "radio",
-                "_id": "6826dda51021b06f3150457c",
-            },
+    // {
+    //     "abllsSectionAlphabet": "C",
+    //     "age": 3,
+    //     "questions": [
+    //         {
+    //             "ablls_r_section": "语言理解",
+    //             "ablls_r_section_alphabet": "C",
+    //             "ablls_r_section_order": 3,
+    //             "age_standards": [
+    //                 { age: 2, expected_score: 2 },
+    //                 { age: 3, expected_score: 2 },
+    //                 { age: 4, expected_score: 2 },
+    //                 { age: 5, expected_score: 2 },
+    //                 { age: 6, expected_score: 2 },
+    //                 { age: 7, expected_score: 2 },
+    //             ],
+    //             "content": "如果你拿着一个强化物，并要求学生看着它，学生会看着它吗?",
+    //             "description": "",
+    //             "expected_score": 2,
+    //             "options": [
+    //                 { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
+    //                 { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
+    //                 { text: "无法完成", score: 0 }
+    //             ],
+    //             "section_id": "LANG_1",
+    //             "task_name": "听从命令看着某个强化物",
+    //             "task_name_eng": "Follow instructions tolook at a reinforcing item",
+    //             "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
+    //             "task_sample": "nan",
+    //             "type": "radio",
+    //             "_id": "6826dda51021b06f3150457c",
+    //         },
+    //         {
+    //             "ablls_r_section": "语言理解",
+    //             "ablls_r_section_alphabet": "C",
+    //             "ablls_r_section_order": 4,
+    //             "age_standards": [
+    //                 { age: 2, expected_score: 2 },
+    //                 { age: 3, expected_score: 2 },
+    //                 { age: 4, expected_score: 2 },
+    //                 { age: 5, expected_score: 2 },
+    //                 { age: 6, expected_score: 2 },
+    //                 { age: 7, expected_score: 2 },
+    //             ],
+    //             "content": "如果你拿着一个学生渴望的东西，在他面前不同位置移动，学生会根据指令伸出手，摸或抓该东西吗?",
+    //             "description": "",
+    //             "expected_score": 2,
+    //             "options": [
+    //                 { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
+    //                 { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
+    //                 { text: "无法完成", score: 0 }
+    //             ],
+    //             "section_id": "LANG_1",
+    //             "task_name": "听从命令看着某个强化物",
+    //             "task_name_eng": "Follow instructions tolook at a reinforcing item",
+    //             "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
+    //             "task_sample": "nan",
+    //             "type": "radio",
+    //             "_id": "6826dda51021b06f3150457c",
+    //         },
 
-        ],
-        "sectionId": "LANG_1",
-        "totalQuestions": 45
-    },
-    {
-        "abllsSectionAlphabet": "C",
-        "age": 3,
-        "questions": [
-            {
-                "ablls_r_section": "要求表达",
-                "ablls_r_section_alphabet": "E",
-                "ablls_r_section_order": 3,
-                "age_standards": [
-                    { age: 2, expected_score: 2 },
-                    { age: 3, expected_score: 2 },
-                    { age: 4, expected_score: 2 },
-                    { age: 5, expected_score: 2 },
-                    { age: 6, expected_score: 2 },
-                    { age: 7, expected_score: 2 },
-                ],
-                "content": "如果你拿着一个强化物，并要求学生看着它，学生会看到它吗?",
-                "description": "",
-                "expected_score": 2,
-                "options": [
-                    { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
-                    { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
-                    { text: "无法完成", score: 0 }
-                ],
-                "section_id": "LANG_1",
-                "task_name": "听从命令看着某个强化物",
-                "task_name_eng": "Follow instructions tolook at a reinforcing item",
-                "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
-                "task_sample": "nan",
-                "type": "radio",
-                "_id": "6826dda51021b06f3150457c",
-            },
-            {
-                "ablls_r_section": "语言理解",
-                "ablls_r_section_alphabet": "C",
-                "ablls_r_section_order": 4,
-                "age_standards": [
-                    { age: 2, expected_score: 2 },
-                    { age: 3, expected_score: 2 },
-                    { age: 4, expected_score: 2 },
-                    { age: 5, expected_score: 2 },
-                    { age: 6, expected_score: 2 },
-                    { age: 7, expected_score: 2 },
-                ],
-                "content": "如果你拿着一个学生渴望的东西，在他面前不同位置移动，学生会根据指令伸出手，摸或抓该东西吗?",
-                "description": "",
-                "expected_score": 2,
-                "options": [
-                    { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
-                    { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
-                    { text: "无法完成", score: 0 }
-                ],
-                "section_id": "LANG_1",
-                "task_name": "听从命令看着某个强化物",
-                "task_name_eng": "Follow instructions tolook at a reinforcing item",
-                "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
-                "task_sample": "nan",
-                "type": "radio",
-                "_id": "6826dda51021b06f3150457c",
-            },
+    //     ],
+    //     "sectionId": "LANG_1",
+    //     "totalQuestions": 45
+    // },
+    // {
+    //     "abllsSectionAlphabet": "C",
+    //     "age": 3,
+    //     "questions": [
+    //         {
+    //             "ablls_r_section": "要求表达",
+    //             "ablls_r_section_alphabet": "E",
+    //             "ablls_r_section_order": 3,
+    //             "age_standards": [
+    //                 { age: 2, expected_score: 2 },
+    //                 { age: 3, expected_score: 2 },
+    //                 { age: 4, expected_score: 2 },
+    //                 { age: 5, expected_score: 2 },
+    //                 { age: 6, expected_score: 2 },
+    //                 { age: 7, expected_score: 2 },
+    //             ],
+    //             "content": "如果你拿着一个强化物，并要求学生看着它，学生会看到它吗?",
+    //             "description": "",
+    //             "expected_score": 2,
+    //             "options": [
+    //                 { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
+    //                 { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
+    //                 { text: "无法完成", score: 0 }
+    //             ],
+    //             "section_id": "LANG_1",
+    //             "task_name": "听从命令看着某个强化物",
+    //             "task_name_eng": "Follow instructions tolook at a reinforcing item",
+    //             "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
+    //             "task_sample": "nan",
+    //             "type": "radio",
+    //             "_id": "6826dda51021b06f3150457c",
+    //         },
+    //         {
+    //             "ablls_r_section": "语言理解",
+    //             "ablls_r_section_alphabet": "C",
+    //             "ablls_r_section_order": 4,
+    //             "age_standards": [
+    //                 { age: 2, expected_score: 2 },
+    //                 { age: 3, expected_score: 2 },
+    //                 { age: 4, expected_score: 2 },
+    //                 { age: 5, expected_score: 2 },
+    //                 { age: 6, expected_score: 2 },
+    //                 { age: 7, expected_score: 2 },
+    //             ],
+    //             "content": "如果你拿着一个学生渴望的东西，在他面前不同位置移动，学生会根据指令伸出手，摸或抓该东西吗?",
+    //             "description": "",
+    //             "expected_score": 2,
+    //             "options": [
+    //                 { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
+    //                 { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
+    //                 { text: "无法完成", score: 0 }
+    //             ],
+    //             "section_id": "LANG_1",
+    //             "task_name": "听从命令看着某个强化物",
+    //             "task_name_eng": "Follow instructions tolook at a reinforcing item",
+    //             "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
+    //             "task_sample": "nan",
+    //             "type": "radio",
+    //             "_id": "6826dda51021b06f3150457c",
+    //         },
 
-        ],
-        "sectionId": "LANG_1",
-        "totalQuestions": 45
-    }
+    //     ],
+    //     "sectionId": "LANG_1",
+    //     "totalQuestions": 45
+    // }
 );
 
 const tempRecords = ref(
@@ -373,7 +371,8 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
 
         console.log('res:', res);
         if (res.result && res.result.data) {
-            questions.value = res.result.data; // 将返回的题目数据赋值给questions
+            tempQuestions.value = res.result.data; // 将返回的题目数据赋值给tempQuestions
+            console.log('tempQuestions:', tempQuestions.value);
         }
     } catch (e) {
         uni.showToast({ title: '题目加载失败', icon: 'none' });
@@ -397,8 +396,6 @@ const goToNext = () => {
 
 onLoad(async (options) => {
     // 初始化questions为tempQuestions的questions数组
-    questions.value = tempQuestions.value.questions;
-
     console.log("options", options)
     // 新增加载提示
     uni.showLoading({
@@ -407,8 +404,7 @@ onLoad(async (options) => {
     });
 
     try {
-
-        // await loadQuestions(options.currentSectionId, options.currentAbllsSectionAlphabet, Number(options.age));
+        await loadQuestions(currentSectionId, currentAbllsSectionAlphabet, childAgeInt);
     } catch (e) {
         uni.showToast({ title: '加载失败，请返回重试', icon: 'none' });
     } finally {
@@ -500,5 +496,30 @@ onLoad(async (options) => {
         }
 
     }
+}
+
+.steps-scroll {
+    white-space: nowrap;
+    width: 100%;
+}
+
+.steps-wrapper {
+    display: flex;
+    flex-direction: row;
+    padding: 0 16rpx;
+}
+
+.step-item {
+    flex-shrink: 0;
+    padding: 16rpx 24rpx;
+    border-bottom: 4rpx solid transparent;
+    font-size: 26rpx;
+    white-space: nowrap;
+}
+
+.step-item.active {
+    color: rgba(0, 33, 77, 1);
+    border-bottom-color: rgba(110, 221, 138, 1);
+    font-weight: bold;
 }
 </style>
