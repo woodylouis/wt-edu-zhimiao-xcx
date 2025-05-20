@@ -40,10 +40,10 @@
                     <p style="color: #3D464A;font-size: 18px;font-style: normal;font-weight: 600;line-height: 24px;">
                         {{ question }} </p>
                     <view style="padding-top: 6rpx;">
-                        <u-radio-group v-model="answers[currentIndex]" placement="column" @change="groupChange">
+                        <u-radio-group v-model="answers[currentIndex]" placement="column">
                             <u-radio :customStyle="{ marginBottom: '8px' }"
                                 v-for="(item, index) in questions[currentIndex]?.options" :key="index"
-                                :label="item.text" :name="item.text">
+                                :label="item.text" :name="item.text" @change="radioChange(item)">
                             </u-radio>
                         </u-radio-group>
                     </view>
@@ -92,7 +92,7 @@ const detailedAdvice = ref('');
 const interventionPlan = ref('');
 const loading = ref(false);
 const accessStudentInfo = uni.getStorageSync(ASSESS_STUDENT);
-console.log('accessStudentInfo:', accessStudentInfo)
+// console.log('accessStudentInfo:', accessStudentInfo)
 const allAssessmentSections = accessStudentInfo.allAssessmentSections;
 const childAgeInt = accessStudentInfo.ageInt;
 const currentSectionId = accessStudentInfo.section.currentSection.currentSectionId
@@ -107,6 +107,17 @@ const currentAbllsNameList = accessStudentInfo.section.abllsSectionsObj;
 const stepCurrentIndex = ref(
     currentAbllsNameList.findIndex(item => item.abllsSectionAlphabet === currentAbllsSectionAlphabet)
 );
+// 新增状态管理
+const questions = ref([]);          // 题目列表
+const currentIndex = ref(0);        // 当前题目索引
+const answers = ref({});            // 答案存储对象
+const current = computed(() => currentIndex.value + 1);
+const count = computed(() => questions.value.length);
+const section = computed(() => questions.value[currentIndex.value]?.ablls_r_section || '');
+const question = computed(() => questions.value[currentIndex.value]?.content || '');
+const expectedScore = computed(() => questions.value[currentIndex.value]?.expected_score || 0);
+const taskName = computed(() => questions.value[currentIndex.value]?.task_name || '');
+const taskObject = computed(() => questions.value[currentIndex.value]?.task_object || '');
 const tempRecords = ref(
     {
         assessmentId: '',
@@ -191,17 +202,6 @@ let buttonStyle2 = {
 
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 
-// 新增状态管理
-const questions = ref([]);          // 题目列表
-const currentIndex = ref(0);        // 当前题目索引
-const answers = ref({});            // 答案存储对象
-const current = computed(() => currentIndex.value + 1);
-const count = computed(() => questions.value.length);
-const section = computed(() => questions.value[currentIndex.value]?.ablls_r_section || '');
-const question = computed(() => questions.value[currentIndex.value]?.content || '');
-const taskName = computed(() => questions.value[currentIndex.value]?.task_name || '');
-const taskObject = computed(() => questions.value[currentIndex.value]?.task_object || '');
-
 const assessmentMeta = ref({
     assessmentId: '',
     startTimestamp: 0,
@@ -209,8 +209,17 @@ const assessmentMeta = ref({
     uuid: Date.now().toString(36) + Math.random().toString(36).substr(2) // 新增基于时间的UUID
 });
 
-const radioChange = () => {
-    handleSubmit(questions[currentIndex]?.options[current].score)
+
+const radioChange = (selectedAnswer) => {
+    console.log('currentSectionId', currentSectionId)
+    console.log('currentSection', currentSection)
+    console.log('currentAbllsSectionAlphabet', currentAbllsSectionAlphabet)
+    console.log('currentAbllsSectionName', currentAbllsSectionName)
+    console.log('radioChange', selectedAnswer);
+    console.log('expectedScore', expectedScore.value);
+    console.log('answers', answers.value);
+
+    // handleSubmit(questions[currentIndex]?.options[current].score)
 }
 
 const handleStepClick = async (item, index) => {
@@ -239,10 +248,10 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
             data: { sectionId, abllsSectionAlphabet, age }
         });
 
-        console.log('res:', res);
+        // console.log('res:', res);
         if (res.result && res.result.data) {
             questions.value = res.result.data.questions; // 将返回的题目数据赋值给tempQuestions
-            console.log('questions:', questions.value);
+            // console.log('questions:', questions.value);
         }
     } catch (e) {
         console.log(e)
@@ -268,7 +277,7 @@ const goToNext = () => {
 
 onLoad(async (options) => {
     // 初始化questions为tempQuestions的questions数组
-    console.log("options", options)
+    // console.log("options", options)
     // 新增加载提示
     uni.showLoading({
         title: options.currentAbllsSection + '题目',
