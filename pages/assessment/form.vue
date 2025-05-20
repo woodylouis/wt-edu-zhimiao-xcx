@@ -371,7 +371,7 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
 
         console.log('res:', res);
         if (res.result && res.result.data) {
-            questions.value = res.result.data; // 将返回的题目数据赋值给tempQuestions
+            questions.value = res.result.data.questions; // 将返回的题目数据赋值给tempQuestions
             console.log('questions:', questions.value);
         }
     } catch (e) {
