@@ -25,6 +25,7 @@ exports.main = async (event) => {
 				section_id: sectionId,
 				ablls_r_section_alphabet: abllsSectionAlphabet
 			})
+			.orderBy('ablls_r_section_order', 'asc')
 			.get();
 
 		// 把questionRes下的每道题目的age_standards做一个比较，找到age_standards中age为age的expected_score, 只需要保留expected_score > 0的那一到题目，把这些question放到output中
