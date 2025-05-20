@@ -371,10 +371,12 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
 
         console.log('res:', res);
         if (res.result && res.result.data) {
-            tempQuestions.value = res.result.data; // 将返回的题目数据赋值给tempQuestions
-            console.log('tempQuestions:', tempQuestions.value);
+            questions.value = res.result.data; // 将返回的题目数据赋值给tempQuestions
+            console.log('questions:', questions.value);
         }
     } catch (e) {
+        console.log(e)
+
         uni.showToast({ title: '题目加载失败', icon: 'none' });
     }
 };
