@@ -188,27 +188,6 @@ let buttonStyle2 = {
     marginTop: "40rpx",
     fontWeight: "500"
 }
-const optionStyles = ref({
-    selected: {
-        backgroundColor: "#6EDE8A",
-        color: "#00214D",
-        border: "2px solid #6EDE8A"
-    },
-    unselected: {
-        backgroundColor: "#DEF2E3",
-        color: "#00214D",
-        border: "none"
-    },
-    base: {
-        borderRadius: "48rpx",
-        fontSize: "32rpx",
-        padding: "26rpx 0",
-        height: "48px",
-        marginTop: "40rpx",
-        width: "100%"
-    }
-});
-
 
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 
