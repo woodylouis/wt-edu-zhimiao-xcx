@@ -15,8 +15,7 @@
                 </scroll-view>
             </view>
             <!-- 题目 -->
-            <view class=""
-                style="border-radius: 24px 24px 0px 0px;background: #FFF;height: 75vh;margin-top: 30rpx;padding: 0 34rpx;">
+            <view class="question-container">
                 <view style="display: flex;width: 100%;padding-top: 40rpx;align-items: center;">
                     <p>第{{ current }}题/共{{ count }}题</p>
                     <u-tag :text="section" plain type="warning" borderColor="#6EDD8A" bgColor="#6EDD8A" color="#00214D"
@@ -51,23 +50,26 @@
                 </view>
             </view>
 
-            <view class="nav-buttons">
-                <view style="display: flex;width: 100%;">
-                    <u-button v-if="currentIndex > 0" @click="backToPrevious" :custom-style="{
-                        ...buttonStyle1,
-                        position: 'fixed',
-                        bottom: '60rpx',
-                        width: '250rpx'
-                    }">上一题</u-button>
-                    <u-button @click="goToNext" :custom-style="{
-                        ...buttonStyle1,
-                        position: 'fixed',
-                        bottom: '60rpx',
-                        right: '40rpx',
-                        width: '250rpx'
-                    }">下一题</u-button>
+            <view class="bottom">
+                <view class="nav-buttons">
+                    <view style="display: flex;width: 100%;">
+                        <u-button v-if="currentIndex > 0" @click="backToPrevious" :custom-style="{
+                            ...buttonStyle1,
+                            position: 'fixed',
+                            bottom: '60rpx',
+                            width: '250rpx'
+                        }">上一题</u-button>
+                        <u-button @click="goToNext" :custom-style="{
+                            ...buttonStyle1,
+                            position: 'fixed',
+                            bottom: '60rpx',
+                            right: '40rpx',
+                            width: '250rpx'
+                        }">下一题</u-button>
+                    </view>
                 </view>
             </view>
+
 
 
 
@@ -233,7 +235,7 @@ const radioChange = () => {
 const handleStepClick = async (item, index) => {
     if (stepCurrentIndex.value === index) return;
 
-    uni.showLoading({ title: '加载题目中...', mask: true });
+    uni.showLoading({ title: '加载题目...', mask: true });
     try {
         await loadQuestions(
             currentSectionId,
@@ -241,6 +243,7 @@ const handleStepClick = async (item, index) => {
             childAgeInt
         );
         stepCurrentIndex.value = index;
+        currentIndex.value = 0; // TO-DO: 需要根据当前自动跳转到某个题目，暂时先跳转到第一个题目
     } catch (e) {
         uni.showToast({ title: '加载失败', icon: 'none' });
     } finally {
@@ -308,6 +311,10 @@ onLoad(async (options) => {
         background-color: #F2F7F6;
         height: calc(100vh - 100vh / 8);
 
+        .steps-container {
+            height: 4vh;
+        }
+
         .button-group {
             position: fixed;
             top: 50%; // 固定在屏幕中间位置
@@ -318,11 +325,29 @@ onLoad(async (options) => {
             flex-direction: column;
         }
 
-        .nav-buttons {
-            position: fixed;
-            bottom: 40rpx; // 调整底部导航位置
-            left: 40rpx;
-            right: 40rpx;
+
+        .bottom {
+            background-color: #FFFFFF;
+            height: calc(100vh - calc(100vh / 8) - 4vh - 70vh - 30rpx);
+            box-shadow: 0px -4px 12px 0px rgba(0, 0, 0, 0.08);
+
+            .nav-buttons {
+                position: fixed;
+                bottom: 40rpx; // 调整底部导航位置
+                left: 40rpx;
+                right: 40rpx;
+            }
+        }
+
+
+        .question-container {
+            border-radius: 24px 24px 0px 0px;
+            background: #FFF;
+            height: 70vh;
+            margin-top: 30rpx;
+            padding: 0 34rpx;
+            // 底部内阴影
+
         }
 
         .question-part {
