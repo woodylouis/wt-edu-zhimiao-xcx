@@ -8,7 +8,7 @@
                 <scroll-view scroll-x class="steps-scroll" show-scrollbar="false">
                     <view class="steps-wrapper">
                         <view v-for="(item, index) in currentAbllsNameList" :key="index" class="step-item"
-                            :class="{ active: index === stepCurrentIndex }">
+                            :class="{ active: index === stepCurrentIndex }" @click="handleStepClick(item, index)">
                             {{ item.sectionName }}
                         </view>
                     </view>
@@ -100,8 +100,9 @@ const sections = Object.values(allAssessmentSections).map(section => ({
     sectionName: section.abllsSections.map(item => item.sectionName)
 }));
 const currentAbllsNameList = accessStudentInfo.section.abllsSectionsObj;
-const stepCurrentIndex = currentAbllsNameList.findIndex(item => item.abllsSectionAlphabet === currentAbllsSectionAlphabet);
-
+const stepCurrentIndex = ref(
+    currentAbllsNameList.findIndex(item => item.abllsSectionAlphabet === currentAbllsSectionAlphabet)
+);
 const tempRecords = ref(
     {
         assessmentId: '',
@@ -226,6 +227,24 @@ const assessmentMeta = ref({
 const radioChange = () => {
     handleSubmit(questions[currentIndex]?.options[current].score)
 }
+
+const handleStepClick = async (item, index) => {
+    if (stepCurrentIndex.value === index) return;
+
+    uni.showLoading({ title: '加载题目中...', mask: true });
+    try {
+        await loadQuestions(
+            currentSectionId,
+            item.abllsSectionAlphabet,
+            childAgeInt
+        );
+        stepCurrentIndex.value = index;
+    } catch (e) {
+        uni.showToast({ title: '加载失败', icon: 'none' });
+    } finally {
+        uni.hideLoading();
+    }
+};
 
 const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
     try {
