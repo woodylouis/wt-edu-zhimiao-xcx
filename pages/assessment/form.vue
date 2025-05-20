@@ -54,17 +54,17 @@
                 <view class="nav-buttons">
                     <view style="display: flex;width: 100%;">
                         <u-button v-if="currentIndex > 0" @click="backToPrevious" :custom-style="{
-                            ...buttonStyle1,
+                            ...buttonStyle2,
                             position: 'fixed',
                             bottom: '60rpx',
-                            width: '250rpx'
+                            width: '300rpx'
                         }">上一题</u-button>
                         <u-button @click="goToNext" :custom-style="{
                             ...buttonStyle1,
                             position: 'fixed',
                             bottom: '60rpx',
                             right: '40rpx',
-                            width: '250rpx'
+                            width: '300rpx'
                         }">下一题</u-button>
                     </view>
                 </view>
@@ -177,14 +177,16 @@ let buttonStyle1 = {
     marginTop: "40rpx"
 }
 let buttonStyle2 = {
-    backgroundColor: "#DEF2E3",
-    color: "rgba(0, 33, 77, 1)",
+    backgroundColor: "#FFFFFF",
+    color: "#6EDD8A",
+    border: "2px solid #6EDD8A",
     borderRadius: "48rpx",
     fontWeight: "500",
     fontSize: "32rpx",
     padding: "26rpx 0",
     height: "48px",
-    marginTop: "40rpx"
+    marginTop: "40rpx",
+    fontWeight: "500"
 }
 const optionStyles = ref({
     selected: {
