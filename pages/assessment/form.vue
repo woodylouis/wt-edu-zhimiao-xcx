@@ -9,11 +9,13 @@
                     activeIcon="/static/assessment-list/inactive.svg">
                     <u-steps-item title="" v-for="(item, index) in sectionNames" :key="index" iconSize="24" />
                 </u-steps> -->
-                <u-steps current="0">
-                    <view v-for="(item, index) in sectionNames">
-                        <u-steps-item :desc="item" />
-                    </view>
-                </u-steps>
+                <scroll-view scroll-x style="white-space: nowrap; display: flex;" class="steps-container">
+                    <u-steps :current="stepCurrentIndex">
+                        <view v-for="(item, key) in currentAbllsNameList">
+                            <u-steps-item :desc="item.sectionName" />
+                        </view>
+                    </u-steps>
+                </scroll-view>
             </view>
             <!-- 题目 -->
             <view class=""
@@ -90,18 +92,18 @@ const detailedAdvice = ref('');
 const interventionPlan = ref('');
 const loading = ref(false);
 const accessStudentInfo = uni.getStorageSync(ASSESS_STUDENT);
-const allSections = accessStudentInfo.allAssessmentSections;
-const result = Object.values(allSections).map(section => ({
+const allAssessmentSections = accessStudentInfo.allAssessmentSections;
+const currentAbllsSectionAlphabet = accessStudentInfo.section.currentAbllsSection.abllsSectionAlphabet;
+const currentAbllsSectionName = accessStudentInfo.section.currentAbllsSection.sectionName;
+const sections = Object.values(allAssessmentSections).map(section => ({
     sectionId: section.section_id,
     sectionName: section.abllsSections.map(item => item.sectionName)
 }));
-const sectionNames = computed(() => {
-    const currentSection = result.find(item => item.sectionId === tempQuestions.value.sectionId);
-    return currentSection?.sectionName || [];
-});
-// const sectionNames = ["语言理解", "要求表达", "要求", "命名"];
+const currentAbllsNameList = accessStudentInfo.section.abllsSectionsObj;
+console.log('currentAbllsNameList:', currentAbllsNameList);
+const stepCurrentIndex = currentAbllsNameList.findIndex(item => item.abllsSectionAlphabet === currentAbllsSectionAlphabet);
+console.log('stepCurrentIndex:', stepCurrentIndex);
 
-console.log('sectionNames:', sectionNames);
 
 
 const tempQuestions = ref(
@@ -186,7 +188,7 @@ const tempQuestions = ref(
                     { age: 6, expected_score: 2 },
                     { age: 7, expected_score: 2 },
                 ],
-                "content": "如果你拿着一个强化物，并要求学生看着它，学生会看着它吗?",
+                "content": "如果你拿着一个强化物，并要求学生看着它，学生会看到它吗?",
                 "description": "",
                 "expected_score": 2,
                 "options": [
