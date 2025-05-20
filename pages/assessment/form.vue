@@ -5,40 +5,33 @@
             :backHandler="handleNavBack" />
         <view class="content">
             <view class="">
-                <u-steps current="0" inactiveIcon="/static/assessment-list/active.svg"
+                <!-- <u-steps current="0" inactiveIcon="/static/assessment-list/active.svg"
                     activeIcon="/static/assessment-list/inactive.svg">
-                    <u-steps-item title="" v-for="(item, index) in 3" :key="index" iconSize="24">
-                    </u-steps-item>
+                    <u-steps-item title="" v-for="(item, index) in sectionNames" :key="index" iconSize="24" />
+                </u-steps> -->
+                <u-steps current="0">
+                    <view v-for="(item, index) in sectionNames">
+                        <u-steps-item :desc="item" />
+                    </view>
                 </u-steps>
             </view>
-            <!-- <view class="progress">
-                <view class="title">
-                    <view>进度</view>
-                    <view> {{ persentage }}% </view>
-                </view>
-                <view class="progress-bar">
-                    <u-line-progress :percentage="persentage" activeColor="#6EDE8A" inactiveColor="#C9E8D1"
-                        :showText="false"></u-line-progress>
-                </view>
-                <view class="current">{{ current }}/{{ count }} 问题</view>
-            </view> -->
             <!-- 题目 -->
             <view class=""
                 style="border-radius: 24px 24px 0px 0px;background: #FFF;height: 75vh;margin-top: 30rpx;padding: 0 34rpx;">
                 <view style="display: flex;width: 100%;padding-top: 40rpx;align-items: center;">
                     <p>第{{ current }}题/共{{ count }}题</p>
-                    <u-tag text="语言理解" plain style="padding-left: 22rpx;"></u-tag>
+                    <u-tag :text="section" plain style="padding-left: 22rpx;"></u-tag>
                 </view>
                 <view class="" style="padding-top: 42rpx;">
                     <view class="section">
                         <p
                             style="color: #3D464A;font-size: 22px;font-style: normal;font-weight: 600;line-height: normal;">
-                            {{ section }}</p>
+                            {{ taskName }}</p>
                     </view>
                     <view class="" style="padding-top: 18rpx;">
                         <p
                             style="color: #3D464A;font-size: 13px;font-style: normal;font-weight: 400;line-height: 20px; /* 153.846% */">
-                            {{ question }}</p>
+                            {{ taskObject }}</p>
                     </view>
                 </view>
 
@@ -48,10 +41,10 @@
                     <p style="color: #3D464A;font-size: 18px;font-style: normal;font-weight: 600;line-height: 24px;">
                         {{ question }} </p>
                     <view style="padding-top: 6rpx;">
-                        <u-radio-group v-model="radiovalue1" placement="column" @change="groupChange">
+                        <u-radio-group v-model="answers[currentIndex]" placement="column" @change="groupChange">
                             <u-radio :customStyle="{ marginBottom: '8px' }"
                                 v-for="(item, index) in questions[currentIndex]?.options" :key="index"
-                                :label="item.text" :name="item.text" @change="radioChange">
+                                :label="item.text" :name="item.text">
                             </u-radio>
                         </u-radio-group>
                     </view>
@@ -59,25 +52,20 @@
             </view>
 
             <view class="nav-buttons">
-                <!-- <u-button v-if="true" @click="backToPrevious" :custom-style="{
-                    ...buttonStyle1,
-                    position: 'fixed',
-                    bottom: '60rpx',
-                    width: 'calc(100% - 80rpx)'
-                }">返回上一题</u-button> -->
                 <view style="display: flex;width: 100%;">
-                    <u-button v-if="true" @click="backToPrevious" :custom-style="{
+                    <u-button v-if="currentIndex > 0" @click="backToPrevious" :custom-style="{
                         ...buttonStyle1,
                         position: 'fixed',
                         bottom: '60rpx',
                         width: '250rpx'
                     }">上一题</u-button>
-                    <!-- <u-button @click="backToPrevious" :custom-style="{
-					    ...buttonStyle1,
-					    position: 'fixed',
-					    bottom: '60rpx',
-						width:'250rpx'
-					}">下一题</u-button> -->
+                    <u-button @click="goToNext" :custom-style="{
+                        ...buttonStyle1,
+                        position: 'fixed',
+                        bottom: '60rpx',
+                        right: '40rpx',
+                        width: '250rpx'
+                    }">下一题</u-button>
                 </view>
             </view>
 
@@ -92,6 +80,7 @@ import customNav from '@/components/customNav';
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, onMounted, computed, onUnmounted } from "vue";
 import { generatePartialPlan } from '@/common/ai-model/deepseek.js';
+import { ASSESS_STUDENT } from '@/lib/types/local_storage.js';
 
 let childId = ref(''); // 通过childId获取儿童名字以及年龄
 let classId = ref(''); // 通过班级id获取班级名字
@@ -100,8 +89,21 @@ const initialReport = ref('');
 const detailedAdvice = ref('');
 const interventionPlan = ref('');
 const loading = ref(false);
+const accessStudentInfo = uni.getStorageSync(ASSESS_STUDENT);
+const allSections = accessStudentInfo.allAssessmentSections;
+const result = Object.values(allSections).map(section => ({
+    sectionId: section.section_id,
+    sectionName: section.abllsSections.map(item => item.sectionName)
+}));
+const sectionNames = computed(() => {
+    const currentSection = result.find(item => item.sectionId === tempQuestions.value.sectionId);
+    return currentSection?.sectionName || [];
+});
+// const sectionNames = ["语言理解", "要求表达", "要求", "命名"];
 
-// 
+console.log('sectionNames:', sectionNames);
+
+
 const tempQuestions = ref(
     {
         "abllsSectionAlphabet": "C",
@@ -130,7 +132,7 @@ const tempQuestions = ref(
                 "section_id": "LANG_1",
                 "task_name": "听从命令看着某个强化物",
                 "task_name_eng": "Follow instructions tolook at a reinforcing item",
-                "task_object": "按照要求，学生会看着老师拿着的某个强化物。",
+                "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
                 "task_sample": "nan",
                 "type": "radio",
                 "_id": "6826dda51021b06f3150457c",
@@ -158,7 +160,72 @@ const tempQuestions = ref(
                 "section_id": "LANG_1",
                 "task_name": "听从命令看着某个强化物",
                 "task_name_eng": "Follow instructions tolook at a reinforcing item",
-                "task_object": "按照要求，学生会看着老师拿着的某个强化物。",
+                "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
+                "task_sample": "nan",
+                "type": "radio",
+                "_id": "6826dda51021b06f3150457c",
+            },
+
+        ],
+        "sectionId": "LANG_1",
+        "totalQuestions": 45
+    },
+    {
+        "abllsSectionAlphabet": "C",
+        "age": 3,
+        "questions": [
+            {
+                "ablls_r_section": "要求表达",
+                "ablls_r_section_alphabet": "E",
+                "ablls_r_section_order": 3,
+                "age_standards": [
+                    { age: 2, expected_score: 2 },
+                    { age: 3, expected_score: 2 },
+                    { age: 4, expected_score: 2 },
+                    { age: 5, expected_score: 2 },
+                    { age: 6, expected_score: 2 },
+                    { age: 7, expected_score: 2 },
+                ],
+                "content": "如果你拿着一个强化物，并要求学生看着它，学生会看着它吗?",
+                "description": "",
+                "expected_score": 2,
+                "options": [
+                    { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
+                    { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
+                    { text: "无法完成", score: 0 }
+                ],
+                "section_id": "LANG_1",
+                "task_name": "听从命令看着某个强化物",
+                "task_name_eng": "Follow instructions tolook at a reinforcing item",
+                "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
+                "task_sample": "nan",
+                "type": "radio",
+                "_id": "6826dda51021b06f3150457c",
+            },
+            {
+                "ablls_r_section": "语言理解",
+                "ablls_r_section_alphabet": "C",
+                "ablls_r_section_order": 4,
+                "age_standards": [
+                    { age: 2, expected_score: 2 },
+                    { age: 3, expected_score: 2 },
+                    { age: 4, expected_score: 2 },
+                    { age: 5, expected_score: 2 },
+                    { age: 6, expected_score: 2 },
+                    { age: 7, expected_score: 2 },
+                ],
+                "content": "如果你拿着一个学生渴望的东西，在他面前不同位置移动，学生会根据指令伸出手，摸或抓该东西吗?",
+                "description": "",
+                "expected_score": 2,
+                "options": [
+                    { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
+                    { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
+                    { text: "无法完成", score: 0 }
+                ],
+                "section_id": "LANG_1",
+                "task_name": "听从命令看着某个强化物",
+                "task_name_eng": "Follow instructions tolook at a reinforcing item",
+                "task_object": "按照要求，学生会看到老师拿着的某个强化物。",
                 "task_sample": "nan",
                 "type": "radio",
                 "_id": "6826dda51021b06f3150457c",
@@ -206,9 +273,9 @@ const tempRecords = ref(
                                 order: 3,
                                 taskName: "听从命令看着某个强化物",
                                 taskNameEng: "Follow instructions tolook at a reinforcing item",
-                                taskObject: "按照要求，学生会看着老师拿着的某个强化物。",
+                                taskObject: "按照要求，学生会看到老师拿着的某个强化物。",
                                 taskSample: "nan",
-                                question: "如果你拿着一个强化物，并要求学生看着它，学生会看着它吗?",
+                                question: "如果你拿着一个强化物，并要求学生看着它，学生会看到它吗?",
                                 options: [
                                     { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
                                     { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
@@ -279,8 +346,10 @@ const currentIndex = ref(0);        // 当前题目索引
 const answers = ref({});            // 答案存储对象
 const current = computed(() => currentIndex.value + 1);
 const count = computed(() => questions.value.length);
-const section = computed(() => questions.value[currentIndex.value]?.section || '');
+const section = computed(() => questions.value[currentIndex.value]?.ablls_r_section || '');
 const question = computed(() => questions.value[currentIndex.value]?.content || '');
+const taskName = computed(() => questions.value[currentIndex.value]?.task_name || '');
+const taskObject = computed(() => questions.value[currentIndex.value]?.task_object || '');
 
 const assessmentMeta = ref({
     assessmentId: '',
@@ -316,8 +385,18 @@ const backToPrevious = () => {
     }
 };
 
+const goToNext = () => {
+    if (currentIndex.value < questions.value.length - 1) {
+        currentIndex.value++;
+    } else {
+        uni.showToast({ title: '已经是最后一题', icon: 'none' });
+    }
+};
 
 onLoad(async (options) => {
+    // 初始化questions为tempQuestions的questions数组
+    questions.value = tempQuestions.value.questions;
+
     console.log("options", options)
     // 新增加载提示
     uni.showLoading({
@@ -327,11 +406,11 @@ onLoad(async (options) => {
 
     try {
 
-        await loadQuestions(options.currentSectionId, options.currentAbllsSectionAlphabet, Number(options.age));
+        // await loadQuestions(options.currentSectionId, options.currentAbllsSectionAlphabet, Number(options.age));
     } catch (e) {
         uni.showToast({ title: '加载失败，请返回重试', icon: 'none' });
     } finally {
-        // uni.hideLoading(); // 无论成功失败都关闭加载
+        uni.hideLoading(); // 无论成功失败都关闭加载
     }
 });
 </script>

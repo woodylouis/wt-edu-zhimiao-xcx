@@ -196,7 +196,7 @@ onLoad((options) => {
             ageInt: Number(options.ageInt) || 0
         };
         uni.setStorageSync(ASSESS_STUDENT, currentStudent.value);
-        loadAssessmentSections(options.assessmentId, Number(options.ageInt));
+        loadAssessmentSections(options.assessmentId, 5);
     }
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
 });
