@@ -159,12 +159,10 @@ const groupChange = (value) => {
 }
 
 const radioChange = (value) => {
-
-    // 如果选项改变了，则更新answer中当前currentIndex的答案
     if (value) {
-        answers[currentIndex.value] = value.text;
+        answers.value[currentIndex.value] = value.text;
         selectedAnswer.value = value.text;
-        console.log('selectedAnswer', selectedAnswer.value)
+        console.log('当前答案:', answers.value);
     }
 }
 
@@ -173,17 +171,14 @@ const radioChange = (value) => {
 const backToPrevious = () => {
     if (currentIndex.value > 0) {
         currentIndex.value--;
-        selectedAnswer.value = answers[currentIndex.value];
-        console.log('selectedAnswer', selectedAnswer.value)
-
+        selectedAnswer.value = answers.value[currentIndex.value]; // 更新选中值
     }
 };
 
 const goToNext = () => {
     if (currentIndex.value < questions.value.length - 1) {
         currentIndex.value++;
-        selectedAnswer.value = answers[currentIndex.value];
-        console.log('selectedAnswer', selectedAnswer.value)
+        selectedAnswer.value = answers.value[currentIndex.value]; // 更新选中值
     } else {
         uni.showToast({ title: '已经是最后一题', icon: 'none' });
     }
@@ -215,14 +210,13 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
             data: { sectionId, abllsSectionAlphabet, age }
         });
 
-        // console.log('res:', res);
         if (res.result && res.result.data) {
-            questions.value = res.result.data.questions; // 将返回的题目数据赋值给tempQuestions
-            // console.log('questions:', questions.value);
+            questions.value = res.result.data.questions;
+            answers.value = new Array(questions.value.length).fill(''); // 初始化answers数组
+            selectedAnswer.value = answers.value[0]; // 设置初始选中值
         }
     } catch (e) {
         console.log(e)
-
         uni.showToast({ title: '题目加载失败', icon: 'none' });
     }
 };
