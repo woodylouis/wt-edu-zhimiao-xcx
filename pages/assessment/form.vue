@@ -40,13 +40,14 @@
                     <p style="color: #3D464A;font-size: 18px;font-style: normal;font-weight: 600;line-height: 24px;">
                         {{ question }} </p>
                     <view style="padding-top: 6rpx;">
-                        <u-radio-group v-model="selectedAnswer" placement="column" @change="groupChange">
-                            <u-radio :customStyle="{ marginBottom: '8px' }"
+                        <up-radio-group v-model="selectedAnswer" placement="column" @change="groupChange">
+                            <up-radio :customStyle="{ marginBottom: '8px' }" activeColor="#6EDD8A"
                                 v-for="(item, index) in questions[currentIndex]?.options" :key="index"
-                                :label="item.text" :name="item.text" @change="radioChange(item)">
-                            </u-radio>
-                        </u-radio-group>
+                                :label="item.name" :name="item.name" @change="radioChange">
+                            </up-radio>
+                        </up-radio-group>
                     </view>
+                    {{ selectedAnswer }}
                 </view>
             </view>
 
@@ -80,13 +81,12 @@
 <script setup>
 import customNav from '@/components/customNav';
 import { onLoad } from '@dcloudio/uni-app'
-import { ref, onMounted, computed, onUnmounted } from "vue";
+import { ref, reactive, onMounted, computed, watch } from "vue";
 import { generatePartialPlan } from '@/common/ai-model/deepseek.js';
 import { ASSESS_STUDENT } from '@/lib/types/local_storage.js';
 
 let childId = ref(''); // 通过childId获取儿童名字以及年龄
-let classId = ref(''); // 通过班级id获取班级名字
-let assessmentId = ref('');
+let classId = ref(''); // 通过班级idwatch
 const initialReport = ref('');
 const detailedAdvice = ref('');
 const interventionPlan = ref('');
@@ -110,16 +110,21 @@ const stepCurrentIndex = ref(
 // 新增状态管理
 const questions = ref([]);          // 题目列表
 const currentIndex = ref(0);        // 当前题目索引
-const selectedAnswer = ref('');   // 答案存储对象
-const answers = ref([]);            // 所有答案
+const answers = ref([]);
+const selectedAnswer = ref('在10秒钟之内，能模仿5个音');        // 所有答案
 const current = computed(() => currentIndex.value + 1);
 const count = computed(() => questions.value.length);
 const section = computed(() => questions.value[currentIndex.value]?.ablls_r_section || '');
 const question = computed(() => questions.value[currentIndex.value]?.content || '');
+const options = reactive(() => questions[currentIndex]?.options || [])
 const expectedScore = computed(() => questions.value[currentIndex.value]?.expected_score || 0);
 const taskName = computed(() => questions.value[currentIndex.value]?.task_name || '');
 const taskObject = computed(() => questions.value[currentIndex.value]?.task_object || '');
 
+// 监听selectedAnswer变化
+watch(selectedAnswer, (newValue, oldValue) => {
+    console.log('selectedAnswer changed:', newValue, 'from:', oldValue);
+})
 
 let buttonStyle1 = {
     backgroundColor: "rgba(110, 221, 138, 1)",
@@ -158,29 +163,37 @@ const groupChange = (value) => {
 
 }
 
-const radioChange = (value) => {
-    if (value) {
-        answers.value[currentIndex.value] = value.text;
-        selectedAnswer.value = value.text;
-        console.log('当前答案:', answers.value);
-    }
-}
+const radioChange = (item) => {
+    console.log('radioChange', item)
+    answers.value[currentIndex.value] = item; // 确保更新answers数组
+    selectedAnswer.value = item; // 更新选中值
+};
 
 
 // 在handleSubmit后添加返回上一题逻辑
 const backToPrevious = () => {
     if (currentIndex.value > 0) {
         currentIndex.value--;
-        selectedAnswer.value = answers.value[currentIndex.value]; // 更新选中值
+        selectedAnswer.value = answers.value[currentIndex.value] || ''; // 回填上一题的答案
+        console.log('answers', answers.value, 'selectedAnswer', selectedAnswer.value, 'currentIndex', currentIndex.value)
     }
 };
 
 const goToNext = () => {
+    if (!answers.value[currentIndex.value]) {
+        uni.showToast({
+            title: '请先选择答案',
+            icon: 'none',
+            duration: 2000
+        });
+        return;
+    }
+
     if (currentIndex.value < questions.value.length - 1) {
         currentIndex.value++;
-        selectedAnswer.value = answers.value[currentIndex.value]; // 更新选中值
-    } else {
-        uni.showToast({ title: '已经是最后一题', icon: 'none' });
+        selectedAnswer.value = answers.value[currentIndex.value] || '';
+        console.log('answers', answers.value, 'selectedAnswer', selectedAnswer.value, 'currentIndex', currentIndex.value)
+
     }
 };
 
@@ -212,8 +225,9 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
 
         if (res.result && res.result.data) {
             questions.value = res.result.data.questions;
-            answers.value = new Array(questions.value.length).fill(''); // 初始化answers数组
-            selectedAnswer.value = answers.value[0]; // 设置初始选中值
+            // answers.value = new Array(questions.value.length).fill('');
+            // 需要确保当前索引的答案被正确设置
+            // selectedAnswer = answers.value[currentIndex.value] || '';
         }
     } catch (e) {
         console.log(e)
