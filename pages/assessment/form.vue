@@ -154,7 +154,8 @@ const assessmentMeta = ref({
 
 
 const handleOptionChange = (item) => {
-    console.log('radioChange', item)
+    console.log('questions:', questions.value)
+
 };
 
 
