@@ -152,10 +152,6 @@ const assessmentMeta = ref({
     uuid: Date.now().toString(36) + Math.random().toString(36).substr(2) // 新增基于时间的UUID
 });
 
-const groupChange = (value) => {
-    console.log('groupChange', value)
-
-}
 
 const handleOptionChange = (item) => {
     console.log('radioChange', item)
@@ -166,25 +162,14 @@ const handleOptionChange = (item) => {
 const backToPrevious = () => {
     if (currentIndex.value > 0) {
         currentIndex.value--;
-        selectedAnswer.value = answers.value[currentIndex.value] || ''; // 回填上一题的答案
-        console.log('answers', answers.value, 'selectedAnswer', selectedAnswer.value, 'currentIndex', currentIndex.value)
+        console.log('questions:', questions.value)
     }
 };
 
 const goToNext = () => {
-    // if (!answers.value[currentIndex.value]) {
-    //     uni.showToast({
-    //         title: '请先选择答案',
-    //         icon: 'none',
-    //         duration: 2000
-    //     });
-    //     return;
-    // }
-
     if (currentIndex.value < questions.value.length - 1) {
         currentIndex.value++;
-        selectedAnswer.value = answers.value[currentIndex.value] || '';
-        console.log('answers', answers.value, 'selectedAnswer', selectedAnswer.value, 'currentIndex', currentIndex.value)
+        console.log('questions:', questions.value)
 
     }
 };

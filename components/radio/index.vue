@@ -6,10 +6,10 @@
         <view class="radio-group">
             <view v-for="(option, index) in options" :key="index" class="radio-item" @click="selectOption(index)">
                 <view class="radio-icon">
-                    <image v-if="option.selected" src='/static/general/selected.png' class="selected-icon" />
-                    <image v-else src='/static/general/unselected.png' class="unselected-icon" />
+                    <image v-if="option.selected" src='/static/general/radio-selected.png' class="selected-icon" />
+                    <image v-else src='/static/general/radio-unselected.png' class="unselected-icon" />
                 </view>
-                <text class="radio-text">{{ option.name }}</text>
+                <text class="radio-text" style="flex: 1; word-break: break-word;">{{ option.name }}</text>
             </view>
         </view>
     </view>
@@ -45,24 +45,20 @@ const selectOption = (index) => {
     gap: 16rpx;
 }
 
-.radio-group {
-    display: flex;
-    flex-direction: column;
-    gap: 16rpx;
-}
-
 .radio-item {
     display: flex;
-    align-items: center;
-    padding: 16rpx;
+    align-items: flex-start;
+    /* 修改为flex-start以支持多行文本 */
+    padding: 16rpx 16rpx 16rpx 0;
     border-radius: 8rpx;
-    background-color: #f5f5f5;
 }
 
 .radio-icon {
     width: 40rpx;
     height: 40rpx;
     margin-right: 16rpx;
+    flex-shrink: 0;
+    /* 防止图标被压缩 */
 }
 
 .selected-icon,
