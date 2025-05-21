@@ -114,6 +114,7 @@ const options = reactive(() => questions[currentIndex]?.options || [])
 const expectedScore = computed(() => questions.value[currentIndex.value]?.expected_score || 0);
 const taskName = computed(() => questions.value[currentIndex.value]?.task_name || '');
 const taskObject = computed(() => questions.value[currentIndex.value]?.task_object || '');
+const assessmentRecords = ref({}); // 存储所有已加载的题目记录
 
 // 监听selectedAnswer变化
 watch(selectedAnswer, (newValue, oldValue) => {
@@ -186,7 +187,7 @@ const handleStepClick = async (item, index) => {
             childAgeInt
         );
         stepCurrentIndex.value = index;
-        currentIndex.value = 0; // TO-DO: 需要根据当前自动跳转到某个题目，暂时先跳转到第一个题目
+        currentIndex.value = 0;
     } catch (e) {
         uni.showToast({ title: '加载失败', icon: 'none' });
     } finally {
@@ -195,6 +196,13 @@ const handleStepClick = async (item, index) => {
 };
 
 const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
+    // 检查是否已有缓存
+    const cacheKey = `${sectionId}_${abllsSectionAlphabet}`;
+    if (assessmentRecords.value[cacheKey]) {
+        questions.value = assessmentRecords.value[cacheKey];
+        return;
+    }
+
     try {
         const res = await uniCloud.callFunction({
             name: 'wt-fetch-assessment-v2',
@@ -203,9 +211,9 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
 
         if (res.result && res.result.data) {
             questions.value = res.result.data.questions;
-            // answers.value = new Array(questions.value.length).fill('');
-            // 需要确保当前索引的答案被正确设置
-            // selectedAnswer = answers.value[currentIndex.value] || '';
+            // 缓存题目数据
+            assessmentRecords.value[cacheKey] = res.result.data.questions;
+            console.log('assessmentRecords:', assessmentRecords.value)
         }
     } catch (e) {
         console.log(e)
