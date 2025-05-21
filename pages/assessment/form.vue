@@ -37,17 +37,11 @@
                 <u-divider></u-divider>
 
                 <view class="question-part">
-                    <p style="color: #3D464A;font-size: 18px;font-style: normal;font-weight: 600;line-height: 24px;">
-                        {{ question }} </p>
+
                     <view style="padding-top: 6rpx;">
-                        <up-radio-group v-model="selectedAnswer" placement="column" @change="groupChange">
-                            <up-radio :customStyle="{ marginBottom: '8px' }" activeColor="#6EDD8A"
-                                v-for="(item, index) in questions[currentIndex]?.options" :key="index"
-                                :label="item.name" :name="item.name" @change="radioChange">
-                            </up-radio>
-                        </up-radio-group>
+                        <wt-radio :content="question" :options="questions[currentIndex]?.options"
+                            @change="handleOptionChange" />
                     </view>
-                    {{ selectedAnswer }}
                 </view>
             </view>
 
@@ -82,7 +76,7 @@
 import customNav from '@/components/customNav';
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, reactive, onMounted, computed, watch } from "vue";
-import { generatePartialPlan } from '@/common/ai-model/deepseek.js';
+import wtRadio from '@/components/radio';
 import { ASSESS_STUDENT } from '@/lib/types/local_storage.js';
 
 let childId = ref(''); // 通过childId获取儿童名字以及年龄
@@ -163,10 +157,8 @@ const groupChange = (value) => {
 
 }
 
-const radioChange = (item) => {
+const handleOptionChange = (item) => {
     console.log('radioChange', item)
-    answers.value[currentIndex.value] = item; // 确保更新answers数组
-    selectedAnswer.value = item; // 更新选中值
 };
 
 
@@ -180,14 +172,14 @@ const backToPrevious = () => {
 };
 
 const goToNext = () => {
-    if (!answers.value[currentIndex.value]) {
-        uni.showToast({
-            title: '请先选择答案',
-            icon: 'none',
-            duration: 2000
-        });
-        return;
-    }
+    // if (!answers.value[currentIndex.value]) {
+    //     uni.showToast({
+    //         title: '请先选择答案',
+    //         icon: 'none',
+    //         duration: 2000
+    //     });
+    //     return;
+    // }
 
     if (currentIndex.value < questions.value.length - 1) {
         currentIndex.value++;
