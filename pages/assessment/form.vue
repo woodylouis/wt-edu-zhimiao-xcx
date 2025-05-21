@@ -40,7 +40,7 @@
                     <p style="color: #3D464A;font-size: 18px;font-style: normal;font-weight: 600;line-height: 24px;">
                         {{ question }} </p>
                     <view style="padding-top: 6rpx;">
-                        <u-radio-group v-model="answers[currentIndex]" placement="column">
+                        <u-radio-group v-model="selectedAnswer" placement="column" @change="groupChange">
                             <u-radio :customStyle="{ marginBottom: '8px' }"
                                 v-for="(item, index) in questions[currentIndex]?.options" :key="index"
                                 :label="item.text" :name="item.text" @change="radioChange(item)">
@@ -110,7 +110,8 @@ const stepCurrentIndex = ref(
 // 新增状态管理
 const questions = ref([]);          // 题目列表
 const currentIndex = ref(0);        // 当前题目索引
-const answers = ref({});            // 答案存储对象
+const selectedAnswer = ref('');   // 答案存储对象
+const answers = ref([]);            // 所有答案
 const current = computed(() => currentIndex.value + 1);
 const count = computed(() => questions.value.length);
 const section = computed(() => questions.value[currentIndex.value]?.ablls_r_section || '');
@@ -118,64 +119,7 @@ const question = computed(() => questions.value[currentIndex.value]?.content || 
 const expectedScore = computed(() => questions.value[currentIndex.value]?.expected_score || 0);
 const taskName = computed(() => questions.value[currentIndex.value]?.task_name || '');
 const taskObject = computed(() => questions.value[currentIndex.value]?.task_object || '');
-const tempRecords = ref(
-    {
-        assessmentId: '',
-        assessorId: '',
-        childId: '',
-        childName: '',
-        childAge: '',
-        // 当前问题
-        snapshot: {
-            ablls_r_section_alphabet: '',
-            ablls_r_section_order: '',
-            index: 0,
-        },
-        // 时间戳毫秒，自动生成
-        startTimestamp: Date.now(),
-        completionTime: 0, // 完成时间，单位毫秒，最后提交执行Date.now()
-        // 持续时间秒
-        duration: 0,  // 持续时间，单位秒，最后提交执行Date.now() - startTimestamp
-        assessmentRecords: {
-            sections: [
-                {
-                    sectionId: 'LANG_1',
-                    sectionName: '语言与沟通技能',
-                    sectionExpectTotalScore: 120, // 预期总分, 通过迭代abllsSections.questions下的数组对象的expectedScore字段计算得出
-                    sectionActualTotalScore: 110, // 实际总分, 通过迭代abllsSections.questions下的数组对象的score字段计算得出, 默认0
-                    abllsSections: {
-                        alphabet: 'C',
-                        totalQuestions: 2, // 总问题数, 计算questions.length
-                        expectedTotalScore: 20, // 预期总分, 系统计算
-                        actualTotalScore: 20, // 实际总分, 通过选择计算得出，默认0
-                        sectioName: '语言理解',
-                        questions: [
-                            {
-                                order: 3,
-                                taskName: "听从命令看着某个强化物",
-                                taskNameEng: "Follow instructions tolook at a reinforcing item",
-                                taskObject: "按照要求，学生会看到老师拿着的某个强化物。",
-                                taskSample: "nan",
-                                question: "如果你拿着一个强化物，并要求学生看着它，学生会看到它吗?",
-                                options: [
-                                    { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
-                                    { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
-                                    { text: "无法完成", score: 0 }
-                                ],
-                                selectedAnswer: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", // 默认空字符串
-                                score: 1, // 实际得分, 通过选择得出，默认0
-                                expectedScore: 2, // 相当于通过expected_score字段
-                                isStandard: false, // 系统计算得出，如果score小于expectedScore，则未达标，为false。默认false。
-                                hasSelected: true, // 是否选择了答案，默认false
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
 
-    }
-)
 
 let buttonStyle1 = {
     backgroundColor: "rgba(110, 221, 138, 1)",
@@ -209,18 +153,41 @@ const assessmentMeta = ref({
     uuid: Date.now().toString(36) + Math.random().toString(36).substr(2) // 新增基于时间的UUID
 });
 
+const groupChange = (value) => {
+    console.log('groupChange', value)
 
-const radioChange = (selectedAnswer) => {
-    console.log('currentSectionId', currentSectionId)
-    console.log('currentSection', currentSection)
-    console.log('currentAbllsSectionAlphabet', currentAbllsSectionAlphabet)
-    console.log('currentAbllsSectionName', currentAbllsSectionName)
-    console.log('radioChange', selectedAnswer);
-    console.log('expectedScore', expectedScore.value);
-    console.log('answers', answers.value);
-
-    // handleSubmit(questions[currentIndex]?.options[current].score)
 }
+
+const radioChange = (value) => {
+
+    // 如果选项改变了，则更新answer中当前currentIndex的答案
+    if (value) {
+        answers[currentIndex.value] = value.text;
+        selectedAnswer.value = value.text;
+        console.log('selectedAnswer', selectedAnswer.value)
+    }
+}
+
+
+// 在handleSubmit后添加返回上一题逻辑
+const backToPrevious = () => {
+    if (currentIndex.value > 0) {
+        currentIndex.value--;
+        selectedAnswer.value = answers[currentIndex.value];
+        console.log('selectedAnswer', selectedAnswer.value)
+
+    }
+};
+
+const goToNext = () => {
+    if (currentIndex.value < questions.value.length - 1) {
+        currentIndex.value++;
+        selectedAnswer.value = answers[currentIndex.value];
+        console.log('selectedAnswer', selectedAnswer.value)
+    } else {
+        uni.showToast({ title: '已经是最后一题', icon: 'none' });
+    }
+};
 
 const handleStepClick = async (item, index) => {
     if (stepCurrentIndex.value === index) return;
@@ -260,20 +227,6 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
     }
 };
 
-// 在handleSubmit后添加返回上一题逻辑
-const backToPrevious = () => {
-    if (currentIndex.value > 0) {
-        currentIndex.value--;
-    }
-};
-
-const goToNext = () => {
-    if (currentIndex.value < questions.value.length - 1) {
-        currentIndex.value++;
-    } else {
-        uni.showToast({ title: '已经是最后一题', icon: 'none' });
-    }
-};
 
 onLoad(async (options) => {
     // 初始化questions为tempQuestions的questions数组
