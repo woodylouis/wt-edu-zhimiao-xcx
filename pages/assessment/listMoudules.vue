@@ -24,8 +24,9 @@
 
         <!-- 折叠模板和列表 -->
         <view class="collapse" v-for="(section, index) in assessmentSections" :key="index">
-            <u-collapse @change="change" @close="close" @open="open" :border=false :value="[0]">
-                <u-collapse-item :title="section.section">
+            <u-collapse @change="handleCollapseChange" @close="closeCollapse" @open="openCollapse" :border=false
+                :value="activeCollapse">
+                <u-collapse-item :title="section.section" :name="section.name">
                     <text>{{ section.desc }}</text>
                     <view v-for="(ablls, idx) in section.abllsSections" :key="idx">
                         <uni-list>
@@ -72,6 +73,7 @@ const currentStudent = ref({
     // className: "小班8班"
 });
 const assessmentSections = ref([]);
+let activeCollapse = ['语言与沟通技能'];
 // {
 //     abllsSections: [
 //         {
@@ -113,6 +115,19 @@ const confirmInfo = ref([
         name: "系统检测评估还没有完成。如果退出，当前进度会保存30天。",
     }
 ]);
+
+const openCollapse = (e) => {
+    console.log('openCollapse', e)
+}
+
+const closeCollapse = (e) => {
+    console.log('closeCollapse', e)
+}
+
+const handleCollapseChange = (value) => {
+    activeCollapse = [value];
+    console.log('当前展开的面板:', value);
+};
 
 const handleOnClickSection = (sectionId, currentSection, currentAbllsSectionLength, currentAbllsSectionIdx, currentAbllsSectionObj, abllsSectionsObj) => {
     console.log('assessmentSections', assessmentSections.value)
@@ -160,6 +175,11 @@ const loadAssessmentSections = async (assessmentId, age) => {
         if (res.result.code === 200) {
             // 确保数据结构正确
             assessmentSections.value = res.result.data.section || [];
+            // 给每个section添加一个新的name属性，以order为name的值
+            assessmentSections.value.forEach((section, index) => {
+                section.name = section.section;
+            });
+
             console.log('assessmentSections:', assessmentSections.value)
         }
 
@@ -172,7 +192,7 @@ const loadAssessmentSections = async (assessmentId, age) => {
 
 // 在切换班级或需要刷新数据时清除缓存
 const clearStudentsCache = (classId) => {
-    const cacheKey = `class_${classId}_students`;
+    const cacheKey = `class_${classId} _students`;
     uni.removeStorageSync(cacheKey);
 };
 
