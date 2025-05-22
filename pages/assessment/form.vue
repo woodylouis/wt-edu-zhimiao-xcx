@@ -116,10 +116,11 @@ const taskName = computed(() => questions.value[currentIndex.value]?.task_name |
 const taskObject = computed(() => questions.value[currentIndex.value]?.task_object || '');
 const assessmentRecords = ref({}); // 每个ablls section的缓存，存储所有已加载的题目记录，例如：{ LANG_1_E: [] }
 const assessmentRecordForm = ref({}); // 组织提交的表单数据
+
 const abllsSectionsForm = ref({
-    sectionId: currentSectionId,
-    sectionName: currentAbllsSectionName
-});
+}); // 当前ablls section的表单数据
+
+
 
 // 监听selectedAnswer变化
 watch(selectedAnswer, (newValue, oldValue) => {
@@ -183,6 +184,35 @@ const isAllCompleted = computed(() => {
 
 const handleOptionChange = (item) => {
     console.log('questions:', questions.value)
+    console.log('item:', item)
+    // 当点击选项时，更新当前题目集的答案以及分数标准
+    abllsSectionsForm.value = {
+        totalQuestions: questions.value.length,
+        alphabet: currentAbllsSectionAlphabet,
+        sectioName: currentAbllsSectionName,
+        questions: questions.value.map(q => {
+            const selectedOption = q.options?.find(opt => opt.selected);
+            if (selectedOption) {
+                return {
+                    ...q,
+                    score: selectedOption.score,
+                    isStandard:  // 等于或大于expected_score为true，否责为false
+                        selectedOption.score >= q.expected_score,
+
+                };
+            }
+            return q;
+        }),
+        expectedTotalScore: questions.value.reduce((total, question) => {
+            return total + (question.expected_score);
+        }, 0),
+        actualTotalScore: questions.value.reduce((total, question) => {
+            const selectedOption = question.options.find(option => option.selected);
+            return total + (selectedOption ? selectedOption.score : 0);
+        }, 0),
+    }
+    console.log("abllsSectionsForm:", abllsSectionsForm.value)
+
 
 };
 
