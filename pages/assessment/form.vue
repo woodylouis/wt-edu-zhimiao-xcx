@@ -91,8 +91,8 @@ const allAssessmentSections = accessStudentInfo.allAssessmentSections;
 const childAgeInt = accessStudentInfo.ageInt;
 const currentSectionId = accessStudentInfo.section.currentSection.currentSectionId
 const currentSection = accessStudentInfo.section.currentSection.currentSection
-const currentAbllsSectionAlphabet = accessStudentInfo.section.currentAbllsSection.abllsSectionAlphabet;
-const currentAbllsSectionName = accessStudentInfo.section.currentAbllsSection.sectionName;
+let currentAbllsSectionAlphabet = accessStudentInfo.section.currentAbllsSection.abllsSectionAlphabet;
+let currentAbllsSectionName = accessStudentInfo.section.currentAbllsSection.sectionName;
 const sections = Object.values(allAssessmentSections).map(section => ({
     sectionId: section.section_id,
     sectionName: section.abllsSections.map(item => item.sectionName)
@@ -117,9 +117,9 @@ const taskObject = computed(() => questions.value[currentIndex.value]?.task_obje
 const assessmentRecords = ref({}); // 每个ablls section的缓存，存储所有已加载的题目记录，例如：{ LANG_1_E: [] }
 const assessmentRecordForm = ref({}); // 组织提交的表单数据
 
-const abllsSectionsForm = ref({
+const singleAbllsSectionsForm = ref({
 }); // 当前ablls section的表单数据
-
+const allAbllsSectionsRecordForm = ref([]); // 所有ablls section的表单数据
 
 
 // 监听selectedAnswer变化
@@ -183,10 +183,10 @@ const isAllCompleted = computed(() => {
 });
 
 const handleOptionChange = (item) => {
-    console.log('questions:', questions.value)
-    console.log('item:', item)
+    // console.log('questions:', questions.value)
+    // console.log('item:', item)
     // 当点击选项时，更新当前题目集的答案以及分数标准
-    abllsSectionsForm.value = {
+    singleAbllsSectionsForm.value = {
         totalQuestions: questions.value.length,
         alphabet: currentAbllsSectionAlphabet,
         sectioName: currentAbllsSectionName,
@@ -211,7 +211,7 @@ const handleOptionChange = (item) => {
             return total + (selectedOption ? selectedOption.score : 0);
         }, 0),
     }
-    console.log("abllsSectionsForm:", abllsSectionsForm.value)
+    // console.log("singleAbllsSectionsForm:", singleAbllsSectionsForm.value)
 
 
 };
@@ -221,14 +221,14 @@ const handleOptionChange = (item) => {
 const backToPrevious = () => {
     if (currentIndex.value > 0) {
         currentIndex.value--;
-        console.log('questions:', questions.value)
+        // console.log('questions:', questions.value)
     }
 };
 
 const goToNext = () => {
     if (currentIndex.value < questions.value.length - 1) {
         currentIndex.value++;
-        console.log('questions:', questions.value)
+        // console.log('questions:', questions.value)
 
     }
 };
@@ -238,6 +238,11 @@ const handleStepClick = async (item, index) => {
 
     uni.showLoading({ title: '加载题目...', mask: true });
     try {
+        // 更新当前section信息
+        // console.log('item:', item)
+
+        currentAbllsSectionAlphabet = item.abllsSectionAlphabet;
+        currentAbllsSectionName = item.sectionName;
         await loadQuestions(
             currentSectionId,
             item.abllsSectionAlphabet,
@@ -245,7 +250,20 @@ const handleStepClick = async (item, index) => {
         );
         stepCurrentIndex.value = index;
         currentIndex.value = 0;
+        // console.log('singleAbllsSectionsForm:', singleAbllsSectionsForm.value)
+        // 先把singleAbllsSectionsForm加入到allAbllsSectionsRecordForm中，再清空singleAbllsSectionsForm
+        if (singleAbllsSectionsForm.value) {
+            // 需要先判断列表里有没有这个abllsSectionAlphabet，有的话删掉再加入，没有的话直接加入
+            const index = allAbllsSectionsRecordForm.value.findIndex(item => item.alphabet === singleAbllsSectionsForm.value.alphabet);
+            if (index > -1) {
+                allAbllsSectionsRecordForm.value.splice(index, 1);
+            }
+            allAbllsSectionsRecordForm.value.push(singleAbllsSectionsForm.value);
+        }
+        // singleAbllsSectionsForm.value = {};
+        console.log("allAbllsSectionsRecordForm:", allAbllsSectionsRecordForm.value)
     } catch (e) {
+        console.log(e)
         uni.showToast({ title: '加载失败', icon: 'none' });
     } finally {
         uni.hideLoading();
@@ -270,10 +288,10 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
             questions.value = res.result.data.questions;
             // 缓存题目数据
             assessmentRecords.value[cacheKey] = res.result.data.questions;
-            console.log('assessmentRecords:', assessmentRecords.value)
+            // console.log('assessmentRecords:', assessmentRecords.value)
         }
     } catch (e) {
-        console.log(e)
+        // console.log(e)
         uni.showToast({ title: '题目加载失败', icon: 'none' });
     }
 };

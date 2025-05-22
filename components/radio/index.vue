@@ -34,7 +34,7 @@ const selectOption = (index) => {
     newOptions.forEach((opt, i) => {
         opt.selected = i === index; // 直接修改选项状态
     });
-    console.log("selectOption", newOptions[index])
+    // console.log("selectOption", newOptions[index])
     emit('change', newOptions[index]);
 };
 </script>
