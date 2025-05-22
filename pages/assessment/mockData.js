@@ -133,6 +133,7 @@ const tempQuestions = ref(
 
 const tempRecords = ref(
     {
+        tempId: Date.now().toString(36) + Math.random().toString(36).substr(2),
         assessmentId: '',
         assessorId: '',
         childId: '',
@@ -170,9 +171,9 @@ const tempRecords = ref(
                             taskSample: "nan",
                             question: "如果你拿着一个强化物，并要求学生看着它，学生会看到它吗?",
                             options: [
-                                { text: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2 },
-                                { text: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1 },
-                                { text: "无法完成", score: 0 }
+                                { name: "在3秒钟以内，看着在任何位置的强化物(上、下、左、右)", score: 2, selected: false },
+                                { name: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", score: 1, selected: true },
+                                { name: "无法完成", score: 0, selected: false }
                             ],
                             selectedAnswer: "看着强化物，但要求额外的提示才看或者超过3秒钟才做出反应", // 默认空字符串
                             score: 1, // 实际得分, 通过选择得出，默认0

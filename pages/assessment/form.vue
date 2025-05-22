@@ -114,7 +114,12 @@ const options = reactive(() => questions[currentIndex]?.options || [])
 const expectedScore = computed(() => questions.value[currentIndex.value]?.expected_score || 0);
 const taskName = computed(() => questions.value[currentIndex.value]?.task_name || '');
 const taskObject = computed(() => questions.value[currentIndex.value]?.task_object || '');
-const assessmentRecords = ref({}); // 存储所有已加载的题目记录
+const assessmentRecords = ref({}); // 每个ablls section的缓存，存储所有已加载的题目记录，例如：{ LANG_1_E: [] }
+const assessmentRecordForm = ref({}); // 组织提交的表单数据
+const abllsSectionsForm = ref({
+    sectionId: currentSectionId,
+    sectionName: currentAbllsSectionName
+});
 
 // 监听selectedAnswer变化
 watch(selectedAnswer, (newValue, oldValue) => {
@@ -153,6 +158,28 @@ const assessmentMeta = ref({
     uuid: Date.now().toString(36) + Math.random().toString(36).substr(2) // 新增基于时间的UUID
 });
 
+
+const handleNavBack = () => {
+    uni.showModal({
+        title: '确认返回',
+        content: isAllCompleted.value ? '所有题目已完成，确认返回吗？' : '还有未完成的题目，确认返回吗？',
+        success: (res) => {
+            if (res.confirm) {
+
+                uni.navigateBack();
+            } else if (res.cancel) {
+                console.log('当前答题记录:', answers.value);
+                console.log('用户取消返回');
+            }
+        },
+    });
+};
+
+const isAllCompleted = computed(() => {
+    return questions.value.length > 0 &&
+        answers.value.length === questions.value.length &&
+        !answers.value.some(a => !a || !a.text);
+});
 
 const handleOptionChange = (item) => {
     console.log('questions:', questions.value)
