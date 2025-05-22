@@ -79,13 +79,13 @@ import { ref, reactive, onMounted, computed, watch } from "vue";
 import wtRadio from '@/components/radio';
 import { ASSESS_STUDENT } from '@/lib/types/local_storage.js';
 
-let childId = ref(''); // 通过childId获取儿童名字以及年龄
 let classId = ref(''); // 通过班级idwatch
 const initialReport = ref('');
 const detailedAdvice = ref('');
 const interventionPlan = ref('');
 const loading = ref(false);
 const accessStudentInfo = uni.getStorageSync(ASSESS_STUDENT);
+const childId = accessStudentInfo.childId; // 通过childId获取儿童名字以及年龄
 // console.log('accessStudentInfo:', accessStudentInfo)
 const allAssessmentSections = accessStudentInfo.allAssessmentSections;
 const childAgeInt = accessStudentInfo.ageInt;
@@ -153,7 +153,7 @@ let buttonStyle2 = {
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 
 const assessmentMeta = {
-    recordId: `${currentSectionId}_${new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14)}`,
+    recordId: `${currentSectionId}_${Date.now()}`,
     assessmentId: accessStudentInfo.assessmentId,
     assessorId: uni.getStorageSync('uni-id-pages-userInfo')._id,
     assessorName: uni.getStorageSync('uni-id-pages-userInfo').nickname,
@@ -162,6 +162,7 @@ const assessmentMeta = {
     completionTime: 0,
     duration: 0,
     hasCompleted: false, // 该部分是否已完成
+    sectionId: currentSectionId
 };
 
 console.log('assessmentMeta:', assessmentMeta)
@@ -174,6 +175,7 @@ const handleNavBack = () => {
             if (res.confirm) {
 
                 // uni.navigateBack();
+                uploadRecord(childId);
                 prepareAllRecords()
             } else if (res.cancel) {
                 console.log('当前答题记录:', answers.value);
@@ -188,6 +190,18 @@ const isAllCompleted = computed(() => {
         answers.value.length === questions.value.length &&
         !answers.value.some(a => !a || !a.text);
 });
+
+const uploadRecord = async (childId) => {
+    try {
+        const result = await uniCloud.callFunction({
+            name: 'wt-fetch-assess-id',
+            data: { childId }
+        });
+        console.log('上传成功:', result);
+    } catch (error) {
+        console.error('上传失败:', error);
+    }
+};
 
 const prepareAllRecords = () => {
     const all = {

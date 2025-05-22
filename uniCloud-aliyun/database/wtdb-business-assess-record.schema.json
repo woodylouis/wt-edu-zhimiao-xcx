@@ -1,0 +1,17 @@
+{
+    "bsonType": "object",
+    "required": [],
+    "properties": {
+        "_id": {
+            "description": "记录ID"
+        },
+        "assessment_id": {
+            "bsonType": "string",
+            "description": "关联的评估量表ID"
+        },
+        "child_id": {
+            "bsonType": "string",
+            "description": "被评估儿童ID"
+        }
+    }
+}
