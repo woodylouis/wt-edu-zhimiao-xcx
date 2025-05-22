@@ -184,6 +184,11 @@ const isAllCompleted = computed(() => {
 
 // 更新所有ablls section的表单数据
 const updateAllAbllsSectionsRecord = () => {
+    // 如果singleAbllsSectionsForm里面没有数据，不更新allAbllsSectionsRecordForm
+    if (!singleAbllsSectionsForm.value || Object.keys(singleAbllsSectionsForm.value).length === 0) {
+        return;
+    }
+
     if (singleAbllsSectionsForm.value) {
         const index = allAbllsSectionsRecordForm.value.findIndex(
             // 需要先判断列表里有没有这个abllsSectionAlphabet，有的话删掉再加入，没有的话直接加入
