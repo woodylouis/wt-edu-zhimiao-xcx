@@ -182,10 +182,25 @@ const isAllCompleted = computed(() => {
         !answers.value.some(a => !a || !a.text);
 });
 
-const handleOptionChange = (item) => {
-    // console.log('questions:', questions.value)
-    // console.log('item:', item)
-    // 当点击选项时，更新当前题目集的答案以及分数标准
+// 更新所有ablls section的表单数据
+const updateAllAbllsSectionsRecord = () => {
+    if (singleAbllsSectionsForm.value) {
+        const index = allAbllsSectionsRecordForm.value.findIndex(
+            // 需要先判断列表里有没有这个abllsSectionAlphabet，有的话删掉再加入，没有的话直接加入
+            item => item.alphabet === singleAbllsSectionsForm.value.alphabet
+        );
+        if (index > -1) {
+            allAbllsSectionsRecordForm.value.splice(index, 1);
+        }
+        allAbllsSectionsRecordForm.value.push({
+            ...singleAbllsSectionsForm.value
+        });
+        console.log("allAbllsSectionsRecordForm:", allAbllsSectionsRecordForm.value)
+    }
+};
+
+// 当前ablls section的表单数据
+const updateSingleAbllsSectionsForm = () => {
     singleAbllsSectionsForm.value = {
         totalQuestions: questions.value.length,
         alphabet: currentAbllsSectionAlphabet,
@@ -211,9 +226,13 @@ const handleOptionChange = (item) => {
             return total + (selectedOption ? selectedOption.score : 0);
         }, 0),
     }
-    // console.log("singleAbllsSectionsForm:", singleAbllsSectionsForm.value)
+}
 
-
+const handleOptionChange = (item) => {
+    // console.log('questions:', questions.value)
+    // console.log('item:', item)
+    // 当点击选项时，更新当前题目集的答案以及分数标准
+    updateSingleAbllsSectionsForm();
 };
 
 
@@ -243,6 +262,29 @@ const handleStepClick = async (item, index) => {
 
         currentAbllsSectionAlphabet = item.abllsSectionAlphabet;
         currentAbllsSectionName = item.sectionName;
+        // 需要更新本地缓存
+        accessStudentInfo.section.currentAbllsSection.abllsSectionAlphabet = currentAbllsSectionAlphabet;
+        // accessStudentInfo.section.currentAbllsSection.sectionName = currentAbllsSectionName;
+        // 1. currentAbllsSectionIdx在currentAbllsNameList里面通过currentAbllsSectionAlphabet找到对应的index，
+        const currentAbllsSectionIdx = currentAbllsNameList.findIndex(
+            item => item.abllsSectionAlphabet === currentAbllsSectionAlphabet
+        )
+        // 2. 找到后把对象全部复制到accessStudentInfo.section.currentAbllsSection里面
+        if (currentAbllsSectionIdx > -1) {
+            accessStudentInfo.section.currentAbllsSection = {
+                ...currentAbllsNameList[currentAbllsSectionIdx]
+            }
+        }
+        // 3. 然后赋值给accessStudentInfo.section.currentAbllsSection.currentAbllsSectionIdx
+        accessStudentInfo.section.currentAbllsSection.currentAbllsSectionIdx = currentAbllsSectionIdx;
+        // 4. 然后拿到currentAbllsNameList的长度赋值给accessStudentInfo.section.currentAbllsSection.currentAbllsSectionLength
+        accessStudentInfo.section.currentAbllsSection.currentAbllsSectionLength = currentAbllsNameList.length;
+        // 5. 最后更新localstorage
+        // console.log('accessStudentInfo:', accessStudentInfo)
+        uni.setStorageSync(ASSESS_STUDENT, accessStudentInfo);
+
+
+        uni.setStorageSync(ASSESS_STUDENT, accessStudentInfo);
         await loadQuestions(
             currentSectionId,
             item.abllsSectionAlphabet,
@@ -251,17 +293,7 @@ const handleStepClick = async (item, index) => {
         stepCurrentIndex.value = index;
         currentIndex.value = 0;
         // console.log('singleAbllsSectionsForm:', singleAbllsSectionsForm.value)
-        // 先把singleAbllsSectionsForm加入到allAbllsSectionsRecordForm中，再清空singleAbllsSectionsForm
-        if (singleAbllsSectionsForm.value) {
-            // 需要先判断列表里有没有这个abllsSectionAlphabet，有的话删掉再加入，没有的话直接加入
-            const index = allAbllsSectionsRecordForm.value.findIndex(item => item.alphabet === singleAbllsSectionsForm.value.alphabet);
-            if (index > -1) {
-                allAbllsSectionsRecordForm.value.splice(index, 1);
-            }
-            allAbllsSectionsRecordForm.value.push(singleAbllsSectionsForm.value);
-        }
-        // singleAbllsSectionsForm.value = {};
-        console.log("allAbllsSectionsRecordForm:", allAbllsSectionsRecordForm.value)
+        updateAllAbllsSectionsRecord();
     } catch (e) {
         console.log(e)
         uni.showToast({ title: '加载失败', icon: 'none' });
