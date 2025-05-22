@@ -153,7 +153,7 @@ let buttonStyle2 = {
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 
 const assessmentMeta = {
-    uuid: Date.now().toString(36) + Math.random().toString(36).substr(2), // 新增基于时间的UUID
+    recordId: `${currentSectionId}_${new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14)}`,
     assessmentId: accessStudentInfo.assessmentId,
     assessorId: uni.getStorageSync('uni-id-pages-userInfo')._id,
     assessorName: uni.getStorageSync('uni-id-pages-userInfo').nickname,
@@ -161,6 +161,7 @@ const assessmentMeta = {
     startTimestamp: Date.now(),
     completionTime: 0,
     duration: 0,
+    hasCompleted: false, // 该部分是否已完成
 };
 
 console.log('assessmentMeta:', assessmentMeta)
@@ -196,6 +197,19 @@ const prepareAllRecords = () => {
     console.log('all:', all)
 }
 
+
+const handleOptionChange = async (item) => {
+    try {
+        const result = await updateSingleAbllsSectionsForm();
+        if (result) {
+            updateAllAbllsSectionsRecord();
+        }
+    } catch (error) {
+        console.error('更新表单数据失败:', error);
+    }
+};
+// 加载题目
+
 // 更新所有ablls section的表单数据
 const updateAllAbllsSectionsRecord = () => {
 
@@ -227,38 +241,32 @@ const updateAllAbllsSectionsRecord = () => {
 
 // 当前ablls section的表单数据
 const updateSingleAbllsSectionsForm = () => {
-    singleAbllsSectionsForm.value = {
-        totalQuestions: questions.value.length,
-        alphabet: currentAbllsSectionAlphabet,
-        sectioName: currentAbllsSectionName,
-        questions: questions.value.map(q => {
-            const selectedOption = q.options?.find(opt => opt.selected);
-            if (selectedOption) {
-                return {
-                    ...q,
-                    score: selectedOption.score,
-                    isStandard:  // 等于或大于expected_score为true，否责为false
-                        selectedOption.score >= q.expected_score,
-
-                };
-            }
-            return q;
-        }),
-        expectedTotalScore: questions.value.reduce((total, question) => {
-            return total + (question.expected_score);
-        }, 0),
-        actualTotalScore: questions.value.reduce((total, question) => {
-            const selectedOption = question.options.find(option => option.selected);
-            return total + (selectedOption ? selectedOption.score : 0);
-        }, 0),
-    }
-}
-
-const handleOptionChange = (item) => {
-    // console.log('questions:', questions.value)
-    // console.log('item:', item)
-    // 当点击选项时，更新当前题目集的答案以及分数标准
-    updateSingleAbllsSectionsForm();
+    return new Promise((resolve) => {
+        singleAbllsSectionsForm.value = {
+            totalQuestions: questions.value.length,
+            alphabet: currentAbllsSectionAlphabet,
+            sectioName: currentAbllsSectionName,
+            questions: questions.value.map(q => {
+                const selectedOption = q.options?.find(opt => opt.selected);
+                if (selectedOption) {
+                    return {
+                        ...q,
+                        score: selectedOption.score,
+                        isStandard: selectedOption.score >= q.expected_score,
+                    };
+                }
+                return q;
+            }),
+            expectedTotalScore: questions.value.reduce((total, question) => {
+                return total + (question.expected_score);
+            }, 0),
+            actualTotalScore: questions.value.reduce((total, question) => {
+                const selectedOption = question.options.find(option => option.selected);
+                return total + (selectedOption ? selectedOption.score : 0);
+            }, 0),
+        };
+        resolve(true);
+    });
 };
 
 
