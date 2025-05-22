@@ -152,13 +152,18 @@ let buttonStyle2 = {
 
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 
-const assessmentMeta = ref({
-    assessmentId: '',
-    startTimestamp: 0,
+const assessmentMeta = {
+    uuid: Date.now().toString(36) + Math.random().toString(36).substr(2), // 新增基于时间的UUID
+    assessmentId: accessStudentInfo.assessmentId,
+    assessorId: uni.getStorageSync('uni-id-pages-userInfo')._id,
+    assessorName: uni.getStorageSync('uni-id-pages-userInfo').nickname,
+    ...accessStudentInfo,
+    startTimestamp: Date.now(),
+    completionTime: 0,
     duration: 0,
-    uuid: Date.now().toString(36) + Math.random().toString(36).substr(2) // 新增基于时间的UUID
-});
+};
 
+console.log('assessmentMeta:', assessmentMeta)
 
 const handleNavBack = () => {
     uni.showModal({
@@ -167,7 +172,8 @@ const handleNavBack = () => {
         success: (res) => {
             if (res.confirm) {
 
-                uni.navigateBack();
+                // uni.navigateBack();
+                prepareAllRecords()
             } else if (res.cancel) {
                 console.log('当前答题记录:', answers.value);
                 console.log('用户取消返回');
@@ -182,8 +188,17 @@ const isAllCompleted = computed(() => {
         !answers.value.some(a => !a || !a.text);
 });
 
+const prepareAllRecords = () => {
+    const all = {
+        ...assessmentMeta,
+        assessmentRecords: allAbllsSectionsRecordForm.value,
+    }
+    console.log('all:', all)
+}
+
 // 更新所有ablls section的表单数据
 const updateAllAbllsSectionsRecord = () => {
+
     // 如果singleAbllsSectionsForm里面没有数据，不更新allAbllsSectionsRecordForm
     if (!singleAbllsSectionsForm.value || Object.keys(singleAbllsSectionsForm.value).length === 0) {
         return;
@@ -200,7 +215,13 @@ const updateAllAbllsSectionsRecord = () => {
         allAbllsSectionsRecordForm.value.push({
             ...singleAbllsSectionsForm.value
         });
-        console.log("allAbllsSectionsRecordForm:", allAbllsSectionsRecordForm.value)
+        // 最后把allAbllsSectionsRecordForm里面的所有数据都更新到assessmentRecordForm里面
+        assessmentRecordForm.value = {
+            sectionId: currentSectionId,
+            sectionName: currentSection,
+            assessmentRecords: allAbllsSectionsRecordForm.value
+        }
+        console.log("assessmentRecordForm:", assessmentRecordForm.value)
     }
 };
 
