@@ -207,13 +207,11 @@ const prepareAllRecords = () => {
         console.log('allAbllsSectionsRecordForm为空，不上传');
         return;
     }
-
     const all = {
         ...assessmentMeta,
         assessmentRecords: allAbllsSectionsRecordForm.value,
     }
     console.log('all:', all)
-
     // 调用云函数上传评估记录
     uniCloud.callFunction({
         name: 'wtdb-upload-assess-history',
