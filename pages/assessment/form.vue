@@ -412,8 +412,7 @@ const mergeQuestions = (historyQuestionsList, currentAlphabet) => {
 }
 
 const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
-    const historyQuestions = fetchHistory(recordId, sectionId, assessmentMeta.assessorId, assessmentMeta.childId);
-    console.log('historyQuestions:', historyQuestions)
+
     // 检查是否已有缓存
     const cacheKey = `${sectionId}_${abllsSectionAlphabet}`;
     if (assessmentRecords.value[cacheKey]) {
@@ -422,19 +421,27 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
         return;
     }
 
+    const historyQuestions = await fetchHistory(recordId, sectionId, assessmentMeta.assessorId, assessmentMeta.childId);
+    console.log('historyQuestions:', historyQuestions)
     try {
-        const res = await uniCloud.callFunction({
-            name: 'wt-fetch-assessment-v2',
-            data: { sectionId, abllsSectionAlphabet, age }
-        });
+        if (historyQuestions.length > 0) {
+            questions.value = historyQuestions;
+            assessmentRecords.value[cacheKey] = historyQuestions;
+        } else {
+            const res = await uniCloud.callFunction({
+                name: 'wt-fetch-assessment-v2',
+                data: { sectionId, abllsSectionAlphabet, age }
+            });
 
-        if (res.result && res.result.data) {
-            questions.value = res.result.data.questions;
-            // console.log('正常拉取的题目:', questions.value)
-            // 缓存题目数据
-            assessmentRecords.value[cacheKey] = res.result.data.questions;
-            // console.log('assessmentRecords:', assessmentRecords.value)
+            if (res.result && res.result.data) {
+                questions.value = res.result.data.questions;
+                // console.log('正常拉取的题目:', questions.value)
+                // 缓存题目数据
+                assessmentRecords.value[cacheKey] = res.result.data.questions;
+                // console.log('assessmentRecords:', assessmentRecords.value)
+            }
         }
+
     } catch (e) {
         // console.log(e)
         uni.showToast({ title: '题目加载失败', icon: 'none' });
