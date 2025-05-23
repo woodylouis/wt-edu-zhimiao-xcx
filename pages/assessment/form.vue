@@ -379,21 +379,20 @@ const fetchHistory = async (recordId, sectionId, assessorId, childId) => {
                 recordId, sectionId, assessorId, childId
             }
         });
-        if (res.result.code == 200) {
-            // console.log('res:', res.result.data)
-            if (res.result.data && res.result.data > 0) {
-                const history = res.result.data;
-                const questions = mergeQuestions(history[0].assessmentRecords, currentAbllsSectionAlphabet);
-                questions.value = questions;
-                // 缓存题目数据
-                assessmentRecords.value[cacheKey] = res.result.data.questions;
-                console.log('historyQuestions:', questions)
-            } else {
-                console.log('没有历史记录')
-                // 没有历史记录，直接拉取最新的题目
 
+        if (res.result.code == 200) {
+            // 查询到有该section的历史记录
+            console.log('没有查询到有该section的历史记录')
+            if (res.result.data && res.result.data.length > 0) {
+                const history = res.result.data[0];
+                const questions = mergeQuestions(history.assessmentRecords, currentAbllsSectionAlphabet);
+                console.log('historyQuestions from mergeQuestions:', questions)
+                return questions; // 返回合并后的题目列
+            } else {
+                console.log('没有查询到有该section的历史记录')
             }
         }
+        return [];
         // console.log('res:', res)
     } catch (e) {
         console.log(e)
@@ -407,12 +406,14 @@ const mergeQuestions = (historyQuestionsList, currentAlphabet) => {
     // 根据currentAlphabet找到historyQuestionsList里面对应的题目
     const historyQuestions = historyQuestionsList.find(
         item => item.alphabet === currentAlphabet
-    )
+    ) || []
+    console.log('mergeQuestions', historyQuestions)
     return historyQuestions.questions || [];
 }
 
 const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
-    fetchHistory(recordId, sectionId, assessmentMeta.assessorId, assessmentMeta.childId);
+    const historyQuestions = fetchHistory(recordId, sectionId, assessmentMeta.assessorId, assessmentMeta.childId);
+    console.log('historyQuestions:', historyQuestions)
     // 检查是否已有缓存
     const cacheKey = `${sectionId}_${abllsSectionAlphabet}`;
     if (assessmentRecords.value[cacheKey]) {
@@ -429,7 +430,7 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
 
         if (res.result && res.result.data) {
             questions.value = res.result.data.questions;
-            console.log('正常拉取的题目:', questions.value)
+            // console.log('正常拉取的题目:', questions.value)
             // 缓存题目数据
             assessmentRecords.value[cacheKey] = res.result.data.questions;
             // console.log('assessmentRecords:', assessmentRecords.value)
