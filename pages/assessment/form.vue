@@ -206,6 +206,7 @@ const prepareAllRecords = () => {
     // 检查allAbllsSectionsRecordForm是否为空
     if (!allAbllsSectionsRecordForm.value || allAbllsSectionsRecordForm.value.length === 0) {
         console.log('allAbllsSectionsRecordForm为空，不上传');
+        uni.redirectTo({ url: '/pages/assessment/listMoudules' })
         return;
     }
     const all = {
