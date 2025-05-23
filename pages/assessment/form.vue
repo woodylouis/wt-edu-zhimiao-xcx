@@ -380,21 +380,14 @@ const fetchHistory = async (recordId, sectionId, assessorId, childId) => {
         });
         if (res.result.code == 200) {
             // console.log('res:', res.result.data)
-            const history = res.result.data;
-            // console.log('history:', history)
-            if (history.length > 0) {
-                console.log('有历史记录:', history)
-                if (history[0].allAssessmentSections.length == history[0].assessmentRecords.length) {
-                    // 说明已经上传了所有的该模块的ablls section的题目
-                    console.log('已经上传了所有的该模块的ablls section的题目')
-                } else {
-                    // 说明没有上传所有的该模块的ablls section的题目
-                    console.log('没有上传所有的该模块的ablls section的题目')
-                    mergeQuestions(history[0].assessmentRecords, currentAbllsSectionAlphabet);
-
-                }
+            if (res.result.data && res.result.data > 0) {
+                const history = res.result.data;
+                const questions = mergeQuestions(history[0].assessmentRecords, currentAbllsSectionAlphabet);
+                console.log('historyQuestions:', questions)
             } else {
                 console.log('没有历史记录')
+                // 没有历史记录，直接拉取最新的题目
+
             }
         }
         // console.log('res:', res)
@@ -405,12 +398,11 @@ const fetchHistory = async (recordId, sectionId, assessorId, childId) => {
 };
 
 const mergeQuestions = (historyQuestionsList, currentAlphabet) => {
-    // 1. 根据currentAlphabet找到historyQuestionsList里面对应的题目
+    // 根据currentAlphabet找到historyQuestionsList里面对应的题目
     const historyQuestions = historyQuestionsList.find(
         item => item.alphabet === currentAlphabet
     )
-    // 2.没有就从正常拉取
-    console.log('historyQuestions:', historyQuestions.questions)
+    return historyQuestions.questions || [];
 }
 
 const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
