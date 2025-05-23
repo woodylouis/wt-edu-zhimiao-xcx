@@ -1,0 +1,9 @@
+{
+    "bsonType": "object",
+    "required": [],
+    "properties": {
+        "_id": {
+            "description": "记录ID"
+        }
+    }
+}

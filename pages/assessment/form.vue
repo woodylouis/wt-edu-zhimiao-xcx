@@ -77,16 +77,11 @@ import customNav from '@/components/customNav';
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, reactive, onMounted, computed, watch } from "vue";
 import wtRadio from '@/components/radio';
-import { ASSESS_STUDENT } from '@/lib/types/local_storage.js';
+import { ASSESS_STUDENT, CURRENT_ASSESSMENT_MODULE_STATUS } from '@/lib/types/local_storage.js';
 
 let classId = ref(''); // 通过班级idwatch
-const initialReport = ref('');
-const detailedAdvice = ref('');
-const interventionPlan = ref('');
-const loading = ref(false);
 const accessStudentInfo = uni.getStorageSync(ASSESS_STUDENT);
 const childId = accessStudentInfo.childId; // 通过childId获取儿童名字以及年龄
-// console.log('accessStudentInfo:', accessStudentInfo)
 const allAssessmentSections = accessStudentInfo.allAssessmentSections;
 const childAgeInt = accessStudentInfo.ageInt;
 const currentSectionId = accessStudentInfo.section.currentSection.currentSectionId
@@ -101,6 +96,9 @@ const currentAbllsNameList = accessStudentInfo.section.abllsSectionsObj;
 const stepCurrentIndex = ref(
     currentAbllsNameList.findIndex(item => item.abllsSectionAlphabet === currentAbllsSectionAlphabet)
 );
+
+const currentAssessmentModuleStatus = uni.getStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS);
+const recordId = currentAssessmentModuleStatus?.recordId;
 // 新增状态管理
 const questions = ref([]);          // 题目列表
 const currentIndex = ref(0);        // 当前题目索引
@@ -153,7 +151,7 @@ let buttonStyle2 = {
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 
 const assessmentMeta = {
-    recordId: `${currentSectionId}_${Date.now()}`,
+    recordId: recordId,
     assessmentId: accessStudentInfo.assessmentId,
     assessorId: uni.getStorageSync('uni-id-pages-userInfo')._id,
     assessorName: uni.getStorageSync('uni-id-pages-userInfo').nickname,
@@ -204,12 +202,36 @@ const uploadRecord = async (childId) => {
 };
 
 const prepareAllRecords = () => {
+    // 检查allAbllsSectionsRecordForm是否为空
+    if (!allAbllsSectionsRecordForm.value || allAbllsSectionsRecordForm.value.length === 0) {
+        console.log('allAbllsSectionsRecordForm为空，不上传');
+        return;
+    }
+
     const all = {
         ...assessmentMeta,
         assessmentRecords: allAbllsSectionsRecordForm.value,
     }
     console.log('all:', all)
+
+    // 调用云函数上传评估记录
+    uniCloud.callFunction({
+        name: 'wtdb-upload-assess-history',
+        data: {
+            recordId: assessmentMeta.recordId,
+            assessmentId: assessmentMeta.assessmentId,
+            assessorId: assessmentMeta.assessorId,
+            childId: assessmentMeta.childId,
+            sectionId: assessmentMeta.sectionId,
+            data: all
+        }
+    }).then(res => {
+        console.log('评估记录上传成功:', res)
+    }).catch(err => {
+        console.error('评估记录上传失败:', err)
+    })
 }
+
 
 
 const handleOptionChange = async (item) => {
