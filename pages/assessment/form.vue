@@ -114,7 +114,7 @@ const taskName = computed(() => questions.value[currentIndex.value]?.task_name |
 const taskObject = computed(() => questions.value[currentIndex.value]?.task_object || '');
 const assessmentRecords = ref({}); // 每个ablls section的缓存，存储所有已加载的题目记录，例如：{ LANG_1_E: [] }
 const assessmentRecordForm = ref({}); // 组织提交的表单数据
-
+const history = ref([]); // 记录每个ablls section的历史记录
 const singleAbllsSectionsForm = ref({
 }); // 当前ablls section的表单数据
 const allAbllsSectionsRecordForm = ref([]); // 所有ablls section的表单数据
@@ -163,7 +163,7 @@ const assessmentMeta = {
     sectionId: currentSectionId
 };
 
-console.log('assessmentMeta:', assessmentMeta)
+// console.log('assessmentMeta:', assessmentMeta)
 
 const handleNavBack = () => {
     uni.showModal({
@@ -176,7 +176,7 @@ const handleNavBack = () => {
                 // uploadRecord(childId);
                 prepareAllRecords()
             } else if (res.cancel) {
-                console.log('当前答题记录:', answers.value);
+                // console.log('当前答题记录:', answers.value);
                 console.log('用户取消返回');
             }
         },
@@ -195,7 +195,7 @@ const uploadRecord = async (childId) => {
             name: 'wt-fetch-assess-id',
             data: { childId }
         });
-        console.log('上传成功:', result);
+        // console.log('上传成功:', result);
     } catch (error) {
         console.error('上传失败:', error);
     }
@@ -370,7 +370,51 @@ const handleStepClick = async (item, index) => {
     }
 };
 
+const fetchHistory = async (recordId, sectionId, assessorId, childId) => {
+    try {
+        const res = await uniCloud.callFunction({
+            name: 'wtdb-fetch-assess-history',
+            data: {
+                recordId, sectionId, assessorId, childId
+            }
+        });
+        if (res.result.code == 200) {
+            // console.log('res:', res.result.data)
+            const history = res.result.data;
+            // console.log('history:', history)
+            if (history.length > 0) {
+                console.log('有历史记录:', history)
+                if (history[0].allAssessmentSections.length == history[0].assessmentRecords.length) {
+                    // 说明已经上传了所有的该模块的ablls section的题目
+                    console.log('已经上传了所有的该模块的ablls section的题目')
+                } else {
+                    // 说明没有上传所有的该模块的ablls section的题目
+                    console.log('没有上传所有的该模块的ablls section的题目')
+                    mergeQuestions(history[0].assessmentRecords, currentAbllsSectionAlphabet);
+
+                }
+            } else {
+                console.log('没有历史记录')
+            }
+        }
+        // console.log('res:', res)
+    } catch (e) {
+        console.log(e)
+        uni.showToast({ title: '拉取加载失败', icon: 'none' });
+    }
+};
+
+const mergeQuestions = (historyQuestionsList, currentAlphabet) => {
+    // 1. 根据currentAlphabet找到historyQuestionsList里面对应的题目
+    const historyQuestions = historyQuestionsList.find(
+        item => item.alphabet === currentAlphabet
+    )
+    // 2.没有就从正常拉取
+    console.log('historyQuestions:', historyQuestions.questions)
+}
+
 const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
+    fetchHistory(recordId, sectionId, assessmentMeta.assessorId, assessmentMeta.childId);
     // 检查是否已有缓存
     const cacheKey = `${sectionId}_${abllsSectionAlphabet}`;
     if (assessmentRecords.value[cacheKey]) {
@@ -386,6 +430,7 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
 
         if (res.result && res.result.data) {
             questions.value = res.result.data.questions;
+            console.log('正常拉取的题目:', questions.value)
             // 缓存题目数据
             assessmentRecords.value[cacheKey] = res.result.data.questions;
             // console.log('assessmentRecords:', assessmentRecords.value)
