@@ -175,7 +175,7 @@ const handleNavBack = () => {
             if (res.confirm) {
 
                 // uni.navigateBack();
-                uploadRecord(childId);
+                // uploadRecord(childId);
                 prepareAllRecords()
             } else if (res.cancel) {
                 console.log('当前答题记录:', answers.value);
