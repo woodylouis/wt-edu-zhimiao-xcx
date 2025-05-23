@@ -427,7 +427,6 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
         if (historyQuestions.length > 0) {
             questions.value = historyQuestions;
             assessmentRecords.value[cacheKey] = historyQuestions;
-            updateAllAbllsSectionsRecord();
         } else {
             const res = await uniCloud.callFunction({
                 name: 'wt-fetch-assessment-v2',
