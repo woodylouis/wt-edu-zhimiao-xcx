@@ -383,9 +383,25 @@ const fetchHistory = async (recordId, sectionId, assessorId, childId) => {
 
         if (res.result.code == 200) {
             // 查询到有该section的历史记录
-            console.log('没有查询到有该section的历史记录')
             if (res.result.data && res.result.data.length > 0) {
                 const history = res.result.data[0];
+                if (history.hasCompleted) {
+                    uni.showModal({
+                        title: '提示',
+                        content: '该部分已完成，是否修改题目？修改后报告将重新生成。',
+                        showCancel: true,
+                        success: (res) => {
+                            if (res.confirm) {
+                                console.log('用户点击确定')
+                            } else if (res.cancel) {
+                                console.log('用户点击取消')
+                                // 返回上一页
+                                uni.navigateBack();
+                            }
+                        }
+                    })
+                }
+                console.log('history:', history.hasCompleted)
                 allAbllsSectionsRecordForm.value = history.assessmentRecords; // 直接将所有记录赋值给allAbllsSectionsRecordForm
                 const questions = mergeQuestions(history.assessmentRecords, currentAbllsSectionAlphabet);
                 console.log('historyQuestions from mergeQuestions:', questions)
