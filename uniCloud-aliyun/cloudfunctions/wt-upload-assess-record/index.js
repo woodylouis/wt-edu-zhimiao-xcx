@@ -28,10 +28,11 @@ exports.main = async (event, context) => {
 		// 有记录
 		const existingRecord = await collection.where({ childId, assessorId: uid }).get();
 		if (existingRecord.data.length > 0) {
-			// existingRecord里面的modulesStatus列表的status不为1，说明有记录未完成，直接返回
+
 			const modulesStatus = existingRecord.data[0].modulesStatus;
 			if (modulesStatus && modulesStatus.length > 0) {
 				const allCompleted = modulesStatus.every(module => module.status === 1);
+				// existingRecord里面的modulesStatus列表的status不为1，说明有记录未完成，直接返回数据库数据
 				if (!allCompleted) {
 					return {
 						code: 200,
@@ -45,7 +46,6 @@ exports.main = async (event, context) => {
 					return res;
 				}
 			}
-			// 有记录已完成，不更新，返回新的
 		} else {
 			// 无记录，插入新记录，创建新的
 			const res = createNewAssessmentRecord(childId, data, uid)
