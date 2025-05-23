@@ -55,7 +55,7 @@ import customNav from '@/components/customNav'
 import { ref, onMounted } from "vue";
 import { onShow, onLoad, onUnload, onReachBottom } from '@dcloudio/uni-app'
 import modalBox from '../../components/modalBox-v3/modalBox.vue';
-import { ASSESS_STUDENT, CURRENT_ASSESSMENT_SECTION } from '@/lib/types/local_storage.js';
+import { ASSESS_STUDENT, CURRENT_ASSESSMENT_MODULE_STATUS } from '@/lib/types/local_storage.js';
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
@@ -210,42 +210,22 @@ const fetchAssessmentRecordData = async (childId, assessmentSections) => {
         }))
     }
     try {
-        const result = await uniCloud.callFunction({
+        const res = await uniCloud.callFunction({
             name: 'wt-upload-assess-record',
             data: { childId, data }
         });
+        if (res.result.code == 200) {
+            const temp = res.result.result;
+            console.log('查询结果:', temp);
+            // 保存到本地存储
+            uni.setStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS, temp);
 
-        console.log('查询结果:', result);
+        }
     } catch (error) {
         console.error('查询失败:', error);
         reject(error);
     }
 };
-
-const uploadAssessmentRecord = (childId, assessmentSections) => {
-
-    // 1. 获得recordId
-    // getAssessmentRecordId(currentStudent.value.childId)
-    // console.log('recordObj:', recordObj.value)
-    // 2. 通过recordId获得recordStatus
-    // if (recordIdRes) {
-    //     // 3. 上传数据
-    //     console.log('recordId:', recordIdRes)
-    // }
-    // getAssessmentRecordId(childId).then(res => {
-    //     console.log('recordId:', res)
-    // })
-    // const params = {
-    //     recordId: recordId,
-    //     ...currentStudent.value,
-    //     modulesStatus: assessmentSections.map(section => ({
-    //         sectionId: section.section_id,
-    //         sectionRecordId: `${section.section_id}_${res.suffix}`,
-    //         sectionName: section.section,
-    //         status: 0 // 初始状态设为pending 0 未开始或进行中，1已完成
-    //     }))
-    // }
-}
 
 onShow(() => {
     // 新增用户信息更新逻辑

@@ -36,7 +36,7 @@ exports.main = async (event, context) => {
 				if (!allCompleted) {
 					return {
 						code: 200,
-						result: existingRecord.data,
+						result: existingRecord.data[0],
 						message: `查到${data.childName}的评估记录。`,
 
 					};
