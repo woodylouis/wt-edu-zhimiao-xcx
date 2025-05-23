@@ -372,6 +372,7 @@ const handleStepClick = async (item, index) => {
 
 const fetchHistory = async (recordId, sectionId, assessorId, childId) => {
     try {
+
         const res = await uniCloud.callFunction({
             name: 'wtdb-fetch-assess-history',
             data: {
@@ -383,6 +384,9 @@ const fetchHistory = async (recordId, sectionId, assessorId, childId) => {
             if (res.result.data && res.result.data > 0) {
                 const history = res.result.data;
                 const questions = mergeQuestions(history[0].assessmentRecords, currentAbllsSectionAlphabet);
+                questions.value = questions;
+                // 缓存题目数据
+                assessmentRecords.value[cacheKey] = res.result.data.questions;
                 console.log('historyQuestions:', questions)
             } else {
                 console.log('没有历史记录')
@@ -397,6 +401,8 @@ const fetchHistory = async (recordId, sectionId, assessorId, childId) => {
     }
 };
 
+
+
 const mergeQuestions = (historyQuestionsList, currentAlphabet) => {
     // 根据currentAlphabet找到historyQuestionsList里面对应的题目
     const historyQuestions = historyQuestionsList.find(
@@ -410,6 +416,7 @@ const loadQuestions = async (sectionId, abllsSectionAlphabet, age) => {
     // 检查是否已有缓存
     const cacheKey = `${sectionId}_${abllsSectionAlphabet}`;
     if (assessmentRecords.value[cacheKey]) {
+        console.log('使用缓存的题目:', assessmentRecords.value)
         questions.value = assessmentRecords.value[cacheKey];
         return;
     }
