@@ -299,6 +299,7 @@ const updateSingleAbllsSectionsForm = () => {
                 return total + (selectedOption ? selectedOption.score : 0);
             }, 0),
         };
+        console.log("singleAbllsSectionsForm:", singleAbllsSectionsForm.value)
         resolve(true);
     });
 };
@@ -385,6 +386,7 @@ const fetchHistory = async (recordId, sectionId, assessorId, childId) => {
             console.log('没有查询到有该section的历史记录')
             if (res.result.data && res.result.data.length > 0) {
                 const history = res.result.data[0];
+                allAbllsSectionsRecordForm.value = history.assessmentRecords; // 直接将所有记录赋值给allAbllsSectionsRecordForm
                 const questions = mergeQuestions(history.assessmentRecords, currentAbllsSectionAlphabet);
                 console.log('historyQuestions from mergeQuestions:', questions)
                 return questions; // 返回合并后的题目列
