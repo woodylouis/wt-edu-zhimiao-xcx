@@ -226,6 +226,13 @@ const prepareAllRecords = () => {
         }
     }).then(res => {
         console.log('评估记录上传成功:', res)
+
+        uni.redirectTo({ url: '/pages/assessment/listMoudules' })
+        uni.showToast({
+            title: '进度保存成功',
+            icon: 'success',
+            mask: true
+        })
     }).catch(err => {
         console.error('评估记录上传失败:', err)
     })
