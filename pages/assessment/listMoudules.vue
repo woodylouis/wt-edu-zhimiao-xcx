@@ -2,7 +2,7 @@
     <view class="dashboard">
         <u-sticky>
             <custom-nav :xcxName="currentStudent.assessmentTitle" :navCustomStyle="navCustomStyle" :needBar="false"
-                :needBack="true" />
+                :needBack="true" :backHandler="handleNavBack" />
             <view class="user-profile">
                 <!-- 左侧内容容器 -->
 
@@ -240,7 +240,7 @@ onReachBottom(() => {
 
 onLoad((options) => {
     console.log('onLoad options:', options);
-    if (options) {
+    if (options && options.childId) {
         currentStudent.value = {
             ...options,
             ageInt: Number(options.ageInt) || 0
@@ -248,7 +248,14 @@ onLoad((options) => {
         console.log('currentStudent:', currentStudent.value)
         uni.setStorageSync(ASSESS_STUDENT, currentStudent.value);
         loadAssessmentSections(options.assessmentId, Number(options.ageInt));
+    } else {
+        console.log('else')
+        const temp = uni.getStorageSync(ASSESS_STUDENT);
+        console.log('temp:', temp)
+        loadAssessmentSections(temp.assessmentId, Number(temp.ageInt));
+        currentStudent.value = temp;
     }
+
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
 });
 
@@ -256,8 +263,12 @@ onLoad((options) => {
 
 onUnload(() => {
     uni.$off('reachBottom', onReachBottom)
-    uni.removeStorageSync(ASSESS_STUDENT)
+    // uni.removeStorageSync(ASSESS_STUDENT)
 })
+
+const handleNavBack = () => {
+    uni.removeStorageSync(ASSESS_STUDENT)
+}
 
 const checkLoginStatus = () => {
     try {
