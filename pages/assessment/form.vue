@@ -197,6 +197,11 @@ const handleNavBack = () => {
     });
 };
 
+const handleConfirm = () => {
+    const isToGenerateReport = true;
+    prepareAllRecords(isToGenerateReport)
+}
+
 const isAllCompleted = computed(() => {
     return questions.value.length > 0 &&
         answers.value.length === questions.value.length &&
@@ -247,7 +252,7 @@ const checkIfAllCompleted = (allAbllsSectionsRecordForm) => {
     }
 
 };
-const prepareAllRecords = () => {
+const prepareAllRecords = (isToGenerateReport) => {
     // 检查allAbllsSectionsRecordForm是否为空
     if (!allAbllsSectionsRecordForm.value || allAbllsSectionsRecordForm.value.length === 0) {
         console.log('allAbllsSectionsRecordForm为空，不上传');
@@ -273,18 +278,44 @@ const prepareAllRecords = () => {
     }).then(res => {
         console.log('评估记录上传成功:', res)
 
-        uni.redirectTo({ url: '/pages/assessment/listMoudules' })
-        uni.showToast({
-            title: '进度保存成功',
-            icon: 'success',
-            mask: true
-        })
+        if (isToGenerateReport) {
+            generateReport(assessmentMeta.recordId, assessmentMeta.assessmentId, assessmentMeta.assessorId, assessmentMeta.childId, assessmentMeta.sectionId)
+        } else {
+            // 上传成功后，跳转到评估记录列表页
+            uni.redirectTo({ url: '/pages/assessment/listMoudules' })
+            uni.showToast({
+                title: '进度保存成功',
+                icon: 'success',
+                mask: true
+            })
+        }
+
+
+
     }).catch(err => {
         console.error('评估记录上传失败:', err)
     })
 }
 
-
+const generateReport = async (recordId, assessmentId, assessorId, childId, sectionId) => {
+    // 生成报告
+    console.log('生成报告')
+    try {
+        const result = await uniCloud.callFunction({
+            name: 'wt-business-report-gen-v2',
+            data: {
+                recordId,
+                assessmentId,
+                assessorId,
+                childId,
+                sectionId
+            }
+        });
+        console.log('res:', result);
+    } catch (error) {
+        console.error('生成报告失败:', error);
+    }
+}
 
 const handleOptionChange = async (item) => {
     try {
@@ -489,24 +520,25 @@ const fetchHistory = async (recordId, sectionId, assessorId, childId) => {
             // 查询到有该section的历史记录
             if (res.result.data && res.result.data.length > 0) {
                 const history = res.result.data[0];
-                if (history.hasCompleted) {
-                    uni.showModal({
-                        title: '提示',
-                        content: '该部分已完成，是否修改？修改后报告将重新生成。',
-                        confirmText: '去修改',
-                        cancelText: '返回',
-                        showCancel: true,
-                        success: (res) => {
-                            if (res.confirm) {
-                                console.log('用户点击确定')
-                            } else if (res.cancel) {
-                                console.log('用户点击取消')
-                                // 返回上一页
-                                uni.navigateBack();
-                            }
-                        }
-                    })
-                }
+                // TODO: 只出现一次，后续需要优化，先注释掉
+                // if (history.hasCompleted) {
+                //     uni.showModal({
+                //         title: '提示',
+                //         content: '该部分已完成，是否修改？修改后报告将重新生成。',
+                //         confirmText: '去修改',
+                //         cancelText: '返回',
+                //         showCancel: true,
+                //         success: (res) => {
+                //             if (res.confirm) {
+                //                 console.log('用户点击确定')
+                //             } else if (res.cancel) {
+                //                 console.log('用户点击取消')
+                //                 // 返回上一页
+                //                 uni.navigateBack();
+                //             }
+                //         }
+                //     })
+                // }
                 console.log('history:', history.hasCompleted)
                 allAbllsSectionsRecordForm.value = history.assessmentRecords; // 直接将所有记录赋值给allAbllsSectionsRecordForm
                 const questions = mergeQuestions(history.assessmentRecords, currentAbllsSectionAlphabet);

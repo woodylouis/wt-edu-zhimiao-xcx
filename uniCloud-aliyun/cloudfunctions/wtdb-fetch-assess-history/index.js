@@ -31,7 +31,7 @@ exports.main = async (event, context) => {
 			return {
 				code: 200,
 				data: res.data, // 返回第一条匹配的记录
-				message: '查询成功'
+				message: '报告生成中'
 			};
 		} else {
 			return {
