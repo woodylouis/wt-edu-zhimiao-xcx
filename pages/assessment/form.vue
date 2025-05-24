@@ -64,11 +64,13 @@
                     </view>
                 </view>
             </view>
-
-
-
-
         </view>
+        <up-overlay :show="show">
+            <view class="warp">
+                <modal-box v-if="show" :items="confirmInfo" confirmText="生成报告" @cancel="show = false"
+                    @create="handleConfirm" />
+            </view>
+        </up-overlay>
     </view>
 </template>
 
@@ -78,7 +80,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { ref, reactive, onMounted, computed, watch } from "vue";
 import wtRadio from '@/components/radio';
 import { ASSESS_STUDENT, CURRENT_ASSESSMENT_MODULE_STATUS } from '@/lib/types/local_storage.js';
-
+import modalBox from '../../components/modalBox-v2/modalBox';
 let classId = ref(''); // 通过班级idwatch
 const accessStudentInfo = uni.getStorageSync(ASSESS_STUDENT);
 const childId = accessStudentInfo.childId; // 通过childId获取儿童名字以及年龄
@@ -118,7 +120,7 @@ const history = ref([]); // 记录每个ablls section的历史记录
 const singleAbllsSectionsForm = ref({
 }); // 当前ablls section的表单数据
 const allAbllsSectionsRecordForm = ref([]); // 所有ablls section的表单数据
-
+const show = ref(false);
 
 // 监听selectedAnswer变化
 watch(selectedAnswer, (newValue, oldValue) => {
@@ -162,6 +164,17 @@ const assessmentMeta = {
     hasCompleted: false, // 该部分是否已完成
     sectionId: currentSectionId
 };
+
+const confirmInfo = ref([
+    {
+        label: "本次评估的大类：",
+        name: currentSection,
+    },
+    {
+        label: "本次评估的小类：",
+        name: `${currentAbllsNameList.map(u => u.sectionName).join(', ')}`,
+    }
+]);
 
 // console.log('assessmentMeta:', assessmentMeta)
 
@@ -358,13 +371,54 @@ const backToPrevious = () => {
 };
 
 const goToNext = () => {
-
     if (currentIndex.value < questions.value.length - 1) {
         currentIndex.value++;
         checkIfAllCompleted(allAbllsSectionsRecordForm.value)
     } else {
-        // 最后一题，提交表单
+        // 当前标签下所有题目已完成
         checkIfAllCompleted(allAbllsSectionsRecordForm.value)
+
+        // 自动切换到下一个标签
+        const nextIndex = stepCurrentIndex.value + 1;
+        if (nextIndex < currentAbllsNameList.length) {
+            handleStepClick(currentAbllsNameList[nextIndex], nextIndex);
+        } else {
+            // 检查是否有未完成的子模块
+            const uncompleted = currentAbllsNameList.filter(
+                item => !allAbllsSectionsRecordForm.value.some(
+                    record => record.alphabet === item.abllsSectionAlphabet && record.allQuestionsCompleted
+                )
+            );
+
+            if (uncompleted.length > 0) {
+                uni.showModal({
+                    title: '提示',
+                    content: `还有未完成的子模块: ${uncompleted.map(u => u.sectionName).join(', ')}`,
+                    confirmText: '前往完成',
+                    success: (res) => {
+                        if (res.confirm) {
+                            // 切换到第一个未完成的子模块
+                            const firstUncompleted = currentAbllsNameList.findIndex(
+                                item => item.abllsSectionAlphabet === uncompleted[0].abllsSectionAlphabet
+                            );
+                            handleStepClick(uncompleted[0], firstUncompleted);
+                        }
+                    }
+                });
+            } else {
+                console.log("allAssessmentSections", allAssessmentSections)
+                show.value = true;
+                // uni.showModal({
+                //     title: '评测完成',
+                //     content: `已完成${currentSection}评测\n\n本评测包含以下section:\n${Array.isArray(allAssessmentSections)
+                //         ? allAssessmentSections.map(s => s.section).join('\n')
+                //         : Object.values(allAssessmentSections).map(s => s.section).join('\n')
+                //         }`,
+                //     confirmText: '确定',
+                //     showCancel: false
+                // });
+            }
+        }
     }
 };
 
@@ -438,7 +492,9 @@ const fetchHistory = async (recordId, sectionId, assessorId, childId) => {
                 if (history.hasCompleted) {
                     uni.showModal({
                         title: '提示',
-                        content: '该部分已完成，是否修改题目？修改后报告将重新生成。',
+                        content: '该部分已完成，是否修改？修改后报告将重新生成。',
+                        confirmText: '去修改',
+                        cancelText: '返回',
                         showCancel: true,
                         success: (res) => {
                             if (res.confirm) {
@@ -538,6 +594,13 @@ onLoad(async (options) => {
 
 <style lang="scss" scoped>
 .assessment {
+    .warp {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+    }
+
     .content {
         // padding: 0 40rpx;
         background-color: #F2F7F6;
