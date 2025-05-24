@@ -202,6 +202,11 @@ const uploadRecord = async (childId) => {
     }
 };
 
+const checkIfAllCompleted = (allAbllsSectionsRecordForm) => {
+    // currentAbllsNameList
+    console.log('allAbllsSectionsRecordForm:', allAbllsSectionsRecordForm)
+};
+
 const prepareAllRecords = () => {
     // 检查allAbllsSectionsRecordForm是否为空
     if (!allAbllsSectionsRecordForm.value || allAbllsSectionsRecordForm.value.length === 0) {
@@ -307,6 +312,8 @@ const updateSingleAbllsSectionsForm = () => {
                 const selectedOption = question.options.find(option => option.selected);
                 return total + (selectedOption ? selectedOption.score : 0);
             }, 0),
+            allQuestionsCompleted: questions.value.length > 0 &&
+                questions.value.every(q => q.options.some(opt => opt.selected))
         };
         console.log("singleAbllsSectionsForm:", singleAbllsSectionsForm.value)
         resolve(true);
@@ -325,8 +332,7 @@ const backToPrevious = () => {
 const goToNext = () => {
     if (currentIndex.value < questions.value.length - 1) {
         currentIndex.value++;
-        // console.log('questions:', questions.value)
-
+        checkIfAllCompleted(allAbllsSectionsRecordForm.value)
     }
 };
 
@@ -334,6 +340,9 @@ const handleStepClick = async (item, index) => {
     if (stepCurrentIndex.value === index) return;
 
     uni.showLoading({ title: '加载题目...', mask: true });
+    setTimeout(() => {
+        uni.hideLoading();
+    }, 3000);
     try {
         // 更新当前section信息
         // console.log('item:', item)
