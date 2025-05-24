@@ -203,13 +203,9 @@ const uploadRecord = async (childId) => {
 };
 
 const checkIfAllCompleted = (allAbllsSectionsRecordForm) => {
-    // currentAbllsNameList
-    console.log('allAbllsSectionsRecordForm:', allAbllsSectionsRecordForm)
-    console.log('currentAbllsNameList:', currentAbllsNameList)
     // 计算本ablls section一共有多少个子模块
     const totalSubModules = currentAbllsNameList.length;
-
-    console.log('totalSubModules:', totalSubModules)
+    // console.log('totalSubModules:', totalSubModules)
     // 计算已完成的子模块数量
     const completedSubModules = allAbllsSectionsRecordForm.filter(section => section.allQuestionsCompleted).length || 0;
 
@@ -218,14 +214,26 @@ const checkIfAllCompleted = (allAbllsSectionsRecordForm) => {
         // 所有子模块都已完成
         console.log('所有子模块都已完成')
         assessmentMeta.hasCompleted = true;
+
+        // 所有模块完成了可以提交生成本section的报告了
+
     } else {
         // 还有未完成的子模块
         console.log('还有未完成的子模块')
         assessmentMeta.hasCompleted = false;
+        // 与currentAbllsNameList对比，找出没完成的子模块，并找出对应的abllsSectionAlphabet的第几道题目没完成
+        const uncompletedSubModules = currentAbllsNameList.filter(section => !section.allQuestionsCompleted);
+        console.log('uncompletedSubModules:', uncompletedSubModules)
+        const uncompletedAbllsSectionName = uncompletedSubModules.map(section => section.sectionName);
+        console.log('uncompletedAbllsSectionName:', uncompletedAbllsSectionName)
+        // 提示用户未完成的子模块
+        // uni.showToast({
+        //     title: `还有未完成的子模块: ${uncompletedAbllsSectionName.join(', ')}`,
+        //     icon: 'none'
+        // });
     }
 
 };
-
 const prepareAllRecords = () => {
     // 检查allAbllsSectionsRecordForm是否为空
     if (!allAbllsSectionsRecordForm.value || allAbllsSectionsRecordForm.value.length === 0) {
@@ -350,8 +358,12 @@ const backToPrevious = () => {
 };
 
 const goToNext = () => {
+
     if (currentIndex.value < questions.value.length - 1) {
         currentIndex.value++;
+        checkIfAllCompleted(allAbllsSectionsRecordForm.value)
+    } else {
+        // 最后一题，提交表单
         checkIfAllCompleted(allAbllsSectionsRecordForm.value)
     }
 };
