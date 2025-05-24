@@ -438,7 +438,12 @@ const goToNext = () => {
                 });
             } else {
                 console.log("allAssessmentSections", allAssessmentSections)
-                show.value = true;
+                // show.value = true;
+                uni.showToast({
+                    icon: 'none',
+                    title: '所有子模块已完成',
+                    mask: true
+                })
                 // uni.showModal({
                 //     title: '评测完成',
                 //     content: `已完成${currentSection}评测\n\n本评测包含以下section:\n${Array.isArray(allAssessmentSections)
