@@ -205,6 +205,25 @@ const uploadRecord = async (childId) => {
 const checkIfAllCompleted = (allAbllsSectionsRecordForm) => {
     // currentAbllsNameList
     console.log('allAbllsSectionsRecordForm:', allAbllsSectionsRecordForm)
+    console.log('currentAbllsNameList:', currentAbllsNameList)
+    // 计算本ablls section一共有多少个子模块
+    const totalSubModules = currentAbllsNameList.length;
+
+    console.log('totalSubModules:', totalSubModules)
+    // 计算已完成的子模块数量
+    const completedSubModules = allAbllsSectionsRecordForm.filter(section => section.allQuestionsCompleted).length || 0;
+
+    console.log('completedSubModules:', completedSubModules)
+    if (totalSubModules === completedSubModules) {
+        // 所有子模块都已完成
+        console.log('所有子模块都已完成')
+        assessmentMeta.hasCompleted = true;
+    } else {
+        // 还有未完成的子模块
+        console.log('还有未完成的子模块')
+        assessmentMeta.hasCompleted = false;
+    }
+
 };
 
 const prepareAllRecords = () => {
@@ -312,6 +331,7 @@ const updateSingleAbllsSectionsForm = () => {
                 const selectedOption = question.options.find(option => option.selected);
                 return total + (selectedOption ? selectedOption.score : 0);
             }, 0),
+            // 每次更新都需要检查本子模块是否所有题目都已完成
             allQuestionsCompleted: questions.value.length > 0 &&
                 questions.value.every(q => q.options.some(opt => opt.selected))
         };
