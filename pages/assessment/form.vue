@@ -120,7 +120,7 @@ const history = ref([]); // 记录每个ablls section的历史记录
 const singleAbllsSectionsForm = ref({
 }); // 当前ablls section的表单数据
 const allAbllsSectionsRecordForm = ref([]); // 所有ablls section的表单数据
-const show = ref(false);
+const show = ref(true);
 
 // 监听selectedAnswer变化
 watch(selectedAnswer, (newValue, oldValue) => {
@@ -287,7 +287,7 @@ const prepareAllRecords = (isToGenerateReport) => {
     })
 }
 
-const generateReport = async (recordId, assessmentId, assessorId, childId, sectionId) => {
+const generateReport = async (recordId, assessmentId, assessorId, childId) => {
     // 生成报告
     console.log('生成报告')
     try {
@@ -298,7 +298,6 @@ const generateReport = async (recordId, assessmentId, assessorId, childId, secti
                 assessmentId,
                 assessorId,
                 childId,
-                sectionId
             }
         });
         console.log('res:', result);
@@ -428,8 +427,8 @@ const goToNext = () => {
                 });
             } else {
                 console.log("allAssessmentSections", allAssessmentSections)
-                prepareAllRecords()
-                // show.value = true;
+                prepareAllRecords(true)
+                show.value = true;
                 uni.showToast({
                     icon: 'none',
                     title: '所有子模块已完成',
