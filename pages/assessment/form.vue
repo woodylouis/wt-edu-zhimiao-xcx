@@ -202,7 +202,16 @@ const handleConfirm = () => {
     const checkModuleStatus = true;
     const confirmToGenerateReport = true;
     prepareAllRecords(checkModuleStatus, confirmToGenerateReport)
+
+    // TO-DO: 更改状态
+    if (confirmToGenerateReport) {
+        changeStatus()
+    }
 }
+
+const changeStatus = (sectionName, status) => {
+    // 把在wtdb-business-assess-history和wtdb-business-assess-record的相关状态字段改成true
+};
 
 const isAllCompleted = computed(() => {
     return questions.value.length > 0 &&
