@@ -193,7 +193,7 @@ const confirmInfo = ref([
 // console.log('assessmentMeta:', assessmentMeta)
 
 const handleNavBack = () => {
-    const checkModuleStatus = true;
+    const checkModuleStatus = false;
     const confirmToGenerateReport = false;
     prepareAllRecords(checkModuleStatus, confirmToGenerateReport)
 };
