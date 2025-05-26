@@ -179,22 +179,7 @@ const confirmInfo = ref([
 // console.log('assessmentMeta:', assessmentMeta)
 
 const handleNavBack = () => {
-    uni.showModal({
-        title: '确认返回',
-        content: isAllCompleted.value ? '所有题目已完成，确认返回吗？' : '还有未完成的题目，确认返回吗？',
-        success: (res) => {
-            if (res.confirm) {
-
-                // uni.navigateBack();
-                // uploadRecord(childId);
-                prepareAllRecords()
-
-            } else if (res.cancel) {
-                // console.log('当前答题记录:', answers.value);
-                console.log('用户取消返回');
-            }
-        },
-    });
+    prepareAllRecords()
 };
 
 const handleConfirm = () => {
@@ -281,12 +266,17 @@ const prepareAllRecords = (isToGenerateReport) => {
         if (isToGenerateReport) {
             generateReport(assessmentMeta.recordId, assessmentMeta.assessmentId, assessmentMeta.assessorId, assessmentMeta.childId, assessmentMeta.sectionId)
         } else {
-            // 上传成功后，跳转到评估记录列表页
-            uni.redirectTo({ url: '/pages/assessment/listMoudules' })
-            uni.showToast({
-                title: '进度保存成功',
-                icon: 'success',
-                mask: true
+
+            uni.showModal({
+                title: '提示',
+                content: '进度保存成功。是否返回到上一页？',
+                success: (res) => {
+                    if (res.confirm) {
+                        uni.redirectTo({ url: '/pages/assessment/listMoudules' })
+                    } else if (res.cancel) {
+                        console.log('用户取消返回');
+                    }
+                }
             })
         }
 
@@ -438,6 +428,7 @@ const goToNext = () => {
                 });
             } else {
                 console.log("allAssessmentSections", allAssessmentSections)
+                prepareAllRecords()
                 // show.value = true;
                 uni.showToast({
                     icon: 'none',
