@@ -193,12 +193,15 @@ const confirmInfo = ref([
 // console.log('assessmentMeta:', assessmentMeta)
 
 const handleNavBack = () => {
-    prepareAllRecords()
+    const checkModuleStatus = true;
+    const confirmToGenerateReport = false;
+    prepareAllRecords(checkModuleStatus, confirmToGenerateReport)
 };
 
 const handleConfirm = () => {
-    const isToGenerateReport = true;
-    prepareAllRecords(isToGenerateReport)
+    const checkModuleStatus = true;
+    const confirmToGenerateReport = true;
+    prepareAllRecords(checkModuleStatus, confirmToGenerateReport)
 }
 
 const isAllCompleted = computed(() => {
@@ -251,7 +254,9 @@ const checkIfAllCompleted = (allAbllsSectionsRecordForm) => {
     }
 
 };
-const prepareAllRecords = (isToGenerateReport) => {
+const prepareAllRecords = (checkModuleStatus, isToGenerateReport) => {
+    console.log('prepareAllRecords:', checkModuleStatus)
+    console.log('isToGenerateReport:', isToGenerateReport)
     // 检查allAbllsSectionsRecordForm是否为空
     if (!allAbllsSectionsRecordForm.value || allAbllsSectionsRecordForm.value.length === 0) {
         console.log('allAbllsSectionsRecordForm为空，不上传');
@@ -277,9 +282,14 @@ const prepareAllRecords = (isToGenerateReport) => {
     }).then(res => {
         console.log('评估记录上传成功:', res)
 
-        if (isToGenerateReport) {
+        if (checkModuleStatus && !isToGenerateReport) {
             uni.showLoading({ title: '分析完成状态...', mask: true });
-            generateReport(assessmentMeta.recordId, assessmentMeta.assessmentId, assessmentMeta.assessorId, assessmentMeta.childId, assessmentMeta.sectionId)
+            generateReport(assessmentMeta.recordId, assessmentMeta.assessmentId, assessmentMeta.assessorId, assessmentMeta.childId)
+
+        } else if (checkModuleStatus && isToGenerateReport) {
+            generateReport(assessmentMeta.recordId, assessmentMeta.assessmentId, assessmentMeta.assessorId, assessmentMeta.childId, isToGenerateReport)
+
+            console.log('确定生成报告')
         } else {
 
             uni.showModal({
@@ -302,7 +312,7 @@ const prepareAllRecords = (isToGenerateReport) => {
     })
 }
 
-const generateReport = async (recordId, assessmentId, assessorId, childId) => {
+const generateReport = async (recordId, assessmentId, assessorId, childId, confirmToGenerateReport) => {
     // 生成报告
     console.log('生成报告')
     try {
@@ -313,6 +323,7 @@ const generateReport = async (recordId, assessmentId, assessorId, childId) => {
                 assessmentId,
                 assessorId,
                 childId,
+                confirmToGenerateReport
             }
         });
         console.log('res:', res.result.data);
@@ -476,7 +487,9 @@ const goToNext = () => {
                 });
             } else {
                 console.log("allAssessmentSections", allAssessmentSections)
-                prepareAllRecords(true)
+                const checkModuleStatus = true;
+                const confirmToGenerateReport = false;
+                prepareAllRecords(checkModuleStatus, confirmToGenerateReport)
 
 
                 // uni.showModal({

@@ -8,7 +8,8 @@ exports.main = async (event, context) => {
 	try {
 		const uniIdInstance = uniID.createInstance({ context });
 		const { uid } = await uniIdInstance.checkToken(event.uniIdToken);
-		const { recordId, assessmentId, assessorId, childId } = event;
+		const { recordId, assessmentId, assessorId, childId, confirmToGenerateReport } = event;
+		console.log('confirmToGenerateReport', confirmToGenerateReport)
 
 		// 参数校验
 		if (!recordId || !assessmentId || !assessorId || !childId) {
@@ -29,6 +30,8 @@ exports.main = async (event, context) => {
 		// 执行查询
 		const resHistory = await collection.where(query).get();
 		const resRecord = await db.collection(dbName2).where(query).get();
+
+
 
 		if (resRecord.data && resRecord.data.length > 0) {
 			const modulesStatus = resRecord.data[0].modulesStatus || [];
@@ -56,11 +59,20 @@ exports.main = async (event, context) => {
 				}
 			});
 
-			return {
-				code: 200,
-				data: result,
-				message: '查询成功'
-			};
+			if (confirmToGenerateReport) {
+				return {
+					code: 200,
+					data: result,
+					message: '报告生成中，请稍后查询'
+				};
+			} else {
+				return {
+					code: 200,
+					data: result,
+					message: '查询成功'
+				};
+			}
+
 		} else {
 			return {
 				code: 404,
