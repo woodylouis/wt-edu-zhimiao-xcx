@@ -67,8 +67,8 @@
         </view>
         <up-overlay :show="show">
             <view class="warp">
-                <modal-box v-if="show" :items="confirmInfo" confirmText="生成报告" @cancel="show = false"
-                    @create="handleConfirm" />
+                <modal-box v-if="show" :tips="tips" :tips2="tips2" :items="confirmInfo" confirmText="生成报告"
+                    @cancel="show = false" :cancelText="'不生成报告'" @create="handleConfirm" />
             </view>
         </up-overlay>
     </view>
@@ -80,7 +80,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { ref, reactive, onMounted, computed, watch } from "vue";
 import wtRadio from '@/components/radio';
 import { ASSESS_STUDENT, CURRENT_ASSESSMENT_MODULE_STATUS } from '@/lib/types/local_storage.js';
-import modalBox from '../../components/modalBox-v2/modalBox';
+import modalBox from '../../components/modalBox-v3/modalBox';
 let classId = ref(''); // 通过班级idwatch
 const accessStudentInfo = uni.getStorageSync(ASSESS_STUDENT);
 const childId = accessStudentInfo.childId; // 通过childId获取儿童名字以及年龄
@@ -120,7 +120,13 @@ const history = ref([]); // 记录每个ablls section的历史记录
 const singleAbllsSectionsForm = ref({
 }); // 当前ablls section的表单数据
 const allAbllsSectionsRecordForm = ref([]); // 所有ablls section的表单数据
-const show = ref(true);
+const show = ref(false);
+const notStartedSection = ref([]);
+const completedSection = ref([]);
+const inProgressSection = ref([]);
+const tips = ref('当前模块题目已完成。以下是小结：');
+const tips2 = ref('');
+// const tips2 = ref('本评测还有模块未完成。');
 
 // 监听selectedAnswer变化
 watch(selectedAnswer, (newValue, oldValue) => {
@@ -166,14 +172,22 @@ const assessmentMeta = {
 };
 
 const confirmInfo = ref([
-    {
-        label: "本次评估的大类：",
-        name: currentSection,
-    },
-    {
-        label: "本次评估的小类：",
-        name: `${currentAbllsNameList.map(u => u.sectionName).join(', ')}`,
-    }
+    // {
+    //     label: "本次评估的大类：",
+    //     name: currentSection,
+    // },
+    // {
+    //     label: "已完成的大类：",
+    //     name: `${completedSection.value.map(u => u.sectionName).join(', ')}`,
+    // },
+    // {
+    //     label: "正在进行的大类：",
+    //     name: `${inProgressSection.value.map(u => u.sectionName).join(', ')}`,
+    // },
+    // {
+    //     label: "未开始的大类：",
+    //     name: `${notStartedSection.value.map(u => u.sectionName).join(', ')}`,
+    // }
 ]);
 
 // console.log('assessmentMeta:', assessmentMeta)
@@ -264,6 +278,7 @@ const prepareAllRecords = (isToGenerateReport) => {
         console.log('评估记录上传成功:', res)
 
         if (isToGenerateReport) {
+            uni.showLoading({ title: '分析完成状态...', mask: true });
             generateReport(assessmentMeta.recordId, assessmentMeta.assessmentId, assessmentMeta.assessorId, assessmentMeta.childId, assessmentMeta.sectionId)
         } else {
 
@@ -291,7 +306,7 @@ const generateReport = async (recordId, assessmentId, assessorId, childId) => {
     // 生成报告
     console.log('生成报告')
     try {
-        const result = await uniCloud.callFunction({
+        const res = await uniCloud.callFunction({
             name: 'wt-business-report-gen-v2',
             data: {
                 recordId,
@@ -300,9 +315,43 @@ const generateReport = async (recordId, assessmentId, assessorId, childId) => {
                 childId,
             }
         });
-        console.log('res:', result);
+        console.log('res:', res.result.data);
+        console.log('res code:', res.result.code);
+
+        if (res.result.code == 200 && res.result.data) {
+
+            inProgressSection.value = res.result.data.inProgress;
+            notStartedSection.value = res.result.data.notStarted;
+            completedSection.value = res.result.data.completed;
+            console.log('inProgressSection:', inProgressSection.value)
+            console.log('notStartedSection:', notStartedSection.value)
+            console.log('completedSection:', completedSection.value)
+            tips.value = `以下是本次评测完成情况：`;
+            confirmInfo.value = [
+                {
+                    label: "已完成的模块：",
+                    name: completedSection.value.map(u =>
+                        u.sectionName + (u.sectionName === currentSection ? "(当前)" : "")
+                    ).join('\n') || '无',
+                },
+                {
+                    label: "正在进行模块：",
+                    name: inProgressSection.value.map(u => u.sectionName).join('\n') || '无',
+                },
+                {
+                    label: "未开始的模块：",
+                    name: notStartedSection.value.map(u => u.sectionName).join('\n') || '无',
+                }
+            ];
+            show.value = true;
+            tips2.value = notStartedSection.value.length > 0 ||
+                inProgressSection.value.length > 0 ? '本评测还有模块未完成。如果继续，则只生成已完成的部分，其余将作废或忽略。' : '';
+        }
     } catch (error) {
         console.error('生成报告失败:', error);
+        uni.hideLoading(); // 错误时隐藏loading
+    } finally {
+        uni.hideLoading(); // 无论成功失败都隐藏loading
     }
 }
 
@@ -428,12 +477,8 @@ const goToNext = () => {
             } else {
                 console.log("allAssessmentSections", allAssessmentSections)
                 prepareAllRecords(true)
-                show.value = true;
-                uni.showToast({
-                    icon: 'none',
-                    title: '所有子模块已完成',
-                    mask: true
-                })
+
+
                 // uni.showModal({
                 //     title: '评测完成',
                 //     content: `已完成${currentSection}评测\n\n本评测包含以下section:\n${Array.isArray(allAssessmentSections)

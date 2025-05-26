@@ -5,15 +5,14 @@
             <text class="header-text">请确认以下信息是否正确</text>
         </view>
 
-        <!-- <div class="confirmation-content">
+        <div class="confirmation-content">
+            <view v-if="tips" class="info-tips"> {{ tips }} </view>
             <div v-for="(item, index) in items" :key="index" class="info-field">
                 <span class="info-label">{{ item.label }} </span>
                 <span class="info-value">{{ item.name }}</span>
             </div>
-        </div> -->
-		<view class="" style="padding: 0 40rpx;">
-			<p>系统检测评估还没有完成。如果退出，当前进度会保存30天。</p>
-		</view>
+            <view class="info-tips"> {{ tips2 }} </view>
+        </div>
 
         <view class="buttons-container">
             <view class="btn btn-cancel" @tap="onCancel">
@@ -69,6 +68,14 @@ export default {
             type: Boolean,
             default: false,
         },
+        tips: {
+            type: String,
+            default: "",
+        },
+        tips2: {
+            type: String,
+            default: "",
+        },
     },
     data() {
         return {
@@ -112,8 +119,8 @@ export default {
 
 .confirmation-content {
     display: flex;
-    margin-top: 20px;
-    width: 100%;
+    margin-top: 12px;
+    /* width: 100%; */
     padding: 0 16px;
     flex-direction: column;
     align-items: start;
@@ -129,6 +136,16 @@ export default {
 
 .info-field:first-child {
     margin-top: 0;
+}
+
+.info-tips {
+    margin: 12px 0 0 14px;
+    color: #00214D;
+    font-family: "PingFang SC";
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 20px;
 }
 
 .info-label {
@@ -148,7 +165,10 @@ export default {
     font-style: normal;
     font-weight: 600;
     line-height: 20px;
-    /* 142.857% */
+    white-space: pre-line;
+    /* 新增这行，支持换行 */
+    word-break: break-word;
+    /* 新增这行，支持长单词换行 */
 }
 
 .header-text {
