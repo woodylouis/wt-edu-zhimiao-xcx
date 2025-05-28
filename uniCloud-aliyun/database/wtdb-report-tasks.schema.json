@@ -1,0 +1,176 @@
+{
+	"bsonType": "object",
+	"required": [
+		"taskId",
+		"status",
+		"childId",
+		"createTime"
+	],
+	"permission": {
+		"read": "auth.uid != null",
+		"create": "auth.uid != null",
+		"update": "auth.uid != null",
+		"delete": "auth.uid != null"
+	},
+	"properties": {
+		"_id": {
+			"description": "ID，系统自动生成"
+		},
+		"taskId": {
+			"bsonType": "string",
+			"title": "任务ID",
+			"description": "任务唯一标识符",
+			"trim": "both"
+		},
+		"status": {
+			"bsonType": "string",
+			"title": "任务状态",
+			"description": "任务执行状态",
+			"enum": [
+				{
+					"value": "pending",
+					"text": "等待中"
+				},
+				{
+					"value": "processing",
+					"text": "处理中"
+				},
+				{
+					"value": "completed",
+					"text": "已完成"
+				},
+				{
+					"value": "failed",
+					"text": "失败"
+				}
+			],
+			"defaultValue": "pending"
+		},
+		"progress": {
+			"bsonType": "int",
+			"title": "进度",
+			"description": "任务进度百分比",
+			"minimum": 0,
+			"maximum": 100,
+			"defaultValue": 0
+		},
+		"childId": {
+			"bsonType": "string",
+			"title": "儿童ID",
+			"description": "关联的儿童标识",
+			"trim": "both"
+		},
+		"childName": {
+			"bsonType": "string",
+			"title": "儿童姓名",
+			"description": "儿童的姓名",
+			"trim": "both"
+		},
+		"assessmentId": {
+			"bsonType": "string",
+			"title": "评估ID",
+			"description": "关联的评估标识",
+			"trim": "both"
+		},
+		"assessorId": {
+			"bsonType": "string",
+			"title": "评估师ID",
+			"description": "执行评估的用户ID",
+			"trim": "both"
+		},
+		"recordId": {
+			"bsonType": "string",
+			"title": "记录ID",
+			"description": "关联的记录标识",
+			"trim": "both"
+		},
+		"totalSections": {
+			"bsonType": "int",
+			"title": "总技能领域数",
+			"description": "需要处理的技能领域总数",
+			"minimum": 0,
+			"defaultValue": 0
+		},
+		"completedSections": {
+			"bsonType": "int",
+			"title": "已完成领域数",
+			"description": "已完成处理的技能领域数",
+			"minimum": 0,
+			"defaultValue": 0
+		},
+		"createTime": {
+			"bsonType": "timestamp",
+			"title": "创建时间",
+			"description": "任务创建时间",
+			"forceDefaultValue": {
+				"$env": "now"
+			}
+		},
+		"updateTime": {
+			"bsonType": "timestamp",
+			"title": "更新时间",
+			"description": "任务最后更新时间",
+			"forceDefaultValue": {
+				"$env": "now"
+			}
+		},
+		"startTime": {
+			"bsonType": "timestamp",
+			"title": "开始时间",
+			"description": "任务开始处理的时间"
+		},
+		"endTime": {
+			"bsonType": "timestamp",
+			"title": "完成时间",
+			"description": "任务完成的时间"
+		},
+		"logs": {
+			"bsonType": "array",
+			"title": "执行日志",
+			"description": "任务执行过程的详细日志",
+			"items": {
+				"bsonType": "string"
+			}
+		},
+		"errorMessage": {
+			"bsonType": "string",
+			"title": "错误信息",
+			"description": "任务失败时的错误描述",
+			"trim": "both"
+		},
+		"report": {
+			"bsonType": "object",
+			"title": "生成报告",
+			"description": "任务完成后生成的完整报告数据"
+		},
+		"metadata": {
+			"bsonType": "object",
+			"title": "元数据",
+			"description": "任务的额外信息",
+			"properties": {
+				"estimatedDuration": {
+					"bsonType": "int",
+					"title": "预估时长",
+					"description": "预估处理时长（秒）"
+				},
+				"actualDuration": {
+					"bsonType": "int",
+					"title": "实际时长",
+					"description": "实际处理时长（秒）"
+				},
+				"aiAnalysisCount": {
+					"bsonType": "int",
+					"title": "AI分析次数",
+					"description": "调用AI分析的次数"
+				},
+				"retryCount": {
+					"bsonType": "int",
+					"title": "重试次数",
+					"description": "任务重试的次数",
+					"minimum": 0,
+					"defaultValue": 0
+				}
+			}
+		}
+	}
+}
