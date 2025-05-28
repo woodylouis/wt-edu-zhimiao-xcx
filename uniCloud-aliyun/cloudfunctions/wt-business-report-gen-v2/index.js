@@ -65,8 +65,11 @@ exports.main = async (event, context) => {
 			});
 
 			if (confirmToGenerateReport) {
+				let report = {
+
+				}
+				let sectionSummaryList = []
 				const sectionSummary = {
-					reportVersion: 'v2',
 					// sectionName: '语言与沟通技能',
 					// sectionId: 'LANG_1',
 					// expectedTotalScore: 100,
@@ -109,7 +112,16 @@ exports.main = async (event, context) => {
 				let subsectionsSummary = []
 				if (completedSectionList.length > 0) {
 					completedSectionList.forEach(async (item) => {
-						// console.log("completedSectionList item", item)
+						const { recordId, assessmentId, assessorId, assessorName,
+							classId, className, childId, avatar, childName, childAge,
+							ageInt, assessmentTitle } = item
+						report = {
+							reportVersion: 'v2',
+							reportId: `report_ablls_${childId}_${Date.now()}`,
+							recordId, assessmentId, assessorId, assessorName,
+							classId, className, childId, avatar, childName, childAge,
+							ageInt, assessmentTitle
+						}
 						let abllsSectionSummaryList = []
 						let abllsSectionSummary = {}
 						item.assessmentRecords.forEach(async (record) => {
@@ -165,15 +177,15 @@ exports.main = async (event, context) => {
 							}
 						})
 						sectionSummary.sectionName = item.sectionName
+						sectionSummary.sectionId = item.sectionId
 						sectionSummary.abllsSectionSummaryList = abllsSectionSummaryList
+						// console.log("sectionSummary", sectionSummary)
 						console.log("sectionSummary", sectionSummary)
-						console.log("abllsSectionSummaryList", abllsSectionSummaryList)
-
 
 					})
 
 				}
-
+				// console.log("report", report)
 				// console.log("subsectionsSummary", subsectionsSummary)
 				// 去掉空的对象
 				// subsectionsSummary = subsectionsSummary.filter(item => Object.keys(item).length > 0)
@@ -181,7 +193,7 @@ exports.main = async (event, context) => {
 
 				return {
 					code: 200,
-					data: result,
+					data: { result, report },
 					message: '报告生成中，请稍后查询'
 				};
 			} else {
