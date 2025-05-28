@@ -1,7 +1,8 @@
 {
   "name": "wt-assess-report-gen",
   "dependencies": {
-    "uni-id-common": "file:../../../uni_modules/uni-id-common/uniCloud/cloudfunctions/common/uni-id-common"
+    "uni-id-common": "file:../../../uni_modules/uni-id-common/uniCloud/cloudfunctions/common/uni-id-common",
+    "wt-business-ai-report-generate": "file:../common/wt-business-ai-report-generate"
   },
   "extensions": {
     "uni-cloud-jql": {},

@@ -429,7 +429,7 @@ const updateSingleAbllsSectionsForm = () => {
                     return {
                         ...q,
                         score: selectedOption.score,
-                        isStandard: selectedOption.score >= q.expected_score,
+                        isStandard: selectedOption.score >= q.expected_score ? true : false,
                     };
                 }
                 return q;
