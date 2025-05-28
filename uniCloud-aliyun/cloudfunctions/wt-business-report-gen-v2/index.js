@@ -182,10 +182,13 @@ exports.main = async (event, context) => {
 				// 去掉空的对象
 				// subsectionsSummary = subsectionsSummary.filter(item => Object.keys(item).length > 0)
 				// console.log("subsectionsSummary", subsectionsSummary)
-
+				result.report = {
+					...report,
+					sectionSummaryList
+				};
 				return {
 					code: 200,
-					data: { result, report: { ...report, sectionSummaryList } },
+					data: result,
 					message: '报告生成中，请稍后查询'
 				};
 			} else {
