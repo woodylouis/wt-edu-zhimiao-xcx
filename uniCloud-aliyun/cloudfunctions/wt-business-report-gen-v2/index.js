@@ -132,28 +132,32 @@ exports.main = async (event, context) => {
 								abllsSectionAlphabet: record.alphabet,
 								expectedTotalScore: record.expectedTotalScore,
 								actualTotalScore: record.actualTotalScore,
-								skillBelowStandard: []
+								skillBelowStandard: [],
+								skillReachStandard: []
 							};
 
 							for (const question of record.questions) {
+								const temp = {
+									taskName: question.task_name,
+									taskObject: question.task_object,
+									taskContent: question.content,
+									actualOutcome: question.options.find(option => option.selected)?.name || '',
+									actualScore: question.score,
+									expectedOutcome: (() => {
+										const ageStandard = question.age_standards?.find(as => as.age === item.ageInt);
+										if (ageStandard) {
+											const matchingOption = question.options.find(opt => opt.score === ageStandard.expected_score);
+											return matchingOption?.name || '';
+										}
+										return '';
+									})(),
+									expectedScore: question.expected_score
+								};
+
 								if (!question.isStandard) {
-									const temp = {
-										taskName: question.task_name,
-										taskObject: question.task_object,
-										taskContent: question.content,
-										actualOutcome: question.options.find(option => option.selected)?.name || '',
-										actualScore: question.score,
-										expectedOutcome: (() => {
-											const ageStandard = question.age_standards?.find(as => as.age === item.ageInt);
-											if (ageStandard) {
-												const matchingOption = question.options.find(opt => opt.score === ageStandard.expected_score);
-												return matchingOption?.name || '';
-											}
-											return '';
-										})(),
-										expectedScore: question.expected_score
-									};
 									abllsSectionSummary.skillBelowStandard.push(temp);
+								} else {
+									abllsSectionSummary.skillReachStandard.push(temp);
 								}
 							}
 
