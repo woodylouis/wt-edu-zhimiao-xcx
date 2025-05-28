@@ -333,7 +333,8 @@ const generateReport = async (recordId, assessmentId, assessorId, childId, confi
                 assessorId,
                 childId,
                 confirmToGenerateReport
-            }
+            },
+            timeout: 30000 // 10秒超时
         });
         console.log('res:', res.result.data);
         console.log('res code:', res.result.code);
