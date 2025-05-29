@@ -86,7 +86,7 @@ exports.main = async (event, context) => {
 				});
 
 				// 异步执行报告生成
-				generateReportAsync(taskId, completedSectionList, query);
+				// generateReportAsync(taskId, completedSectionList, query);
 
 				return {
 					code: 200,

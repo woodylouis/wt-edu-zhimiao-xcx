@@ -1,0 +1,9 @@
+{
+  "name": "wt-run-report-tasks",
+  "dependencies": {
+    "report-core": "file:../common/report-core"
+  },
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}
