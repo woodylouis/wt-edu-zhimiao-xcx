@@ -76,9 +76,9 @@ exports.main = async (event, context) => {
 					childName: completedSectionList[0]?.childName,
 					totalSections: completedSectionList.length,
 					completedSections: 0,
-					createTime: new Date(),
-					updateTime: new Date(),
-					logs: [`任务创建：${new Date().toISOString()}`],
+					createTime: Date.now(),
+					updateTime: Date.now(),
+					logs: [`任务创建：${Date.now()}`],
 					originalParams: {
 						completedSectionList,
 						query
@@ -348,8 +348,8 @@ async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
 			// 新增报告到 wtdb-business-assess-report 表
 			const addResult = await reportCollection.add({
 				...reportData,
-				createTime: new Date(),
-				updateTime: new Date()
+				createTime: Date.now(),
+				updateTime: Date.now()
 			});
 
 			if (!addResult.id) {
@@ -384,7 +384,7 @@ async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
 				modulesStatus: updatedModulesStatus,
 				reportStatus: 'completed', // 可选：添加报告状态字段
 				reportId: reportData.reportId, // 可选：关联报告ID
-				updateTime: new Date()
+				updateTime: Date.now()
 			});
 
 		if (updateResult.updated === 0) {
@@ -894,7 +894,7 @@ async function updateTaskStatus(taskId, status, progress, message, report = null
 	const updateData = {
 		status,
 		progress,
-		updateTime: new Date()
+		updateTime: Date.now()
 	};
 
 	if (report) {
@@ -902,7 +902,7 @@ async function updateTaskStatus(taskId, status, progress, message, report = null
 	}
 
 	// 添加日志
-	const logEntry = `${new Date().toISOString()}: ${message}`;
+	const logEntry = `${Date.now()}: ${message}`;
 
 	try {
 		// 先获取当前记录
