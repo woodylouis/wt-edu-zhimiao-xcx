@@ -765,7 +765,7 @@ function buildReportSummaryPrompt(reportData) {
 	prompt += `- 总技能项目：${totalSkills}项\n`;
 	prompt += `- 达标技能：${skillReachStandard.length}项\n`;
 	prompt += `- 需改进技能：${skillBelowStandard.length}项\n`;
-	prompt += `- 整体完成率：${completionRate}%\n\n`;
+	prompt += `- 整体达标率：${completionRate}%\n\n`;
 
 	if (skillReachStandard.length > 0) {
 		prompt += `已达标技能表现：\n`;
