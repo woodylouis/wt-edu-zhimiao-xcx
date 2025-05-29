@@ -2,7 +2,8 @@
 const uniID = require('uni-id-common')
 const dbName = 'wtdb-business-assess-history';
 const dbName2 = 'wtdb-business-assess-record';
-const dbName3 = 'wtdb-report-tasks'; // 新增：任务状态表
+const dbName3 = 'wtdb-report-tasks'; // 任务状态表
+const dbName4 = 'wtdb-business-assess-report'; // 报告表
 const db = uniCloud.database();
 const collection = db.collection(dbName);
 
@@ -305,12 +306,103 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			reportSummary: reportAnalysis // 新增：报告级别总结
 		};
 
-		// 保存最终报告并标记任务完成
-		await updateTaskStatus(taskId, 'completed', 100, '报告生成完成', finalReport);
+		// 关键修改：保存报告和更新状态，使用事务确保一致性
+		await updateTaskStatus(taskId, 'processing', 99, '正在保存报告并更新状态...');
+
+		try {
+			await saveReportAndUpdateStatus(finalReport, query.recordId, taskId);
+
+			// 保存最终报告并标记任务完成
+			await updateTaskStatus(taskId, 'completed', 100, '报告生成完成', finalReport);
+		} catch (saveError) {
+			console.error('保存报告或更新状态失败:', saveError);
+			await updateTaskStatus(taskId, 'failed', 99, `保存报告失败: ${saveError.message}`);
+			throw saveError;
+		}
 
 	} catch (error) {
 		console.error('报告生成失败:', error);
 		await updateTaskStatus(taskId, 'failed', 0, `报告生成失败: ${error.message}`);
+	}
+}
+
+/**
+ * 保存报告到数据库并更新评估记录状态
+ */
+async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
+	const reportCollection = db.collection(dbName4);
+	const recordCollection = db.collection(dbName2);
+
+	try {
+		await updateTaskStatus(taskId, 'processing', 99, '开始保存报告和更新状态');
+
+		// 1. 检查报告是否已存在（基于reportId确保唯一性）
+		const existingReport = await reportCollection
+			.where({ reportId: reportData.reportId })
+			.get();
+
+		if (existingReport.data.length > 0) {
+			await updateTaskStatus(taskId, 'processing', 99, `报告已存在，reportId: ${reportData.reportId}`);
+			// 如果报告已存在，不需要重复插入，但仍需要更新状态
+		} else {
+			// 新增报告到 wtdb-business-assess-report 表
+			const addResult = await reportCollection.add({
+				...reportData,
+				createTime: new Date(),
+				updateTime: new Date()
+			});
+
+			if (!addResult.id) {
+				throw new Error('报告保存失败：未返回有效的记录ID');
+			}
+
+			await updateTaskStatus(taskId, 'processing', 99, `报告保存成功，reportId: ${reportData.reportId}`);
+		}
+
+		// 2. 更新 wtdb-business-assess-record 表中的 modulesStatus
+		const recordResult = await recordCollection
+			.where({ recordId: recordId })
+			.get();
+
+		if (recordResult.data.length === 0) {
+			throw new Error(`未找到recordId为${recordId}的评估记录`);
+		}
+
+		const recordData = recordResult.data[0];
+		const modulesStatus = recordData.modulesStatus || [];
+
+		// 将所有 modulesStatus 中的 status 设置为 1
+		const updatedModulesStatus = modulesStatus.map(module => ({
+			...module,
+			status: 1 // 标记为已完成
+		}));
+
+		// 更新记录
+		const updateResult = await recordCollection
+			.where({ recordId: recordId })
+			.update({
+				modulesStatus: updatedModulesStatus,
+				reportStatus: 'completed', // 可选：添加报告状态字段
+				reportId: reportData.reportId, // 可选：关联报告ID
+				updateTime: new Date()
+			});
+
+		if (updateResult.updated === 0) {
+			throw new Error('评估记录状态更新失败：未更新任何记录');
+		}
+
+		await updateTaskStatus(taskId, 'processing', 99,
+			`评估记录状态更新成功，共更新${updatedModulesStatus.length}个模块状态`);
+
+		await updateTaskStatus(taskId, 'processing', 100, '报告保存和状态更新完成');
+
+		console.log(`报告保存和状态更新成功 - reportId: ${reportData.reportId}, recordId: ${recordId}`);
+
+	} catch (error) {
+		console.error('保存报告和更新状态失败:', error);
+		await updateTaskStatus(taskId, 'processing', 99, `操作失败: ${error.message}`);
+
+		throw new Error(`保存报告和更新状态失败: ${error.message}`);
 	}
 }
 
@@ -761,6 +853,10 @@ function generateReportSummaryFallback(childName, reachStandardCount, belowStand
 
 	return summary;
 }
+
+/**
+ * 验证分析结果质量
+ */
 function validateAnalysisResult(result) {
 	if (!result || typeof result !== 'string') {
 		return false;
