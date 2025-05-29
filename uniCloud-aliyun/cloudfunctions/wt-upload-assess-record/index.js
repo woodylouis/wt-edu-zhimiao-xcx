@@ -27,30 +27,47 @@ exports.main = async (event, context) => {
 		}
 		// 有记录
 		const existingRecord = await collection.where({ childId, assessorId: uid }).get();
-		if (existingRecord.data.length > 0) {
+		console.log('existingRecord:', existingRecord)
+		if (existingRecord.data && existingRecord.data.length > 0) {
+			// 在 existingRecord.data 中找到第一条有未完成模块的记录
+			const unfinishedRecord = existingRecord.data.find(record => {
+				const modulesStatus = record.modulesStatus || [];
+				return modulesStatus.some(module => module.status !== 1);
+			});
 
-			const modulesStatus = existingRecord.data[0].modulesStatus;
-			if (modulesStatus && modulesStatus.length > 0) {
-				const allCompleted = modulesStatus.every(module => module.status === 1);
-				// existingRecord里面的modulesStatus列表的status不为1，说明有记录未完成，直接返回数据库数据
-				if (!allCompleted) {
+			if (unfinishedRecord) {
+				// 找到了未完成的评估记录，返回它
+				return {
+					code: 200,
+					result: unfinishedRecord,
+					message: `查到${data.childName}的评估记录。`,
+				};
+			} else {
+				// 所有记录的 modulesStatus 都是完成的
+				console.log('所有记录都已完成，准备创建新的评估记录');
+				const newRecordRes = await createNewAssessmentRecord(childId, data, uid);
+
+				if (newRecordRes && newRecordRes.code === 200) {
 					return {
 						code: 200,
-						result: existingRecord.data[0],
-						message: `查到${data.childName}的评估记录。`,
-
+						result: newRecordRes.result,
+						message: `所有模块已完成，已为${data.childName}创建新的评估记录。`,
 					};
 				} else {
-					// 全部都是completed，就创建一个新的
-					const res = createNewAssessmentRecord(childId, data, uid)
-					return res;
+					return {
+						code: 500,
+						message: `为${data.childName}创建新的评估记录失败。`,
+					};
 				}
 			}
 		} else {
-			// 无记录，插入新记录，创建新的
-			const res = createNewAssessmentRecord(childId, data, uid)
-			return res;
+			// 没有任何记录
+			return {
+				code: 404,
+				message: `未找到${data.childName}的评估记录。`,
+			};
 		}
+
 	} catch (e) {
 		console.error('操作失败:', e);
 		return {
