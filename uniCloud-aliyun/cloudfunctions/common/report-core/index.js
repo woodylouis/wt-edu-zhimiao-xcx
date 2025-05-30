@@ -247,9 +247,16 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			duration
 		}
 
-		await saveReportAndUpdateStatus(reportData, recordId, taskId)
-		await updateTaskStatus(taskId, 'completed', 100, '报告生成完成')
-		await log('报告生成完成', {}, { taskId, recordId })
+		const pendingSaveCollection = db.collection('wtdb-report-save-pending')
+		await pendingSaveCollection.add({
+			taskId,
+			recordId,
+			reportData,
+			createTime: Date.now(),
+			status: 'pending'
+		})
+		await updateTaskStatus(taskId, 'pending_save', 99, '已加入待保存任务队列')
+		await log('report-save-deferred', {}, { taskId, recordId })
 
 	} catch (err) {
 		await log('generateReportAsync-error', { message: err.message }, { taskId, recordId, level: 'error' })

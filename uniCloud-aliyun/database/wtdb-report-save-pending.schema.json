@@ -1,0 +1,56 @@
+// 文档教程: https://uniapp.dcloud.net.cn/uniCloud/schema
+{
+	"bsonType": "object",
+	"required": [
+		"taskId",
+		"recordId",
+		"reportData",
+		"createTime",
+		"status"
+	],
+	"permission": {
+		"read": false,
+		"create": false,
+		"update": false,
+		"delete": false
+	},
+	"properties": {
+		"_id": {
+			"description": "ID，系统自动生成"
+		},
+		"taskId": {
+			"bsonType": "string",
+			"description": "任务 ID"
+		},
+		"recordId": {
+			"bsonType": "string",
+			"description": "评估记录 ID"
+		},
+		"reportData": {
+			"bsonType": "object",
+			"description": "完整报告数据"
+		},
+		"createTime": {
+			"bsonType": "long",
+			"description": "创建时间（时间戳）"
+		},
+		"status": {
+			"bsonType": "string",
+			"enum": [
+				"pending",
+				"failed"
+			],
+			"description": "保存状态：pending 表示待处理，failed 表示处理失败"
+		},
+		"failReason": {
+			"bsonType": "string",
+			"description": "失败原因",
+			"default": ""
+		},
+		"failTime": {
+			"bsonType": "long",
+			"description": "失败时间（时间戳）",
+			"default": null
+		}
+	}
+}

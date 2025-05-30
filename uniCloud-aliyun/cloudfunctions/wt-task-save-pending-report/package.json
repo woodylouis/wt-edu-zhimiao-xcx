@@ -1,0 +1,7 @@
+{
+  "name": "wt-task-save-pending-report",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}
