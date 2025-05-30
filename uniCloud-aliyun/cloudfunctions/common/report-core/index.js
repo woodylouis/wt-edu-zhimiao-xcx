@@ -56,10 +56,14 @@ async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
 
 	try {
 		await updateTaskStatus(taskId, 'processing', 99, '保存报告中...')
-		const existing = await reportCollection.where({ reportId: reportData.reportId }).get()
 
+		// 检查是否已存在
+		const existing = await reportCollection.where({ reportId: reportData.reportId }).get()
 		if (!existing.data.length) {
-			await reportCollection.add({
+			await log('report-not-exist', {}, { taskId, recordId })
+
+			// 拆成两段写入，避免字段过大失败
+			const baseFields = {
 				reportId: reportData.reportId,
 				recordId: reportData.recordId,
 				assessmentId: reportData.assessmentId,
@@ -74,8 +78,13 @@ async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
 				assessmentTitle: reportData.assessmentTitle,
 				createTime: reportData.createTime,
 				updateTime: reportData.updateTime
-			})
-			await reportCollection.where({ reportId: reportData.reportId }).update({
+			}
+
+			const insertRes = await reportCollection.add(baseFields)
+			await log('report-inserted', { insertId: insertRes.id }, { taskId, recordId })
+
+			// 补充写入大字段
+			const updateRes = await reportCollection.where({ reportId: reportData.reportId }).update({
 				sectionSummaryList: reportData.sectionSummaryList,
 				reportSummary: reportData.reportSummary,
 				assessorName: reportData.assessorName,
@@ -83,23 +92,27 @@ async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
 				duration: reportData.duration,
 				updateTime: Date.now()
 			})
-			await log('report-inserted', {}, { taskId, recordId })
+
+			await log('report-updated-large-fields', { updateCount: updateRes.updated }, { taskId, recordId })
 		} else {
-			await log('report-exists', {}, { taskId, recordId })
+			await log('report-exists-skip-add', {}, { taskId, recordId })
 		}
 
+		// 更新记录模块状态
 		const recordRes = await recordCollection.where({ recordId }).get()
 		if (!recordRes.data.length) throw new Error(`未找到评估记录: ${recordId}`)
 
 		const updatedModules = (recordRes.data[0].modulesStatus || []).map(m => ({ ...m, status: 1 }))
-		const updateRes = await recordCollection.where({ recordId }).update({
+		const updateRecordRes = await recordCollection.where({ recordId }).update({
 			modulesStatus: updatedModules,
 			reportStatus: 'completed',
 			reportId: reportData.reportId,
 			updateTime: Date.now()
 		})
-		if (updateRes.updated === 0) throw new Error('评估记录更新失败')
 
+		if (updateRecordRes.updated === 0) throw new Error('评估记录更新失败')
+
+		await log('record-updated', {}, { taskId, recordId })
 		await updateTaskStatus(taskId, 'processing', 100, '报告保存完成')
 		await log('saveReportAndUpdateStatus-done', {}, { taskId, recordId })
 
@@ -108,6 +121,7 @@ async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
 		throw new Error('保存报告失败: ' + err.message)
 	}
 }
+
 
 // ✅ 生成报告主函数
 async function generateReportAsync(taskId, completedSectionList, query) {
