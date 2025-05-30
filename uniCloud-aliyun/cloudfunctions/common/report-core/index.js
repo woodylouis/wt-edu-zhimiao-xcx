@@ -6,13 +6,16 @@ const dbName3 = 'wtdb-report-tasks'
 const dbName4 = 'wtdb-business-assess-report'
 
 async function generateReportAsync(taskId, completedSectionList, query) {
-	console.log('generateReportAsync', taskId, completedSectionList, query)
-	const taskCollection = db.collection(dbName3)
+	console.log('generateReportAsync query', query)
+
+	if (!query?.recordId) {
+		await updateTaskStatus(taskId, 'failed', 100, '报告生成失败: 缺少 recordId，无法保存报告')
+		return
+	}
 
 	try {
 		await updateTaskStatus(taskId, 'processing', 0, '开始生成报告')
 
-		let report = {}
 		let sectionSummaryList = []
 
 		if (completedSectionList.length > 0) {
@@ -81,7 +84,11 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 						)
 						await updateTaskStatus(taskId, 'processing', progress, `AI分析完成: ${item.sectionName}`)
 					} catch (err) {
-						sectionSummary.analysis = generateSectionFallbackAnalysis(item.sectionName, sectionSkillBelowStandard, item.childName)
+						sectionSummary.analysis = generateSectionFallbackAnalysis(
+							item.sectionName,
+							sectionSkillBelowStandard,
+							item.childName
+						)
 					}
 				} else {
 					sectionSummary.analysis = `${item.childName}在${item.sectionName}领域的所有技能都已达标，表现优秀！`
@@ -98,20 +105,46 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			sectionSummaryList.map(s => s.sectionName)
 		)
 
-		const finalReport = {
-			...report,
+		// ✅ 查询原始评估记录，补全字段
+		const recordRes = await db.collection(dbName2).where({ recordId: query.recordId }).get()
+		if (!recordRes.data || recordRes.data.length === 0) {
+			await updateTaskStatus(taskId, 'failed', 100, '报告生成失败：未找到原始评估记录')
+			return
+		}
+		const record = recordRes.data[0]
+
+		// ✅ 构造完整 reportData
+		const reportData = {
+			reportVersion: 'v2',
+			reportId: `report_${query.recordId}_${Date.now()}`,
+			recordId: query.recordId,
+			assessmentId: query.assessmentId,
+			assessorId: query.assessorId,
+			assessorName: record.assessorName || '',
+			classId: record.classId || '',
+			className: record.className || '',
+			childId: record.childId || '',
+			childName: record.childName || '',
+			avatar: record.avatar || '',
+			childAge: record.childAge || '',
+			ageInt: record.ageInt || 0,
+			assessmentTitle: record.assessmentTitle || 'ABLLS-R',
 			sectionSummaryList,
-			reportSummary: reportAnalysis
+			reportSummary: reportAnalysis,
+			createTime: Date.now(),
+			updateTime: Date.now(),
 		}
 
+		// ✅ 保存并更新状态
 		await updateTaskStatus(taskId, 'processing', 99, '保存报告中...')
-		await saveReportAndUpdateStatus(finalReport, query.recordId, taskId)
-		await updateTaskStatus(taskId, 'completed', 100, '报告生成完成', finalReport)
+		await saveReportAndUpdateStatus(reportData, query.recordId, taskId)
+		await updateTaskStatus(taskId, 'completed', 100, '报告生成完成', reportData)
 
 	} catch (error) {
 		await updateTaskStatus(taskId, 'failed', 0, `报告生成失败: ${error.message}`)
 	}
 }
+
 
 async function updateTaskStatus(taskId, status, progress, message, report = null) {
 	const taskCollection = db.collection(dbName3)
@@ -143,11 +176,21 @@ function generateReportSummaryFallback(childName, reachCount, belowCount, sectio
 }
 
 async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
+	console.log('saveReportAndUpdateStatus', reportData, recordId, taskId) // 打印到 con
+	const taskCollection = db.collection(dbName3)
 	const reportCollection = db.collection(dbName4)
 	const recordCollection = db.collection(dbName2)
 
+	if (!recordId) {
+		console.log('!recordId')
+		await updateTaskStatus(taskId, 'failed', 100, '报告生成失败: recordId 不存在，无法查询记录')
+		return
+	}
+
 	const existing = await reportCollection.where({ reportId: reportData.reportId }).get()
+	console.log('existing', existing) // 打印到 cons
 	if (existing.data.length === 0) {
+		console.log('reportData', reportData)
 		await reportCollection.add({
 			...reportData,
 			createTime: Date.now(),
