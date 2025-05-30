@@ -117,20 +117,33 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			}
 
 			sectionSummaryList.push(sectionSummary)
+			await log('push sectionSummary 完成', sectionSummary.sectionName, { taskId, recordId: query?.recordId })
+
 		}
 
 		const reachCount = sectionSummaryList.reduce((acc, s) => acc + s.abllsSectionSummaryList.reduce((a, b) => a + b.skillReachStandard.length, 0), 0)
 		const belowCount = sectionSummaryList.reduce((acc, s) => acc + s.abllsSectionSummaryList.reduce((a, b) => a + b.skillBelowStandard.length, 0), 0)
 		const sectionNames = sectionSummaryList.map(s => s.sectionName)
 
+		await log('构造 reportData 前的检查', {
+			childName: completedSectionList[0]?.childName,
+			reachCount,
+			belowCount,
+			sectionNames
+		}, { taskId, recordId: query?.recordId })
 		const reportSummary = generateReportSummaryFallback(
 			completedSectionList[0]?.childName,
 			reachCount,
 			belowCount,
 			sectionNames
 		)
+		await log('生成报告总结 reportSummary 完成', reportSummary, { taskId, recordId: query?.recordId })
+
+
 
 		const recordRes = await recordCollection.where({ recordId: query.recordId }).get()
+		await log('获取 record 记录完成', recordRes.data?.[0] || '未找到', { taskId, recordId: query.recordId })
+
 		if (!recordRes.data || recordRes.data.length === 0) {
 			await updateTaskStatus(taskId, 'failed', 100, '报告生成失败：未找到原始评估记录')
 			await log('未找到原始评估记录', null, { taskId, recordId: query.recordId, level: 'error' })
@@ -139,11 +152,15 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 		const record = recordRes.data[0]
 
 		const taskRes = await taskCollection.where({ taskId }).get()
+		await log('获取 task 信息完成', taskRes.data?.[0] || '未找到', { taskId, recordId: query.recordId })
+
 		const taskCreateTime = taskRes.data?.[0]?.createTime || Date.now()
 		const completionTime = Date.now()
 		const duration = completionTime - taskCreateTime
 
 		const userRes = await userCollection.where({ _id: query.assessorId }).get()
+		await log('获取用户信息完成', userRes.data?.[0] || '未找到', { taskId, recordId: query.recordId })
+
 		const assessorName = userRes.data?.[0]?.nickname || userRes.data?.[0]?.username || '用户未设置昵称'
 
 		const reportData = {
@@ -169,7 +186,10 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			duration
 		}
 
+		await log('准备调用 saveReportAndUpdateStatus', reportData, { taskId, recordId: query.recordId })
 		await saveReportAndUpdateStatus(reportData, query.recordId, taskId)
+		await log('saveReportAndUpdateStatus 执行完毕', null, { taskId, recordId: query.recordId })
+
 		await updateTaskStatus(taskId, 'completed', 100, '报告生成完成')
 		await log('报告生成完成', reportData, { taskId, recordId: query.recordId })
 
