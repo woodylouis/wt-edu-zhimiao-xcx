@@ -105,13 +105,19 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			sectionSummaryList.map(s => s.sectionName)
 		)
 
-		// ✅ 查询原始评估记录，补全字段
+		// ✅ 查询原始评估记录
 		const recordRes = await db.collection(dbName2).where({ recordId: query.recordId }).get()
 		if (!recordRes.data || recordRes.data.length === 0) {
 			await updateTaskStatus(taskId, 'failed', 100, '报告生成失败：未找到原始评估记录')
 			return
 		}
 		const record = recordRes.data[0]
+
+		// ✅ 查询任务创建时间，计算耗时
+		const taskRes = await db.collection(dbName3).where({ taskId }).get()
+		const taskCreateTime = taskRes.data?.[0]?.createTime || Date.now()
+		const completionTime = Date.now()
+		const duration = completionTime - taskCreateTime
 
 		// ✅ 构造完整 reportData
 		const reportData = {
@@ -131,11 +137,12 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			assessmentTitle: record.assessmentTitle || 'ABLLS-R',
 			sectionSummaryList,
 			reportSummary: reportAnalysis,
-			createTime: Date.now(),
-			updateTime: Date.now(),
+			createTime: completionTime,
+			updateTime: completionTime,
+			completionTime,
+			duration
 		}
 
-		// ✅ 保存并更新状态
 		await updateTaskStatus(taskId, 'processing', 99, '保存报告中...')
 		await saveReportAndUpdateStatus(reportData, query.recordId, taskId)
 		await updateTaskStatus(taskId, 'completed', 100, '报告生成完成', reportData)
@@ -144,6 +151,7 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 		await updateTaskStatus(taskId, 'failed', 0, `报告生成失败: ${error.message}`)
 	}
 }
+
 
 
 async function updateTaskStatus(taskId, status, progress, message, report = null) {
