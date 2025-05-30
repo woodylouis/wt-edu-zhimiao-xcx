@@ -4,6 +4,7 @@ const db = uniCloud.database()
 const dbName2 = 'wtdb-business-assess-record'
 const dbName3 = 'wtdb-report-tasks'
 const dbName4 = 'wtdb-business-assess-report'
+const dbName5 = 'uni-id-users'
 
 async function generateReportAsync(taskId, completedSectionList, query) {
 	console.log('generateReportAsync query', query)
@@ -119,6 +120,9 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 		const completionTime = Date.now()
 		const duration = completionTime - taskCreateTime
 
+		const userRes = await db.collection('uni-id-users').where({ _id: query.assessorId }).get()
+		const assessorName = userRes.data?.[0]?.nickname || userRes.data?.[0]?.username || '用户未设置昵称'
+
 		// ✅ 构造完整 reportData
 		const reportData = {
 			reportVersion: 'v2',
@@ -126,7 +130,7 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			recordId: query.recordId,
 			assessmentId: query.assessmentId,
 			assessorId: query.assessorId,
-			assessorName: record.assessorName || '',
+			assessorName: assessorName || '',
 			classId: record.classId || '',
 			className: record.className || '',
 			childId: record.childId || '',
