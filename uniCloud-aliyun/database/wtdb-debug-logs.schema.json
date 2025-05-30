@@ -1,0 +1,9 @@
+{
+  "tag": "string",              // 日志标题或关键标签，例如 "生成报告开始"
+  "data": "object",             // 可选，任何你想记录的数据
+  "taskId": "string",           // 可选，关联任务 ID
+  "recordId": "string",         // 可选，关联评估记录 ID
+  "level": "string",            // 可选，日志等级: info / warn / error
+  "timestamp": "number",        // 时间戳：Date.now()
+  "formattedTime": "string"     // 格式化时间（可选）
+}
