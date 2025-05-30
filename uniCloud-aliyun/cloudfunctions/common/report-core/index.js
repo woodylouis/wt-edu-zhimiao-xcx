@@ -5,7 +5,9 @@ const dbName2 = 'wtdb-business-assess-record'
 const dbName3 = 'wtdb-report-tasks'
 const dbName4 = 'wtdb-business-assess-report'
 const dbName5 = 'uni-id-users'
+const dbNameLog = 'wtdb-debug-logs'
 
+// ✅ 日志记录函数
 async function log(tag, data = null, { taskId = '', recordId = '', level = 'info' } = {}) {
 	const logCollection = db.collection(dbNameLog)
 	const now = Date.now()
@@ -21,7 +23,7 @@ async function log(tag, data = null, { taskId = '', recordId = '', level = 'info
 			formattedTime
 		})
 	} catch (err) {
-		// 忽略日志记录失败
+		// 不中断主流程
 	}
 }
 
@@ -30,15 +32,17 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 	const taskCollection = db.collection(dbName3)
 	const userCollection = db.collection(dbName5)
 
-	console.log('generateReportAsync query', query)
+	await log('Start generateReportAsync', query, { taskId, recordId: query?.recordId })
 
 	if (!query?.recordId) {
 		await updateTaskStatus(taskId, 'failed', 100, '报告生成失败: 缺少 recordId')
+		await log('Missing recordId', null, { taskId, level: 'error' })
 		return
 	}
 
 	try {
 		await updateTaskStatus(taskId, 'processing', 0, '开始生成报告')
+		await log('开始生成报告', null, { taskId })
 
 		let sectionSummaryList = []
 
@@ -98,19 +102,15 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 
 			if (sectionSkillBelowStandard.length > 0) {
 				try {
+
 					await updateTaskStatus(taskId, 'processing', progress, `AI分析中: ${item.sectionName}`)
-					sectionSummary.analysis = generateSectionFallbackAnalysis(
-						item.sectionName,
-						sectionSkillBelowStandard,
-						item.childName
-					)
+					await log('beforeAnalysis', sectionSkillBelowStandard, { taskId, recordId: query?.recordId })
+					sectionSummary.analysis = generateSectionFallbackAnalysis(item.sectionName, sectionSkillBelowStandard, item.childName)
+					await log('afterAnalysis', sectionSummary.analysis, { taskId, recordId: query?.recordId })
 					await updateTaskStatus(taskId, 'processing', progress, `AI分析完成: ${item.sectionName}`)
 				} catch (err) {
-					sectionSummary.analysis = generateSectionFallbackAnalysis(
-						item.sectionName,
-						sectionSkillBelowStandard,
-						item.childName
-					)
+					sectionSummary.analysis = generateSectionFallbackAnalysis(item.sectionName, sectionSkillBelowStandard, item.childName)
+					await log(`AI分析失败: ${item.sectionName}`, err.message, { taskId, level: 'warn' })
 				}
 			} else {
 				sectionSummary.analysis = `${item.childName}在${item.sectionName}领域的所有技能都已达标，表现优秀！`
@@ -133,6 +133,7 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 		const recordRes = await recordCollection.where({ recordId: query.recordId }).get()
 		if (!recordRes.data || recordRes.data.length === 0) {
 			await updateTaskStatus(taskId, 'failed', 100, '报告生成失败：未找到原始评估记录')
+			await log('未找到原始评估记录', null, { taskId, recordId: query.recordId, level: 'error' })
 			return
 		}
 		const record = recordRes.data[0]
@@ -168,14 +169,13 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			duration
 		}
 
-		// ⚠️ 不再将 reportData 传给 updateTaskStatus，避免数据太大导致写入失败
 		await saveReportAndUpdateStatus(reportData, query.recordId, taskId)
-
 		await updateTaskStatus(taskId, 'completed', 100, '报告生成完成')
+		await log('报告生成完成', reportData, { taskId, recordId: query.recordId })
 
 	} catch (err) {
-		console.error('[generateReportAsync] ❌ 错误:', err.message)
 		await updateTaskStatus(taskId, 'failed', 100, `报告生成失败: ${err.message}`)
+		await log('报告生成失败', err.message, { taskId, recordId: query?.recordId, level: 'error' })
 	}
 }
 

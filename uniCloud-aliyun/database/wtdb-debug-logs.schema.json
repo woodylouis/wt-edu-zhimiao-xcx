@@ -1,9 +1,47 @@
 {
-  "tag": "string",              // 日志标题或关键标签，例如 "生成报告开始"
-  "data": "object",             // 可选，任何你想记录的数据
-  "taskId": "string",           // 可选，关联任务 ID
-  "recordId": "string",         // 可选，关联评估记录 ID
-  "level": "string",            // 可选，日志等级: info / warn / error
-  "timestamp": "number",        // 时间戳：Date.now()
-  "formattedTime": "string"     // 格式化时间（可选）
+  "bsonType": "object",
+  "required": [],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": {
+      "description": "ID，系统自动生成"
+    },
+    "tag": {
+      "bsonType": "string",
+      "description": "日志标签"
+    },
+    "data": {
+      "bsonType": ["object", "null"],
+      "description": "日志内容"
+    },
+    "taskId": {
+      "bsonType": "string",
+      "description": "关联任务ID",
+      "default": ""
+    },
+    "recordId": {
+      "bsonType": "string",
+      "description": "关联记录ID",
+      "default": ""
+    },
+    "level": {
+      "bsonType": "string",
+      "enum": ["info", "warn", "error"],
+      "description": "日志等级",
+      "default": "info"
+    },
+    "timestamp": {
+      "bsonType": "long",
+      "description": "时间戳（毫秒）"
+    },
+    "formattedTime": {
+      "bsonType": "string",
+      "description": "格式化时间（例如：2025-05-30 10:30:00）"
+    }
+  }
 }

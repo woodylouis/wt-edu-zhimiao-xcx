@@ -1,0 +1,7 @@
+{
+  "name": "clear-debug-logs",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}
