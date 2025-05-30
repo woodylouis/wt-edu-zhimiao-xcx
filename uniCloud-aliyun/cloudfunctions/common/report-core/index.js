@@ -145,7 +145,7 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 		for (let i = 0; i < completedSectionList.length; i++) {
 			const item = completedSectionList[i]
 			const progress = Math.floor((i / completedSectionList.length) * 100)
-			await updateTaskStatus(taskId, 'processing', progress, `处理 ${item.sectionName}`)
+			await updateTaskStatus(taskId, 'processing', progress, `汇总分析结果: ${item.sectionName}`)
 
 			const abllsSectionSummaryList = []
 			let sectionSkillBelowStandard = []
@@ -184,26 +184,37 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 						abllsSectionSummary.skillReachStandard.push(temp)
 					}
 				}
+
 				abllsSectionSummaryList.push(abllsSectionSummary)
 			}
 
-			const sectionSummary = {
+			// 🔍 尝试读取分析任务结果
+			const sectionTaskRes = await db.collection('wtdb-section-analysis-tasks')
+				.where({
+					taskId,
+					sectionId: item.sectionId,
+					status: 'done'
+				})
+				.limit(1)
+				.get()
+
+			let analysis = ''
+			if (sectionTaskRes.data?.length > 0) {
+				analysis = sectionTaskRes.data[0].analysis
+			} else {
+				// 若失败或未找到，使用降级分析
+				analysis = generateSectionFallbackAnalysis(item.sectionName, sectionSkillBelowStandard, item.childName)
+				await log('section-analysis-fallback-used', { sectionId: item.sectionId }, { taskId })
+			}
+
+			sectionSummaryList.push({
 				sectionName: item.sectionName,
 				sectionId: item.sectionId,
 				abllsSectionSummaryList,
-				analysis: ''
-			}
-
-			if (sectionSkillBelowStandard.length > 0) {
-				await updateTaskStatus(taskId, 'processing', progress, `AI分析中: ${item.sectionName}`)
-				sectionSummary.analysis = generateSectionFallbackAnalysis(item.sectionName, sectionSkillBelowStandard, item.childName)
-				await updateTaskStatus(taskId, 'processing', progress, `AI分析完成: ${item.sectionName}`)
-			} else {
-				sectionSummary.analysis = `${item.childName}在${item.sectionName}领域的所有技能都已达标，表现优秀！`
-			}
-
-			sectionSummaryList.push(sectionSummary)
+				analysis
+			})
 		}
+
 
 		const reachCount = sectionSummaryList.reduce((acc, s) => acc + s.abllsSectionSummaryList.reduce((a, b) => a + b.skillReachStandard.length, 0), 0)
 		const belowCount = sectionSummaryList.reduce((acc, s) => acc + s.abllsSectionSummaryList.reduce((a, b) => a + b.skillBelowStandard.length, 0), 0)
@@ -247,16 +258,8 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			duration
 		}
 
-		const pendingSaveCollection = db.collection('wtdb-report-save-pending')
-		await pendingSaveCollection.add({
-			taskId,
-			recordId,
-			reportData,
-			createTime: Date.now(),
-			status: 'pending'
-		})
-		await updateTaskStatus(taskId, 'pending_save', 99, '已加入待保存任务队列')
-		await log('report-save-deferred', {}, { taskId, recordId })
+		await updateTaskStatus(taskId, 'waiting_merge', 90, '模块分析结果等待合并报告')
+		await log('report-waiting-merge', {}, { taskId, recordId })
 
 	} catch (err) {
 		await log('generateReportAsync-error', { message: err.message }, { taskId, recordId, level: 'error' })

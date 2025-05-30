@@ -1,0 +1,7 @@
+{
+  "name": "wt-section-merge-to-report",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

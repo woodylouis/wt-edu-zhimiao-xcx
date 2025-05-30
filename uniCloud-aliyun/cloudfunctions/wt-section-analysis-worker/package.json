@@ -1,0 +1,8 @@
+{
+  "name": "wt-section-analysis-worker",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {},
+    "uni-cloud-ai": {}
+  }
+}

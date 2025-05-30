@@ -1,0 +1,66 @@
+{
+	"bsonType": "object",
+	"required": ["taskId", "recordId", "sectionId", "sectionName", "childName", "ageInt", "assessmentRecords", "status", "createTime"],
+	"permission": {
+		"read": false,
+		"create": false,
+		"update": false,
+		"delete": false
+	},
+	"properties": {
+		"_id": {
+			"description": "ID，系统自动生成"
+		},
+		"taskId": {
+			"bsonType": "string",
+			"description": "任务ID，对应report任务"
+		},
+		"recordId": {
+			"bsonType": "string",
+			"description": "评估记录ID"
+		},
+		"sectionId": {
+			"bsonType": "string",
+			"description": "模块ID，如LANG_1"
+		},
+		"sectionName": {
+			"bsonType": "string",
+			"description": "模块名称，如语言理解"
+		},
+		"childName": {
+			"bsonType": "string",
+			"description": "儿童姓名"
+		},
+		"ageInt": {
+			"bsonType": "int",
+			"description": "整数年龄（用于匹配标准）"
+		},
+		"assessmentRecords": {
+			"bsonType": "array",
+			"description": "该模块内所有评估记录",
+			"items": {
+				"bsonType": "object"
+			}
+		},
+		"status": {
+			"bsonType": "string",
+			"description": "任务状态：pending / processing / done / failed"
+		},
+		"analysis": {
+			"bsonType": "string",
+			"description": "分析内容（生成后填入）"
+		},
+		"failReason": {
+			"bsonType": "string",
+			"description": "失败原因（可选）"
+		},
+		"createTime": {
+			"bsonType": "long",
+			"description": "创建时间"
+		},
+		"updateTime": {
+			"bsonType": "long",
+			"description": "更新时间"
+		}
+	}
+}
