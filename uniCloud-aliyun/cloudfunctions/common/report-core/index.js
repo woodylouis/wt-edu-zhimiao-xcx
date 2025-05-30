@@ -7,23 +7,17 @@ const dbName4 = 'wtdb-business-assess-report'
 const dbName5 = 'uni-id-users'
 const dbNameLog = 'wtdb-debug-logs'
 
+// ✅ 日志记录函数
 async function log(tag, data = null, { taskId = '', recordId = '', level = 'info' } = {}) {
 	const logCollection = db.collection(dbNameLog)
 	const now = Date.now()
 	const formattedTime = new Date(now).toLocaleString('zh-CN', { hour12: false })
 	try {
-		await logCollection.add({
-			tag,
-			data,
-			taskId,
-			recordId,
-			level,
-			timestamp: now,
-			formattedTime
-		})
-	} catch (_) { /* 忽略日志写入错误 */ }
+		await logCollection.add({ tag, data, taskId, recordId, level, timestamp: now, formattedTime })
+	} catch (_) { }
 }
 
+// ✅ 更新任务状态 + 写日志
 async function updateTaskStatus(taskId, status, progress, message, report = null) {
 	const taskCollection = db.collection(dbName3)
 	const updateData = {
@@ -32,106 +26,105 @@ async function updateTaskStatus(taskId, status, progress, message, report = null
 		updateTime: Date.now()
 	}
 	if (report) updateData.report = report
-
 	const currentTask = await taskCollection.where({ taskId }).get()
-	const currentLogs = currentTask.data[0]?.logs || []
+	const currentLogs = currentTask.data?.[0]?.logs || []
 	updateData.logs = [...currentLogs, `${Date.now()}: ${message}`]
-
 	await taskCollection.where({ taskId }).update(updateData)
 	await log('updateTaskStatus', { status, progress, message }, { taskId })
 }
 
+// ✅ 生成单个 section 分析
 function generateSectionFallbackAnalysis(sectionName, skills, childName) {
 	if (!skills || skills.length === 0) return `${childName}在${sectionName}领域所有技能达标。`
 	const skillNames = skills.map(s => s.taskName).slice(0, 3).join('、')
 	return `${childName}在${sectionName}领域有${skills.length}项技能需改进，重点关注${skillNames}等内容，建议结合兴趣进行个别化训练。`
 }
 
+// ✅ 生成报告总结
 function generateReportSummaryFallback(childName, reachCount, belowCount, sections) {
 	const total = reachCount + belowCount
 	const rate = total ? Math.round((reachCount / total) * 100) : 0
 	return `${childName}共参与${sections.join('、')}等${sections.length}个技能领域的评估，完成率${rate}%，建议继续加强训练。`
 }
 
+// ✅ 保存报告和更新状态
 async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
 	const reportCollection = db.collection(dbName4)
 	const recordCollection = db.collection(dbName2)
 
-	await log('saveReportAndUpdateStatus-start', { recordId }, { taskId, recordId })
+	await log('saveReportAndUpdateStatus-start', {}, { taskId, recordId })
 
-	await updateTaskStatus(taskId, 'processing', 99, '保存报告中...')
-	if (!recordId) {
-		await updateTaskStatus(taskId, 'failed', 100, '报告生成失败: recordId 不存在')
-		return
-	}
+	try {
+		await updateTaskStatus(taskId, 'processing', 99, '保存报告中...')
+		const existing = await reportCollection.where({ reportId: reportData.reportId }).get()
 
-	const existing = await reportCollection.where({ reportId: reportData.reportId }).get()
-	if (existing.data.length === 0) {
-		// 拆分写入，第一步
-		const baseData = {
-			reportId: reportData.reportId,
-			recordId: reportData.recordId,
-			assessmentId: reportData.assessmentId,
-			assessorId: reportData.assessorId,
-			classId: reportData.classId,
-			className: reportData.className,
-			childId: reportData.childId,
-			childName: reportData.childName,
-			avatar: reportData.avatar,
-			childAge: reportData.childAge,
-			ageInt: reportData.ageInt,
-			assessmentTitle: reportData.assessmentTitle,
-			createTime: reportData.createTime,
-			updateTime: reportData.updateTime
+		if (!existing.data.length) {
+			await reportCollection.add({
+				reportId: reportData.reportId,
+				recordId: reportData.recordId,
+				assessmentId: reportData.assessmentId,
+				assessorId: reportData.assessorId,
+				classId: reportData.classId,
+				className: reportData.className,
+				childId: reportData.childId,
+				childName: reportData.childName,
+				avatar: reportData.avatar,
+				childAge: reportData.childAge,
+				ageInt: reportData.ageInt,
+				assessmentTitle: reportData.assessmentTitle,
+				createTime: reportData.createTime,
+				updateTime: reportData.updateTime
+			})
+			await reportCollection.where({ reportId: reportData.reportId }).update({
+				sectionSummaryList: reportData.sectionSummaryList,
+				reportSummary: reportData.reportSummary,
+				assessorName: reportData.assessorName,
+				completionTime: reportData.completionTime,
+				duration: reportData.duration,
+				updateTime: Date.now()
+			})
+			await log('report-inserted', {}, { taskId, recordId })
+		} else {
+			await log('report-exists', {}, { taskId, recordId })
 		}
-		await reportCollection.add(baseData)
-		await reportCollection.where({ reportId: reportData.reportId }).update({
-			sectionSummaryList: reportData.sectionSummaryList,
-			reportSummary: reportData.reportSummary,
-			assessorName: reportData.assessorName,
-			completionTime: reportData.completionTime,
-			duration: reportData.duration,
+
+		const recordRes = await recordCollection.where({ recordId }).get()
+		if (!recordRes.data.length) throw new Error(`未找到评估记录: ${recordId}`)
+
+		const updatedModules = (recordRes.data[0].modulesStatus || []).map(m => ({ ...m, status: 1 }))
+		const updateRes = await recordCollection.where({ recordId }).update({
+			modulesStatus: updatedModules,
+			reportStatus: 'completed',
+			reportId: reportData.reportId,
 			updateTime: Date.now()
 		})
-		await log('report-inserted', {}, { taskId, recordId })
-	} else {
-		await log('report-exists', {}, { taskId, recordId })
+		if (updateRes.updated === 0) throw new Error('评估记录更新失败')
+
+		await updateTaskStatus(taskId, 'processing', 100, '报告保存完成')
+		await log('saveReportAndUpdateStatus-done', {}, { taskId, recordId })
+
+	} catch (err) {
+		await log('saveReportAndUpdateStatus-error', { message: err.message }, { taskId, recordId, level: 'error' })
+		throw new Error('保存报告失败: ' + err.message)
 	}
-
-	const recordRes = await recordCollection.where({ recordId }).get()
-	if (recordRes.data.length === 0) {
-		throw new Error(`未找到评估记录: ${recordId}`)
-	}
-
-	const updatedModules = (recordRes.data[0].modulesStatus || []).map(m => ({ ...m, status: 1 }))
-	const updateRes = await recordCollection.where({ recordId }).update({
-		modulesStatus: updatedModules,
-		reportStatus: 'completed',
-		reportId: reportData.reportId,
-		updateTime: Date.now()
-	})
-
-	if (updateRes.updated === 0) throw new Error('评估记录更新失败')
-
-	await updateTaskStatus(taskId, 'processing', 100, '报告保存完成')
-	await log('saveReportAndUpdateStatus-done', {}, { taskId, recordId })
 }
 
+// ✅ 生成报告主函数
 async function generateReportAsync(taskId, completedSectionList, query) {
 	const recordCollection = db.collection(dbName2)
 	const taskCollection = db.collection(dbName3)
 	const userCollection = db.collection(dbName5)
+	const recordId = query?.recordId
 
-	await log('Start generateReportAsync', query, { taskId, recordId: query?.recordId })
+	await log('Start generateReportAsync', query, { taskId, recordId })
 
-	if (!query?.recordId) {
+	if (!recordId) {
 		await updateTaskStatus(taskId, 'failed', 100, '报告生成失败: 缺少 recordId')
 		return
 	}
 
 	try {
 		await updateTaskStatus(taskId, 'processing', 0, '开始生成报告')
-		await log('开始生成报告', {}, { taskId, recordId: query.recordId })
 
 		let sectionSummaryList = []
 
@@ -189,11 +182,7 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 
 			if (sectionSkillBelowStandard.length > 0) {
 				await updateTaskStatus(taskId, 'processing', progress, `AI分析中: ${item.sectionName}`)
-				sectionSummary.analysis = generateSectionFallbackAnalysis(
-					item.sectionName,
-					sectionSkillBelowStandard,
-					item.childName
-				)
+				sectionSummary.analysis = generateSectionFallbackAnalysis(item.sectionName, sectionSkillBelowStandard, item.childName)
 				await updateTaskStatus(taskId, 'processing', progress, `AI分析完成: ${item.sectionName}`)
 			} else {
 				sectionSummary.analysis = `${item.childName}在${item.sectionName}领域的所有技能都已达标，表现优秀！`
@@ -206,19 +195,12 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 		const belowCount = sectionSummaryList.reduce((acc, s) => acc + s.abllsSectionSummaryList.reduce((a, b) => a + b.skillBelowStandard.length, 0), 0)
 		const sectionNames = sectionSummaryList.map(s => s.sectionName)
 
-		const reportSummary = generateReportSummaryFallback(
-			completedSectionList[0]?.childName,
-			reachCount,
-			belowCount,
-			sectionNames
-		)
-
-		const recordRes = await recordCollection.where({ recordId: query.recordId }).get()
-		if (!recordRes.data || recordRes.data.length === 0) {
+		const reportSummary = generateReportSummaryFallback(completedSectionList[0]?.childName, reachCount, belowCount, sectionNames)
+		const recordRes = await recordCollection.where({ recordId }).get()
+		if (!recordRes.data.length) {
 			await updateTaskStatus(taskId, 'failed', 100, '报告生成失败：未找到原始评估记录')
 			return
 		}
-		const record = recordRes.data[0]
 
 		const taskRes = await taskCollection.where({ taskId }).get()
 		const taskCreateTime = taskRes.data?.[0]?.createTime || Date.now()
@@ -230,19 +212,19 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 
 		const reportData = {
 			reportVersion: 'v2',
-			reportId: `report_${query.recordId}_${Date.now()}`,
-			recordId: query.recordId,
+			reportId: `report_${recordId}_${Date.now()}`,
+			recordId,
 			assessmentId: query.assessmentId,
 			assessorId: query.assessorId,
 			assessorName,
-			classId: record.classId || '',
-			className: record.className || '',
-			childId: record.childId || '',
-			childName: record.childName || '',
-			avatar: record.avatar || '',
-			childAge: record.childAge || '',
-			ageInt: record.ageInt || 0,
-			assessmentTitle: record.assessmentTitle || 'ABLLS-R',
+			classId: recordRes.data[0].classId,
+			className: recordRes.data[0].className,
+			childId: recordRes.data[0].childId,
+			childName: recordRes.data[0].childName,
+			avatar: recordRes.data[0].avatar,
+			childAge: recordRes.data[0].childAge,
+			ageInt: recordRes.data[0].ageInt,
+			assessmentTitle: recordRes.data[0].assessmentTitle || 'ABLLS-R',
 			sectionSummaryList,
 			reportSummary,
 			createTime: completionTime,
@@ -251,12 +233,12 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			duration
 		}
 
-		await saveReportAndUpdateStatus(reportData, query.recordId, taskId)
+		await saveReportAndUpdateStatus(reportData, recordId, taskId)
 		await updateTaskStatus(taskId, 'completed', 100, '报告生成完成')
-		await log('报告生成完成', {}, { taskId, recordId: query.recordId })
+		await log('报告生成完成', {}, { taskId, recordId })
 
 	} catch (err) {
-		await log('报告生成失败', { message: err.message }, { taskId, recordId: query.recordId, level: 'error' })
+		await log('generateReportAsync-error', { message: err.message }, { taskId, recordId, level: 'error' })
 		await updateTaskStatus(taskId, 'failed', 100, `报告生成失败: ${err.message}`)
 	}
 }
