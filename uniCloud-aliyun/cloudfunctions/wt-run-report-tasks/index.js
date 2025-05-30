@@ -11,7 +11,7 @@ exports.main = async () => {
 		.orderBy('createTime', 'asc')
 		.limit(1)
 		.get()
-
+	console.log('pendingTasks', pendingTasks) // 打印到 cons
 	if (pendingTasks.data.length === 0) {
 		return { code: 200, message: '无任务可执行' }
 	}

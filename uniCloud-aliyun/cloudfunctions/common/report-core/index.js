@@ -6,6 +6,7 @@ const dbName3 = 'wtdb-report-tasks'
 const dbName4 = 'wtdb-business-assess-report'
 
 async function generateReportAsync(taskId, completedSectionList, query) {
+	console.log('generateReportAsync', taskId, completedSectionList, query)
 	const taskCollection = db.collection(dbName3)
 
 	try {
@@ -122,6 +123,7 @@ async function updateTaskStatus(taskId, status, progress, message, report = null
 	if (report) updateData.report = report
 
 	const currentTask = await taskCollection.where({ taskId }).get()
+	console.log('currentTask', currentTask) // 打印到 cons
 	const currentLogs = currentTask.data[0]?.logs || []
 	updateData.logs = [...currentLogs, `${Date.now()}: ${message}`]
 

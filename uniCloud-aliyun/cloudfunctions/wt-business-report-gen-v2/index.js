@@ -21,12 +21,11 @@ exports.main = async (event, context) => {
 			};
 		}
 
-		const query = {
-			recordId,
-			assessmentId,
-			assessorId: uid,
-			childId,
-		};
+		const query = {}
+		if (recordId) query.recordId = recordId
+		if (assessmentId) query.assessmentId = assessmentId
+		if (assessorId) query.assessorId = assessorId
+		if (childId) query.childId = childId
 
 		// 执行查询
 		const resHistory = await collection.where(query).get();
