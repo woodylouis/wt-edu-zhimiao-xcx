@@ -188,39 +188,73 @@ function generateReportSummaryFallback(childName, reachCount, belowCount, sectio
 }
 
 async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
-	console.log('saveReportAndUpdateStatus', reportData, recordId, taskId) // 打印到 con
 	const taskCollection = db.collection(dbName3)
 	const reportCollection = db.collection(dbName4)
 	const recordCollection = db.collection(dbName2)
 
-	if (!recordId) {
-		console.log('!recordId')
-		await updateTaskStatus(taskId, 'failed', 100, '报告生成失败: recordId 不存在，无法查询记录')
-		return
-	}
+	try {
+		console.log('[报告保存] 🎯 参数校验', reportData, recordId, taskId)
+		await updateTaskStatus(taskId, 'processing', 99, '保存报告中...')
 
-	const existing = await reportCollection.where({ reportId: reportData.reportId }).get()
-	console.log('existing', existing) // 打印到 cons
-	if (existing.data.length === 0) {
-		console.log('reportData', reportData)
-		await reportCollection.add({
-			...reportData,
-			createTime: Date.now(),
+		if (!recordId) {
+			console.log('❌ recordId 不存在，终止')
+			await updateTaskStatus(taskId, 'failed', 100, '报告生成失败: recordId 不存在，无法查询记录')
+			return
+		}
+
+		console.log('[报告保存] 🔍 查询报告是否已存在...')
+		const existing = await reportCollection.where({ reportId: reportData.reportId }).get()
+		console.log('[报告保存] ✅ 查询结果 existing:', existing.data?.length)
+
+		if (existing.data.length === 0) {
+			console.log('[报告保存] ➕ 插入新报告...')
+			const insertResult = await reportCollection.add({
+				...reportData,
+				createTime: Date.now(),
+				updateTime: Date.now()
+			})
+			if (!insertResult.id) {
+				throw new Error('报告插入失败，未返回ID')
+			}
+			console.log('[报告保存] ✅ 报告插入成功')
+		} else {
+			console.log('[报告保存] ⚠️ 报告已存在，不再重复插入')
+		}
+
+		console.log('[报告保存] 🔍 查询原始评估记录...')
+		const recordRes = await recordCollection.where({ recordId }).get()
+		if (recordRes.data.length === 0) {
+			throw new Error(`未找到评估记录: ${recordId}`)
+		}
+
+		const recordData = recordRes.data[0]
+		const modules = (recordData.modulesStatus || []).map(m => ({
+			...m,
+			status: 1
+		}))
+
+		console.log('[报告保存] 🔧 更新原始评估记录状态...')
+		const updateRes = await recordCollection.where({ recordId }).update({
+			modulesStatus: modules,
+			reportStatus: 'completed',
+			reportId: reportData.reportId,
 			updateTime: Date.now()
 		})
+
+		if (updateRes.updated === 0) {
+			throw new Error('评估记录更新失败，未修改任何字段')
+		}
+
+		console.log('[报告保存] ✅ 评估记录更新成功')
+		await updateTaskStatus(taskId, 'processing', 100, '报告保存完成')
+
+	} catch (err) {
+		console.error('[报告保存] ❌ 异常:', err.message)
+		await updateTaskStatus(taskId, 'failed', 100, `报告保存失败: ${err.message}`)
+		throw new Error(`报告保存失败: ${err.message}`)
 	}
-
-	const record = await recordCollection.where({ recordId }).get()
-	if (record.data.length === 0) throw new Error(`未找到记录: ${recordId}`)
-
-	const modules = record.data[0].modulesStatus.map(m => ({ ...m, status: 1 }))
-	await recordCollection.where({ recordId }).update({
-		modulesStatus: modules,
-		reportStatus: 'completed',
-		reportId: reportData.reportId,
-		updateTime: Date.now()
-	})
 }
+
 
 module.exports = {
 	generateReportAsync,
