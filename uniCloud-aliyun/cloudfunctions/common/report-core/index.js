@@ -215,6 +215,10 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			})
 		}
 
+		await db.collection(dbName3).where({ taskId }).update({
+			completedSections: completedSectionList,
+			updateTime: Date.now()
+		})
 
 		const reachCount = sectionSummaryList.reduce((acc, s) => acc + s.abllsSectionSummaryList.reduce((a, b) => a + b.skillReachStandard.length, 0), 0)
 		const belowCount = sectionSummaryList.reduce((acc, s) => acc + s.abllsSectionSummaryList.reduce((a, b) => a + b.skillBelowStandard.length, 0), 0)

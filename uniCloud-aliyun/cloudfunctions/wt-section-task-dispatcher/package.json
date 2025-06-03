@@ -1,0 +1,7 @@
+{
+  "name": "wt-section-task-dispatcher",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}
