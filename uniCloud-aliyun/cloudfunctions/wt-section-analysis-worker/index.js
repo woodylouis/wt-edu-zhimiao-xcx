@@ -3,8 +3,9 @@ const db = uniCloud.database()
 const taskCollection = db.collection('wtdb-section-analysis-tasks')
 const logCollection = db.collection('wtdb-debug-logs')
 
-const MAX_RETRY = 5
-const TIMEOUT_MS = 60000 // 每次AI调用最大60秒
+const MAX_RETRY = 3 // 减少重试次数，避免云函数超时
+const TIMEOUT_MS = 30000 // 减少AI调用超时时间到30秒
+const MAX_EXECUTION_TIME = 4 * 60 * 1000 // 云函数最大执行时间4分钟
 
 async function log(tag, data = null, { taskId = '', recordId = '', level = 'info' } = {}) {
 	const now = Date.now()
@@ -72,7 +73,7 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
 			config: {
 				provider: 'deepseek',
 				model: 'deepseek-chat',
-				tokensToGenerate: 400,
+				tokensToGenerate: 300, // 减少token数量，加快响应
 				apiKey: 'sk-e736907dad8a49ffa8e614916b32440f'
 			}
 		},
@@ -86,6 +87,13 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
 
 				const llm = uniCloud.ai.getLLMManager({ provider: model.config.provider, apiKey: model.config.apiKey })
 				const prompt = buildSectionAnalysisPrompt(sectionData, childName, childAge)
+
+				// 添加AI分析开始日志
+				await log('ai-analysis-start', {
+					model: model.name,
+					promptLength: prompt.length,
+					sectionName: sectionData.sectionName
+				}, { taskId })
 
 				const response = await Promise.race([
 					llm.chatCompletion({
@@ -101,29 +109,60 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
 					)
 				])
 
-				if (response && response.reply && response.reply.length > 50) {
+				if (response && response.reply && response.reply.length > 30) {
+					// 添加AI分析成功日志
+					await log('ai-analysis-success', {
+						model: model.name,
+						replyLength: response.reply.length
+					}, { taskId })
 					return response.reply
 				} else {
 					throw new Error(`${model.name} 返回无效内容`)
 				}
 			} catch (err) {
 				lastError = err
-				await log('ai-failed', { model: model.name, error: err.message }, { taskId, level: 'error' })
+				await log('ai-failed', {
+					model: model.name,
+					error: err.message,
+					attempt: attempt
+				}, { taskId, level: 'error' })
+
+				// 添加延时，避免频繁重试
+				if (attempt < MAX_RETRY) {
+					await new Promise(resolve => setTimeout(resolve, 1000))
+				}
 			}
 		}
 
-		await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)))
+		// 指数退避，但限制最大等待时间
+		const waitTime = Math.min(1000 * Math.pow(2, attempt), 5000)
+		await new Promise(resolve => setTimeout(resolve, waitTime))
 	}
 	throw lastError
 }
 
 exports.main = async () => {
-	const tasks = await taskCollection.where({ status: 'pending' }).limit(3).get()
+	const startTime = Date.now()
+	const tasks = await taskCollection.where({ status: 'pending' }).limit(2).get() // 减少并发处理数量
 	console.log('Fetched tasks:', tasks)
+
 	for (const task of tasks.data) {
+		// 检查执行时间，避免云函数超时
+		if (Date.now() - startTime > MAX_EXECUTION_TIME) {
+			await log('execution-timeout-break', {}, { taskId: task.taskId })
+			break
+		}
+
 		const { _id: docId, taskId, recordId, sectionId, sectionName, childName, ageInt, assessmentRecords } = task
+		await log('task-start', { taskId, sectionId }, { taskId })
 
 		try {
+			// 更新任务状态为处理中
+			await taskCollection.doc(docId).update({
+				status: 'processing',
+				updateTime: Date.now()
+			})
+
 			await log('section-analysis-start', { sectionId, sectionName }, { taskId, recordId })
 
 			// 提取未达标技能
@@ -149,22 +188,49 @@ exports.main = async () => {
 				analysis = `${childName}在${sectionName}领域的所有技能都达标，表现优秀！建议继续保持并逐步提升。`
 			} else {
 				const sectionData = { sectionName, skillBelowStandard }
-				analysis = await generateSectionAnalysisWithRetry(sectionData, childName, ageInt, taskId, docId)
+				console.log('generateSectionAnalysisWithRetry', sectionData, childName, ageInt, taskId, docId)
+
+				try {
+					analysis = await generateSectionAnalysisWithRetry(sectionData, childName, ageInt, taskId, docId)
+					console.log("analysis", analysis)
+				} catch (aiError) {
+					// AI分析失败时使用降级方案
+					console.error('AI分析失败，使用降级方案:', aiError)
+					analysis = generateSectionFallbackAnalysis(sectionName, skillBelowStandard, childName)
+					await log('ai-fallback-used', { error: aiError.message }, { taskId, level: 'warn' })
+				}
 			}
 
+			// 恢复数据库更新操作
 			await taskCollection.doc(docId).update({
 				status: 'done',
 				analysis,
 				updateTime: Date.now()
 			})
-			await log('section-analysis-success', { sectionId, analysis }, { taskId, recordId })
+			await log('section-analysis-success', { sectionId, analysis: analysis.substring(0, 100) + '...' }, { taskId, recordId })
+
 		} catch (err) {
-			await taskCollection.doc(task._id).update({
-				status: 'failed',
-				failReason: err.message,
-				updateTime: Date.now()
-			})
+			console.error('任务处理失败:', err)
+
+			// 确保失败的任务也要更新状态
+			try {
+				await taskCollection.doc(docId).update({
+					status: 'failed',
+					failReason: err.message,
+					updateTime: Date.now()
+				})
+			} catch (updateError) {
+				console.error('更新失败状态时出错:', updateError)
+			}
+
 			await log('section-analysis-failed', { error: err.message }, { taskId, recordId, level: 'error' })
+
+			// 继续处理下一个任务，而不是中断整个流程
+			continue
 		}
 	}
+
+	const executionTime = Date.now() - startTime
+	console.log('云函数执行完成，耗时:', executionTime + 'ms')
+	await log('worker-completed', { executionTime, tasksProcessed: tasks.data.length }, {})
 }
