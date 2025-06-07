@@ -23,16 +23,18 @@ function generateReportSummaryFallback(childName, reachCount, belowCount, sectio
 
 exports.main = async () => {
 	const tasks = await dbTask.where({ status: 'waiting_merge' }).limit(3).get()
-
 	for (const task of tasks.data) {
-		const { taskId, recordId, assessorId, assessmentId } = task
-
+		console.log('有待处理任务数量', task)
+		const { taskId, originalParams = {}, assessmentId } = task
+		const recordId = originalParams.query?.recordId || ''
+		const assessorId = originalParams.query?.assessorId || ''
 		try {
 			await log('merge-start', {}, { taskId, recordId })
 
 			const analysisRes = await dbAnalysis.where({ taskId }).get()
+			console.log('有analysisRes')
 			const analysisList = analysisRes.data
-
+			console.log('有analysisList')
 			if (!analysisList.length) {
 				await dbTask.where({ taskId }).update({
 					status: 'failed',
@@ -58,26 +60,35 @@ exports.main = async () => {
 				await log('merge-failed-some-failed', {}, { taskId, recordId })
 				continue
 			}
+			console.log('继续')
 
 			const recordRes = await dbRecord.where({ recordId }).get()
-			if (!recordRes.data.length) throw new Error('找不到评估记录')
+			console.log('有recordRes')
+			console.log('recordRes', recordRes)
+			// if (!recordRes.data.length) throw new Error('找不到评估记录')
+			if (!recordRes.data.length) {
+				console.log('找不到评估记录')
+			}
 			const record = recordRes.data[0]
-
+			console.log('recordt', record)
 			const userRes = await dbUser.where({ _id: assessorId }).get()
 			const assessorName = userRes.data?.[0]?.nickname || userRes.data?.[0]?.username || '用户未设置昵称'
 
 			let reachCount = 0, belowCount = 0
+			console.log('构建sectionSummaryList')
 			const sectionSummaryList = analysisList.map(item => {
+				console.log('item:', item)
 				const section = {
 					sectionName: item.sectionName,
 					sectionId: item.sectionId,
-					abllsSectionSummaryList: item.abllsSectionSummaryList || [], // 如果你需要分析中包含技能明细
+					abllsSectionSummaryList: item.assessmentRecords || [], // 如果你需要分析中包含技能明细
 					analysis: item.analysis
 				}
 				// 简化处理：假设技能明细都不在这合并里，仅靠 analysis
 				// 如果你已经把 skillReachStandard / skillBelowStandard 嵌入 analysisTask，可以加计数逻辑
 				return section
 			})
+			console.log("sectionSummaryList", sectionSummaryList)
 			const sectionNames = sectionSummaryList.map(s => s.sectionName)
 
 			const reportSummary = generateReportSummaryFallback(record.childName, reachCount, belowCount, sectionNames)
@@ -124,7 +135,7 @@ exports.main = async () => {
 
 		} catch (err) {
 			await dbTask.where({ taskId }).update({
-				status: 'failed',
+				// status: 'failed',
 				failReason: err.message,
 				updateTime: Date.now()
 			})

@@ -19,6 +19,8 @@ exports.main = async () => {
 
 	for (const task of tasks.data) {
 		const { taskId, recordId, reportData, _id } = task
+		console.log("reportData", reportData)
+		await log('reportData', {}, { reportData })
 		try {
 			await log('save-pending-start', {}, { taskId, recordId })
 

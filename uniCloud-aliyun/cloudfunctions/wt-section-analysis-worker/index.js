@@ -119,7 +119,7 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
 
 exports.main = async () => {
 	const tasks = await taskCollection.where({ status: 'pending' }).limit(3).get()
-
+	console.log('Fetched tasks:', tasks)
 	for (const task of tasks.data) {
 		const { _id: docId, taskId, recordId, sectionId, sectionName, childName, ageInt, assessmentRecords } = task
 
