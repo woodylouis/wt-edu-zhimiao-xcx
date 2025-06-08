@@ -122,9 +122,9 @@ const handleStudentClick = async (student) => {
         return;
     }
 
-    uni.setStorageSync('current_student', {
-        ...student
-    });
+    // uni.setStorageSync('current_student', {
+    //     ...student
+    // });
     uni.navigateTo({
         url: `/pages/assessment/report?isHistory=true`
     });
@@ -168,7 +168,7 @@ const onClickSwitch = () => {
 const onClickProfile = () => {
     uni.navigateTo({
         url: '/uni_modules/uni-id-pages/pages/userinfo/userinfo'
-		// url:'/pages/assessment/listMoudules'
+        // url:'/pages/assessment/listMoudules'
     }).then(() => {
         // 新增返回后强制更新
         userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
