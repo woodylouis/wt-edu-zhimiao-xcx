@@ -16,11 +16,16 @@
 			}
 		},
 		{
-			"path" : "pages/assessment/listMoudules",
-			"style" : 
-			{
-				"navigationBarTitleText" : "",
-				"enablePullDownRefresh" : false,
+			"path": "pages/assessment/listMoudules",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false,
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/assessment/afterAssess",
+			"style": {
 				"navigationStyle": "custom"
 			}
 		},
