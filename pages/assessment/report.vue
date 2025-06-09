@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                    }}</view>
+                                }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -49,6 +49,8 @@ import common from '@/common/common.js';
 import customNav from '@/components/customNav';
 import capabilityLevel from './components/capability-level-v2';
 import popup from './components/popup';
+import { CURRENT_STUDENT } from '@/lib/types/local_storage.js';
+
 
 let displayName = ref('李思'); // 
 let classDisplay = ref('小班3班');
@@ -169,6 +171,7 @@ onUnmounted(() => {
     // 清除当前量表的缓存
     const cacheKey = `assessment_${assessmentId.value}`;
     uni.removeStorageSync(cacheKey);
+    uni.removeStorageSync(CURRENT_STUDENT);
     console.log('已清除评估缓存:', cacheKey);
 });
 

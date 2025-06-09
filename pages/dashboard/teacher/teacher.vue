@@ -54,6 +54,8 @@
 import customNav from '@/components/customNav'
 import { ref, onMounted, computed, reactive } from "vue";
 import { onShow, onLoad, onUnload, onReachBottom } from '@dcloudio/uni-app'
+import { CURRENT_STUDENT } from '@/lib/types/local_storage.js';
+
 import QcSuspendBtn from '@/components/qc-suspendBtn/qc-suspendBtn.vue'
 import StudentList from './components/student-list'
 import btnConfig from '@/common/suspen-btn/config.js'
@@ -122,9 +124,9 @@ const handleStudentClick = async (student) => {
         return;
     }
 
-    // uni.setStorageSync('current_student', {
-    //     ...student
-    // });
+    uni.setStorageSync(CURRENT_STUDENT, {
+        ...student
+    });
     uni.navigateTo({
         url: `/pages/assessment/report?isHistory=true`
     });
