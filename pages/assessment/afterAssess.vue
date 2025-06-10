@@ -21,14 +21,44 @@
                 </view>
 
             </view>
-            <view class="report">
-
+            <view class="loading-container">
+                <view class="main-content-card">
+                    <view class="date-header">
+                        开始评估日期：{{ assessmentCreateTime }} <br>
+                        提交日期：{{ currentDate }}
+                    </view>
+                    <image
+                        src="https://cdn.builder.io/api/v1/image/assets/022245c9a8b14954aad66a5dc04d83ff/f2e436be44ad54ad40e29997f78afdd3ac0678de?placeholderIfAbsent=true"
+                        class="loading-image" mode="aspectFit" />
+                    <text class="loading-message">
+                        正在生成智能分析报告...
+                    </text>
+                    <!-- 分割线 -->
+                    <view class="separator"></view>
+                    <view class="tips">
+                        <img src="https://cdn.builder.io/api/v1/image/assets/022245c9a8b14954aad66a5dc04d83ff/e6fd64bcab073741b3e800de42955c66c3e1302f?placeholderIfAbsent=true"
+                            class="analysis-icon" alt="AI Analysis" />
+                        <p class="analysis-text">
+                            <span class="analysis-text-normal">AI正在分析中，</span>约需1分钟
+                        </p>
+                    </view>
+                </view>
+                <view class="info-section">
+                    <img src="https://cdn.builder.io/api/v1/image/assets/022245c9a8b14954aad66a5dc04d83ff/68df53f5126efcc3fca0e29fc71124347e4648e1?placeholderIfAbsent=true"
+                        class="info-icon" mode="aspectFit" />
+                    <text class="info-text">
+                        您也可以先看看其它页面，稍后再回来查看报告
+                    </text>
+                </view>
+                <view class="backToHome" @click="backToHome">
+                    <u-button :custom-style="{
+                        ...buttonStyle
+                    }">
+                        返回首页
+                    </u-button>
+                </view>
             </view>
         </view>
-        <!-- <view style="z-index: 9999;">
-            <popup :historyReports="historyReports" :show="showHistory" @update:show="val => showHistory = val"
-                @onclickReportCard="onclickReportCard" />
-        </view> -->
     </view>
 </template>
 
@@ -37,7 +67,7 @@
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, onUnmounted } from "vue";
 import customNav from '@/components/customNav';
-import { ASSESS_STUDENT } from '@/lib/types/local_storage.js';
+import { ASSESS_STUDENT, CURRENT_ASSESSMENT_MODULE_STATUS } from '@/lib/types/local_storage.js';
 
 const assessStudent = uni.getStorageSync(ASSESS_STUDENT);
 let displayName = assessStudent.childName;
@@ -45,16 +75,41 @@ let classDisplay = assessStudent.className;
 let avatarUrl = assessStudent.avatar;
 let childAge = assessStudent.childAge;
 let assessmentTitle = assessStudent.assessmentTitle;
+const currentAssessmentModuleStatus = uni.getStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS);
+let assessmentCreateTime = new Date(currentAssessmentModuleStatus.createTime).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+}).replace(/\//g, '年').replace(/\//g, '月') + '日';
+let currentDate = new Date().toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+}).replace(/\//g, '年').replace(/\//g, '月') + '日';
 
+let buttonStyle = {
+    backgroundColor: "#FFFFFF",
+    color: "#00214D",
+    border: "1px solid #00214D",
+    borderRadius: "48rpx",
+    fontSize: "32rpx",
+    padding: "26rpx 0",
+    height: "50px",
+    marginTop: "40rpx",
+    width: "260rpx"
+}
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
+
 
 
 const handleNavBack = () => {
     uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
 };
 
-
+const backToHome = () => {
+    uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
+}
 
 
 
@@ -74,6 +129,7 @@ onUnmounted(() => {
     .content {
         background-color: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);
         height: calc(100vh - 100vh / 8);
+        padding: 0 40rpx 20rpx 40rpx;
 
         .user-profile {
             // height: calc(100vh / 8);
@@ -82,7 +138,7 @@ onUnmounted(() => {
             display: flex;
             justify-content: space-between;
             align-items: center; // 新增这行实现垂直居中
-            padding: 0 40rpx 20rpx 40rpx;
+            // padding: 0 40rpx 20rpx 40rpx;
             box-shadow: inset 0 -20rpx 30rpx rgba(255, 255, 255, 0.8);
 
 
@@ -135,6 +191,110 @@ onUnmounted(() => {
             }
         }
 
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: "PingFang SC", -apple-system, Roboto, Helvetica, sans-serif;
+            color: #000000;
+            margin-top: 76rpx;
+            // background-color: red;
+
+            .main-content-card {
+                width: 100%;
+                border-radius: 16rpx;
+                background-color: #FFFFFF;
+                box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.1);
+                border: 1px solid #E9E9E9;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                height: 45vh;
+
+                .date-header {
+                    font-size: 24rpx;
+                    font-weight: 400;
+                    align-self: flex-start;
+                    padding: 28rpx;
+                }
+
+                .loading-image {
+                    width: 360rpx;
+                    height: 280rpx;
+                    margin-top: 60rpx;
+                }
+
+
+                .loading-message {
+                    font-size: 30rpx;
+                    font-weight: 600;
+                    line-height: 1.2;
+                    margin-top: 52rpx;
+                }
+
+                .separator {
+                    width: 100%;
+                    height: 1px;
+                    background-color: #E9E9E9;
+                    margin-top: 40rpx;
+                    margin-bottom: 40rpx;
+                }
+
+                .tips {
+                    display: flex;
+                    align-items: stretch;
+                    gap: 8px;
+                    font-family: PingFang SC, -apple-system, Roboto, Helvetica, sans-serif;
+                    font-size: 15px;
+                    color: rgba(0, 0, 0, 1);
+                    font-weight: 600;
+                    line-height: 1.2;
+
+                    .analysis-icon {
+                        aspect-ratio: 1;
+                        object-fit: contain;
+                        object-position: center;
+                        width: 23px;
+                        height: 23px;
+                        flex-shrink: 0;
+                    }
+
+                    .analysis-text {
+                        margin: auto 0;
+                        flex-basis: auto;
+
+                        .analysis-text-normal {
+                            font-weight: 400;
+                        }
+                    }
+                }
+            }
+
+            .info-section {
+                display: flex;
+                margin-top: 114rpx;
+                width: 100%;
+                max-width: 572rpx;
+                align-items: center;
+                gap: 20rpx;
+                font-size: 24rpx;
+                font-weight: 600;
+
+                .info-icon {
+                    width: 36rpx;
+                    height: 36rpx;
+                }
+
+                .info-text {
+                    flex: 1;
+                }
+            }
+
+            .backToHome {
+                margin-top: 40rpx
+            }
+
+        }
 
     }
 }
