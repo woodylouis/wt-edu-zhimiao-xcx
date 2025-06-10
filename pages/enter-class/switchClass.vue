@@ -84,7 +84,8 @@ export default {
             classes: {
                 parent: [],
                 teacher: []
-            }
+            },
+            debounceTimer: null
         };
     },
     // 修正handleSubmit中的逻辑
@@ -153,28 +154,33 @@ export default {
             this.selectedRole = role;
         },
         async handleChooseClass(index, code) {
-            console.log("选择的班级：", code);
-            this.selected = index;
-            const selectedClass = this.classes[this.selectedRole][index];
-            console.log("选择的班级信息：", selectedClass);
-            const { result } = await uniCloud.callFunction({
-                name: 'wtdb-business-class-detail',
-                data: { code: selectedClass.classCode }
-            });
-            uni.showModal({
-                title: '提示',
-                content: '确定切换到选中班级吗？',
-                showCancel: true,
-                success: ({ confirm, cancel }) => {
-                    if (confirm) {
-                        uni.setStorageSync('currentClass', result.data);
-                        // 修改跳转逻辑，携带整个selectedClass对象
-                        uni.navigateTo({
-                            url: `/pages/dashboard/teacher/teacher?userNickname=${selectedClass.nickname}&role=${selectedClass.role}`
-                        });
+            if (this.debounceTimer) {
+                clearTimeout(this.debounceTimer);
+            }
+
+            this.debounceTimer = setTimeout(async () => {
+                console.log("选择的班级：", code);
+                this.selected = index;
+                const selectedClass = this.classes[this.selectedRole][index];
+                console.log("选择的班级信息：", selectedClass);
+                const { result } = await uniCloud.callFunction({
+                    name: 'wtdb-business-class-detail',
+                    data: { code: selectedClass.classCode }
+                });
+                uni.showModal({
+                    title: '提示',
+                    content: '确定切换到选中班级吗？',
+                    showCancel: true,
+                    success: ({ confirm, cancel }) => {
+                        if (confirm) {
+                            uni.setStorageSync('currentClass', result.data);
+                            uni.redirectTo({
+                                url: `/pages/dashboard/teacher/teacher?userNickname=${selectedClass.nickname}&role=${selectedClass.role}`
+                            });
+                        }
                     }
-                }
-            })
+                });
+            }, 1000); // 500毫秒防抖间隔
         }
 
     },
