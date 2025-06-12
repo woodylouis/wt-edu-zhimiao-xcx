@@ -1,38 +1,30 @@
 export const getRadarOption = (age, scores) => {
     // 从age中提取年龄数字（如"4岁5个月" -> 4）
-    const ageYears = age ? parseInt(age.split('岁')[0]) : 0;
 
     return {
         radar: {
             indicator: [
-                { name: '自发性语言', max: 7 },
-                { name: '句法和语法', max: 7 },
-                { name: '合作及强化物效果', max: 7 },
-                { name: '课堂纪律', max: 7 }
-            ],
-        },
-        series: [{
-            type: 'radar',
-            data: [
-                {
-                    value: [
-                        scores.ziFaXingYuYanScore,
-                        scores.juFaHeYuFaScore,
-                        scores.heZuoJiQiangHuaWuXiaoGuoScore,
-                        scores.keTangJiLvScore
-                    ],
-                    name: '当前',
-                },
-                {
-                    value: [
-                        Math.min(ageYears, 7),
-                        Math.min(ageYears, 7),
-                        Math.min(ageYears, 7),
-                        Math.min(ageYears, 7)
-                    ],
-                    name: '理想值',
-                }
+                { name: "社交与游戏技能", max: 98 },
+                { name: "认知与专业技能", max: 16 },
+                { name: "生活自理技能", max: 30 },
+                { name: "运动与操作技能", max: 28 },
             ]
-        }]
+        },
+        series: [
+            {
+                name: '能力图',
+                type: 'radar',
+                data: [
+                    {
+                        value: [81, 13, 25, 23],
+                        name: 'Expected Score'
+                    },
+                    {
+                        value: [79, 12, 24, 13],
+                        name: 'Actual Score'
+                    }
+                ]
+            }
+        ]
     };
 };

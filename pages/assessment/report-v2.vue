@@ -17,7 +17,7 @@
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
-                            <view><span style="font-weight: bold;">评估日期：</span>{{ dateString }}</view>
+                            <view><span style="font-weight: bold;">报告日期：</span>{{ dateString }}</view>
                         </view>
                     </view>
                 </view>
@@ -49,7 +49,7 @@
 <script setup>
 const echarts = require('../../uni_modules/lime-echart/static/echarts.min');
 import { onLoad } from '@dcloudio/uni-app'
-import { ref, onUnmounted, onMounted, computed } from "vue";
+import { ref, onUnmounted, onMounted, computed, watch } from "vue";
 import common from '@/common/common.js';
 import customNav from '@/components/customNav';
 import capabilityLevel from './components/capability-level-v2';
@@ -73,6 +73,8 @@ const analysisTextAI = ref('');
 const listIconUrl = "../../static/general/list.png";
 const historyReports = ref([])
 const radarChartRef = ref(null)
+const sectionSummaryList = ref([])
+const sectionScoreList = ref([]);
 
 const handleNavBack = () => {
     uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
@@ -82,14 +84,21 @@ const handleClickHistory = () => {
     showHistory.value = true;
 }
 
+
+
 const radarOption = computed(() => {
-    return getRadarOption(childAge.value, {
-        ziFaXingYuYanScore: 4,
-        juFaHeYuFaScore: 5,
-        heZuoJiQiangHuaWuXiaoGuoScore: 6,
-        keTangJiLvScore: 7
-    });
+    // if (!sectionScoreList.value || sectionScoreList.value.length === 0) {
+    //     return { radar: { indicator: [] }, series: [] };
+    // }
+    console.log("radarOption sectionScoreList", sectionScoreList.value)
+    return getRadarOption(sectionScoreList.value);
 });
+// watch(sectionScoreList, (newVal) => {
+//     console.log("sectionScoreList watch", newVal)
+//     if (newVal && newVal.length > 0) {
+//         radarOption.value = getRadarOption(newVal);
+//     }
+// }, { immediate: true, deep: true });
 
 const onclickReportCard = (index) => {
     console.log("onclickReportCard received index:", index);
@@ -139,6 +148,31 @@ const fetchChildReportHistory = async (childId) => {
     }
 };
 
+const processSectionScores = (sectionSummaryList) => {
+    return sectionSummaryList.map(section => {
+        const expectedTotalScore = section.abllsSectionSummaryList.reduce(
+            (sum, item) =>
+                sum + (item.expectedTotalScore || 0), 0
+        );
+
+        const actualTotalScore = section.abllsSectionSummaryList.reduce(
+            (sum, item) => sum + (item.actualTotalScore || 0), 0
+        );
+
+        return {
+            sectionName: section.sectionName,
+            expectedTotalScore,
+            actualTotalScore
+        };
+    });
+};
+
+// watch(sectionScoreList, (newVal) => {
+//     if (newVal && newVal.length > 0) {
+//         radarOption.value = getRadarOption(newVal);
+//     }
+// }, { immediate: true, deep: true });
+
 onLoad(async function (options) {
     if (options.isHistory == "true") {
         const student = uni.getStorageSync('current_student');
@@ -150,13 +184,30 @@ onLoad(async function (options) {
         historyReports.value = await fetchChildReportHistory(student._id);
 
         if (historyReports.value.length > 0) {
+            const latestReport = historyReports.value[0];
             const currentClass = uni.getStorageSync('currentClass');
             displayName.value = student.name || '未知姓名';
             classDisplay.value = currentClass.nickname || '未知班级';
             childAge.value = common.ageDisplay(student.birthdate) || '未知年龄';
-            sectionScores.value = historyReports.value[0].sectionScores || {};
-            analysisTextAI.value = historyReports.value[0].aiResponse || '';
-            dateString.value = historyReports.value[0].date || '';
+            console.log("historyReports", historyReports.value[0])
+            sectionSummaryList.value = latestReport.sectionSummaryList || [];
+
+            // 通过遍历sectionSummaryList，提取其sectionName和的abllsSectionSummaryList列表，然后继续遍历abllsSectionSummaryList列表，获得abllsSection的expectedTotalScore的和以及actualTotalScore的和。
+            // 期望的数据结构是对象数据。例如：
+            // [{
+            //   sectionName: 游戏和休闲,
+            //   expectedTotalScore: 10,
+            //   actualTotalScore: 8
+            // },
+            // {
+            //   sectionName: 语言和沟通,
+            //   expectedTotalScore: 10,
+            // }
+            // ]
+            // sectionScoreList.value = processSectionScores(sectionSummaryList.value);
+            // console.log("sectionScoreList", sectionScoreList.value)
+
+
         }
     } else {
         console.log(options)
