@@ -25,14 +25,19 @@
                     <image class="report-list-image" :src="listIconUrl" />
                 </view>
             </view>
-            <view class="report">
-                <view class="part">
-                    <capability-level :displayName="displayName" :plan="analysisTextAI"
-                        :ziFaXingYuYanScore="sectionScores.自发性语言 || 0" :juFaHeYuFaScore="sectionScores.句法和语法"
-                        :heZuoJiQiangHuaWuXiaoGuoScore="sectionScores.合作及强化物效果 || 0"
-                        :keTangJiLvScore="sectionScores.课堂纪律 || 0" :age="childAge" />
-                </view>
-            </view>
+            <div class="assessment-container">
+                <div class="assessment-card">
+                    <h1 class="assessment-title">
+                        ABLLS-R评估能力分布图
+                    </h1>
+                    <section class="chart-area">
+                        <l-echart ref="radarChartRef"></l-echart>
+                    </section>
+                    <section class="recommendation-section">
+                        当前能力整体水平不均衡。建议关注语言与沟通、运动与操作和认知能力。
+                    </section>
+                </div>
+            </div>
         </view>
         <view style="z-index: 9999;">
             <popup :historyReports="historyReports" :show="showHistory" @update:show="val => showHistory = val"
@@ -42,13 +47,14 @@
 </template>
 
 <script setup>
-
+const echarts = require('../../uni_modules/lime-echart/static/echarts.min');
 import { onLoad } from '@dcloudio/uni-app'
-import { ref, onUnmounted } from "vue";
+import { ref, onUnmounted, onMounted, computed } from "vue";
 import common from '@/common/common.js';
 import customNav from '@/components/customNav';
 import capabilityLevel from './components/capability-level-v2';
 import popup from './components/popup';
+import { getRadarOption } from './charts';
 
 let displayName = ref('李思'); // 
 let classDisplay = ref('小班3班');
@@ -66,6 +72,7 @@ const assessmentId = ref('');
 const analysisTextAI = ref('');
 const listIconUrl = "../../static/general/list.png";
 const historyReports = ref([])
+const radarChartRef = ref(null)
 
 const handleNavBack = () => {
     uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
@@ -74,6 +81,15 @@ const handleNavBack = () => {
 const handleClickHistory = () => {
     showHistory.value = true;
 }
+
+const radarOption = computed(() => {
+    return getRadarOption(childAge.value, {
+        ziFaXingYuYanScore: 4,
+        juFaHeYuFaScore: 5,
+        heZuoJiQiangHuaWuXiaoGuoScore: 6,
+        keTangJiLvScore: 7
+    });
+});
 
 const onclickReportCard = (index) => {
     console.log("onclickReportCard received index:", index);
@@ -165,6 +181,16 @@ onLoad(async function (options) {
     }
 });
 
+onMounted(() => {
+    setTimeout(async () => {
+
+        if (!radarChartRef.value) return;
+        const radarChart = await radarChartRef.value.init(echarts);
+        radarChart.setOption(radarOption.value);
+    }, 300);
+});
+
+
 onUnmounted(() => {
     // 清除当前量表的缓存
     const cacheKey = `assessment_${assessmentId.value}`;
@@ -236,6 +262,69 @@ onUnmounted(() => {
                     font-weight: 400;
                     line-height: 20px;
                     align-items: center;
+                }
+            }
+        }
+
+        .assessment-container {
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            // min-height: 100vh;
+            padding: 40rpx;
+            box-sizing: border-box;
+
+            .assessment-card {
+                width: 670rpx;
+                height: 722rpx;
+                position: relative;
+                border-radius: 16rpx;
+                border: 1px solid #e9e9e9;
+                box-shadow: 0 8rpx 8rpx 0 rgba(0, 0, 0, 0.25);
+                flex-shrink: 0;
+                background-color: #fff;
+
+                .assessment-title {
+                    position: absolute;
+                    left: 172rpx;
+                    top: 32rpx;
+                    width: 322rpx;
+                    height: 40rpx;
+                    color: #000;
+                    font-family: "PingFang SC", -apple-system, Roboto, Helvetica, sans-serif;
+                    font-size: 28rpx;
+                    font-weight: 500;
+                    margin: 0;
+                }
+
+                .chart-area {
+                    position: absolute;
+                    left: 0;
+                    top: 100rpx;
+                    width: 670rpx;
+                    height: 512rpx;
+                    background-color: #fff;
+                }
+
+                .recommendation-section {
+                    position: absolute;
+                    left: 0;
+                    top: 612rpx;
+                    width: 670rpx;
+                    height: 110rpx;
+                    color: #00214d;
+                    font-family: "PingFang SC", -apple-system, Roboto, Helvetica, sans-serif;
+                    font-size: 22rpx;
+                    font-weight: 400;
+                    border-radius: 0 0 16rpx 16rpx;
+                    box-shadow: 0 8rpx 8rpx 0 rgba(0, 0, 0, 0.25);
+                    background-color: rgba(110, 221, 138, 0.12);
+                    display: flex;
+                    align-items: center;
+                    padding: 0 24rpx;
+                    box-sizing: border-box;
                 }
             }
         }
