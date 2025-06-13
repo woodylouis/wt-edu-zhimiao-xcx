@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                }}</view>
+                                    }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -65,10 +65,12 @@
                             <view class="sectionAnalysis">
                                 分析：<span>{{ section.analysis }}</span>
                             </view>
-                            <!-- 落后技能 -->
-                            <view class="skillBelowStandard"
-                                v-for="(abllsSection, index) in section.abllsSectionSummaryList">
-                                <view v-for="(item, index2) in abllsSection.questions">
+
+                        </view>
+                        <!-- 落后技能 -->
+                        <view class="collapse-skillBelowStandard">
+                            <view v-for="(abllsSection, index) in section.abllsSectionSummaryList">
+                                <view class="skill" v-for="(item, index2) in abllsSection.questions">
                                     {{!item.isStandard ? '落后技能 ' + (section.abllsSectionSummaryList.slice(0,
                                         index).reduce((count, s) => count + s.questions.filter(q => !q.isStandard).length,
                                             0) +
@@ -78,7 +80,6 @@
                                 </view>
                             </view>
                         </view>
-
                     </u-collapse-item>
                 </u-collapse>
             </view>
@@ -456,10 +457,24 @@ onUnmounted(() => {
                 .sectionAnalysis {
                     margin-bottom: 40rpx;
                 }
+            }
 
-                .skillBelowStandard {
+            .collapse-skillBelowStandard {
+                background-color: #FFE4E6; // 粉色背景
+                color: #000;
+                // padding: 20rpx;
+                border-radius: 8rpx;
+                padding: 5rpx 20rpx;
+
+                // 为每个技能项添加分界线
+                .skill {
                     margin-bottom: 20rpx;
+                    font-weight: 400;
+                    // 字体justtify
+                    text-align: justify;
+
                 }
+
 
             }
         }
