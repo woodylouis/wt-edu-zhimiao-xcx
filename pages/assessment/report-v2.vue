@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                    }}</view>
+                                }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -62,10 +62,11 @@
                                     </view>
                                 </view>
                             </view>
+                            <view class="sectionAnalysis">
+                                分析：<span>{{ section.analysis }}</span>
+                            </view>
                         </view>
-                        <view class="sectionAnalysis">
-                            分析：{{ section.analysis }}
-                        </view>
+
 
                     </u-collapse-item>
                 </u-collapse>
