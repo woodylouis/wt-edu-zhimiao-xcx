@@ -65,8 +65,19 @@
                             <view class="sectionAnalysis">
                                 分析：<span>{{ section.analysis }}</span>
                             </view>
+                            <!-- 落后技能 -->
+                            <view class="skillBelowStandard"
+                                v-for="(abllsSection, index) in section.abllsSectionSummaryList">
+                                <view v-for="(item, index2) in abllsSection.questions">
+                                    {{!item.isStandard ? '落后技能 ' + (section.abllsSectionSummaryList.slice(0,
+                                        index).reduce((count, s) => count + s.questions.filter(q => !q.isStandard).length,
+                                            0) +
+                                        abllsSection.questions.slice(0, index2).filter(q => !q.isStandard).length + 1) + '：'
+                                        +
+                                        item.task_object : ''}}
+                                </view>
+                            </view>
                         </view>
-
 
                     </u-collapse-item>
                 </u-collapse>
@@ -433,7 +444,13 @@ onUnmounted(() => {
                     }
                 }
 
-                .sectionAnalysis {}
+                .sectionAnalysis {
+                    margin-bottom: 40rpx;
+                }
+
+                .skillBelowStandard {
+                    margin-bottom: 20rpx;
+                }
 
             }
         }
