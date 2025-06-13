@@ -51,6 +51,17 @@
                                         sum + (item.expectedTotalScore || 0), 0
                                 )}`}}
                             </view>
+                            <view class="abllsSection" v-for="(item, index) in section.abllsSectionSummaryList"
+                                :key="index">
+                                <view class="abllsItem">
+                                    <view class="abllsItemTitle">{{ item.sectioName }}</view>
+                                    <view class="abllsItemScore">
+                                        <u-line-progress
+                                            :percentage="Math.round(item.actualTotalScore / item.expectedTotalScore * 100)"
+                                            activeColor="#A2CF73"></u-line-progress>
+                                    </view>
+                                </view>
+                            </view>
                         </view>
                     </u-collapse-item>
                 </u-collapse>
@@ -395,6 +406,27 @@ onUnmounted(() => {
 
             .collapse-content {
                 margin-left: 10rpx;
+
+                .sectionScore {
+                    margin-bottom: 30rpx;
+                }
+
+                .abllsSection {
+                    width: 100%;
+
+                    .abllsItem {
+                        display: flex;
+                        margin-bottom: 20rpx;
+
+                        .abllsItemTitle {
+                            width: 25%;
+                        }
+
+                        .abllsItemScore {
+                            width: 75%;
+                        }
+                    }
+                }
             }
         }
 
