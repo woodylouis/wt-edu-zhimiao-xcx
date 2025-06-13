@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                }}</view>
+                                    }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -99,9 +99,10 @@ const onclickReportCard = (index) => {
     console.log("Current report data:", historyReports.value[index]);
     const selectedReport = historyReports.value[index];
     // 更新页面显示的报告数据
-    sectionScores.value = selectedReport.sectionScores || {};
-    analysisTextAI.value = selectedReport.aiResponse || '';
-    dateString.value = common.formatDate(selectedReport.completionTime) || '';
+    sectionSummaryList.value = selectedReport.sectionSummaryList || [];
+    // sectionScores.value = selectedReport.sectionScores || {};
+    // analysisTextAI.value = selectedReport.aiResponse || '';
+    // dateString.value = common.formatDate(selectedReport.completionTime) || '';
 
     // 关闭历史报告弹窗
     showHistory.value = false;
@@ -140,27 +141,6 @@ const fetchChildReportHistory = async (childId) => {
         // 无论成功失败都关闭加载提示
         uni.hideLoading();
     }
-};
-
-const processSectionScores = (sectionSummaryList) => {
-    // 通过遍历sectionSummaryList，提取其sectionName和的abllsSectionSummaryList列表，然后继续遍历abllsSectionSummaryList列表，获得abllsSection的expectedTotalScore的和以及actualTotalScore的和。
-    // 期望的数据结构是对象数据。例如：
-    return sectionSummaryList.map(section => {
-        const expectedTotalScore = section.abllsSectionSummaryList.reduce(
-            (sum, item) =>
-                sum + (item.expectedTotalScore || 0), 0
-        );
-
-        const actualTotalScore = section.abllsSectionSummaryList.reduce(
-            (sum, item) => sum + (item.actualTotalScore || 0), 0
-        );
-
-        return {
-            sectionName: section.sectionName,
-            expectedTotalScore,
-            actualTotalScore
-        };
-    });
 };
 
 const radarOption = ref({});
