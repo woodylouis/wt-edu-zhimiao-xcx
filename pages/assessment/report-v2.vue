@@ -34,7 +34,7 @@
                         <l-echart ref="radarChartRef"></l-echart>
                     </section>
                     <section class="recommendation-section">
-                        当前能力整体水平不均衡。建议关注语言与沟通、运动与操作和认知能力。
+                        {{ reportSummary }}
                     </section>
                 </div>
             </div>
@@ -65,6 +65,7 @@ const sectionScores = ref({});
 const completionTime = ref('');
 const childAge = ref('');
 const dateString = ref('');
+const reportSummary = ref('');
 const showHistory = ref(false);
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)'
 // 在setup中添加卸载生命周期
@@ -181,6 +182,10 @@ onLoad(async function (options) {
             classDisplay.value = currentClass.nickname || '未知班级';
             childAge.value = common.ageDisplay(student.birthdate) || '未知年龄';
             sectionSummaryList.value = latestReport.sectionSummaryList || [];
+            dateString.value = common.formatDate(latestReport.completionTime) || '';
+            reportSummary.value = latestReport.reportSummary || '';
+            console.log("latestReport", latestReport)
+
         }
     } else {
         console.log(options)
@@ -328,11 +333,13 @@ onUnmounted(() => {
                 }
 
                 .recommendation-section {
+                    // 永远保持在底部
+                    bottom: 0;
                     position: absolute;
                     left: 0;
                     top: 612rpx;
                     width: 670rpx;
-                    height: 110rpx;
+                    // height: 110rpx;
                     color: #00214d;
                     font-family: "PingFang SC", -apple-system, Roboto, Helvetica, sans-serif;
                     font-size: 22rpx;

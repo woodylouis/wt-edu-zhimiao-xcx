@@ -1,3 +1,5 @@
+const echarts = require('../../uni_modules/lime-echart/static/echarts.min');
+
 const processSectionScores = (sectionSummaryList) => {
     // 通过遍历sectionSummaryList，提取其sectionName和的abllsSectionSummaryList列表，然后继续遍历abllsSectionSummaryList列表，获得abllsSection的expectedTotalScore的和以及actualTotalScore的和。
     // 期望的数据结构是对象数据。例如：
@@ -29,14 +31,19 @@ export const getRadarOption = (sectionSummaryList) => {
         const maxScore = Math.max(section.expectedTotalScore, section.actualTotalScore);
         return {
             name: section.sectionName,
-            max: maxScore + Math.ceil(maxScore * 0.2) // 在最大值基础上增加20%作为缓冲
+            max: maxScore + Math.ceil(maxScore * 0.1) // 在最大值基础上增加20%作为缓冲
         };
     });
     const expectedScores = sectionScoreList.map(section => section.expectedTotalScore);
     const actualScores = sectionScoreList.map(section => section.actualTotalScore);
     return {
         radar: {
-            indicator: indicators
+            indicator: indicators,
+
+            // radius: '70%',
+            splitNumber: 2,
+
+
         },
         series: [
             {
@@ -45,11 +52,46 @@ export const getRadarOption = (sectionSummaryList) => {
                 data: [
                     {
                         value: expectedScores,
-                        name: '期待值'
+                        name: '期待值',
+                        lineStyle: {
+                            type: 'dashed',
+                            color: '#F09781'
+                        },
+                        itemStyle: {
+                            // 设置symbol的颜色
+                            normal: {
+                                color: '#EE6666'
+                            }
+                        },
+                        label: {
+                            show: false,
+                            formatter: function (params) {
+                                return params.value;
+                            },
+                            // position: '',
+                        },
                     },
                     {
                         value: actualScores,
-                        name: '实际得分'
+                        name: '实际得分',
+                        areaStyle: {
+                            color: new echarts.graphic.RadialGradient(0.1, 0.6, 1, [
+                                {
+                                    color: 'rgba(179, 231, 185, 0.4)',
+                                    offset: 0
+                                },
+                                {
+                                    color: 'rgba(179, 231, 185, 0.9)',
+                                    offset: 1
+                                }
+                            ])
+                        },
+                        itemStyle: {
+                            // 设置symbol的颜色
+                            normal: {
+                                color: '#B3E7B9'
+                            }
+                        },
                     }
                 ]
             }
