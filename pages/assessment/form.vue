@@ -126,6 +126,7 @@ const completedSection = ref([]);
 const inProgressSection = ref([]);
 const tips = ref('当前模块题目已完成。以下是小结：');
 const tips2 = ref('');
+const isClickNavBack = ref(false);
 // const tips2 = ref('本评测还有模块未完成。');
 
 // 监听selectedAnswer变化
@@ -198,6 +199,7 @@ const handleNavBack = () => {
     prepareAllRecords(checkModuleStatus, confirmToGenerateReport)
     // 删除当前页面page stack
     const pages = getCurrentPages();
+    isClickNavBack.value = true;
     console.log(pages)
 };
 
@@ -303,18 +305,21 @@ const prepareAllRecords = (checkModuleStatus, isToGenerateReport) => {
 
             console.log('确定生成报告')
         } else {
-
-            uni.showModal({
-                title: '提示',
-                content: '进度保存成功。是否返回到上一页？',
-                success: (res) => {
-                    if (res.confirm) {
-                        uni.redirectTo({ url: '/pages/assessment/listMoudules' })
-                    } else if (res.cancel) {
-                        console.log('用户取消返回');
+            if (isClickNavBack.value) {
+                uni.showModal({
+                    title: '提示',
+                    content: '进度保存成功。是否返回到上一页？',
+                    success: (res) => {
+                        if (res.confirm) {
+                            uni.redirectTo({ url: '/pages/assessment/listMoudules' })
+                            isClickNavBack.value = false;
+                        } else if (res.cancel) {
+                            console.log('用户取消返回');
+                            isClickNavBack.value = false;
+                        }
                     }
-                }
-            })
+                })
+            }
         }
 
 
