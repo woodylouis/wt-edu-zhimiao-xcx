@@ -86,13 +86,7 @@ const handleClickHistory = () => {
 
 
 
-const radarOption = computed(() => {
-    // if (!sectionScoreList.value || sectionScoreList.value.length === 0) {
-    //     return { radar: { indicator: [] }, series: [] };
-    // }
-    console.log("radarOption sectionScoreList", sectionScoreList.value)
-    return getRadarOption(sectionScoreList.value);
-});
+
 // watch(sectionScoreList, (newVal) => {
 //     console.log("sectionScoreList watch", newVal)
 //     if (newVal && newVal.length > 0) {
@@ -149,6 +143,8 @@ const fetchChildReportHistory = async (childId) => {
 };
 
 const processSectionScores = (sectionSummaryList) => {
+    // 通过遍历sectionSummaryList，提取其sectionName和的abllsSectionSummaryList列表，然后继续遍历abllsSectionSummaryList列表，获得abllsSection的expectedTotalScore的和以及actualTotalScore的和。
+    // 期望的数据结构是对象数据。例如：
     return sectionSummaryList.map(section => {
         const expectedTotalScore = section.abllsSectionSummaryList.reduce(
             (sum, item) =>
@@ -167,11 +163,26 @@ const processSectionScores = (sectionSummaryList) => {
     });
 };
 
-// watch(sectionScoreList, (newVal) => {
-//     if (newVal && newVal.length > 0) {
-//         radarOption.value = getRadarOption(newVal);
-//     }
-// }, { immediate: true, deep: true });
+const radarOption = ref({});
+
+watch(() => sectionSummaryList.value, (newVal) => {
+    if (newVal && newVal.length > 0) {
+        radarOption.value = getRadarOption(newVal);
+        // console.log("radarOption", radarOption.value)
+        updateChart();
+    }
+}, { deep: true });
+
+// 添加updateChart方法
+const updateChart = async () => {
+    if (!radarChartRef.value || !radarOption.value.radar?.indicator?.length) return;
+    try {
+        const chart = await radarChartRef.value.init(echarts);
+        chart.setOption(radarOption.value);
+    } catch (e) {
+        console.error('图表更新失败:', e);
+    }
+};
 
 onLoad(async function (options) {
     if (options.isHistory == "true") {
@@ -189,25 +200,7 @@ onLoad(async function (options) {
             displayName.value = student.name || '未知姓名';
             classDisplay.value = currentClass.nickname || '未知班级';
             childAge.value = common.ageDisplay(student.birthdate) || '未知年龄';
-            console.log("historyReports", historyReports.value[0])
             sectionSummaryList.value = latestReport.sectionSummaryList || [];
-
-            // 通过遍历sectionSummaryList，提取其sectionName和的abllsSectionSummaryList列表，然后继续遍历abllsSectionSummaryList列表，获得abllsSection的expectedTotalScore的和以及actualTotalScore的和。
-            // 期望的数据结构是对象数据。例如：
-            // [{
-            //   sectionName: 游戏和休闲,
-            //   expectedTotalScore: 10,
-            //   actualTotalScore: 8
-            // },
-            // {
-            //   sectionName: 语言和沟通,
-            //   expectedTotalScore: 10,
-            // }
-            // ]
-            // sectionScoreList.value = processSectionScores(sectionSummaryList.value);
-            // console.log("sectionScoreList", sectionScoreList.value)
-
-
         }
     } else {
         console.log(options)
@@ -232,13 +225,8 @@ onLoad(async function (options) {
     }
 });
 
-onMounted(() => {
-    setTimeout(async () => {
-
-        if (!radarChartRef.value) return;
-        const radarChart = await radarChartRef.value.init(echarts);
-        radarChart.setOption(radarOption.value);
-    }, 300);
+onMounted(async () => {
+    await updateChart();
 });
 
 
