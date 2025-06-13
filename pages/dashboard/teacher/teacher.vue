@@ -128,7 +128,7 @@ const handleStudentClick = async (student) => {
         ...student
     });
     uni.navigateTo({
-        url: `/pages/assessment/report?isHistory=true`
+        url: `/pages/assessment/report-v2?isHistory=true`
     });
 }
 

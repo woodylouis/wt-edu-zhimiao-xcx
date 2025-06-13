@@ -202,7 +202,7 @@ const handleConfirm = () => {
         ageDisplay = (totalMonths / 10).toFixed(1);
     }
     // 跳转
-    uni.navigateTo({
+    uni.redirectTo({
         url: `/pages/assessment/listMoudules?classId=${classId.value}` +
             `&className=${className.value}` +
             `&childId=${id}` +
@@ -213,18 +213,6 @@ const handleConfirm = () => {
             `&assessmentId=${assessmentId.value}` +
             `&assessmentTitle=${assessmentTitle.value}`
     });
-    // uni.navigateTo({
-    //     url: `/pages/assessment/form?classId=67d2841d8a5c78c37ff0b54b` +
-    //         `&className=小班6班` +
-    //         `&childId=6803b3a02ab442235e289bc3` +
-    //         `&childName=陆一凡` +
-    //         `&childAge=3岁4个月` +
-    //         `&assessmentId=681c62d67ad52db7e72cb994` +
-    //         `&assessmentTitle=ABLLS-R`
-    // });
-    // uni.navigateTo({
-    // 	url:`/pages/assessment/listMoudule`
-    // })
 
     show.value = false;
 };

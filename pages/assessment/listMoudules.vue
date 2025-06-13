@@ -146,7 +146,7 @@ const handleOnClickSection = (sectionId, currentSection, currentAbllsSectionLeng
     }
     uni.setStorageSync(ASSESS_STUDENT, currentStudent.value)
 
-    uni.navigateTo({
+    uni.redirectTo({
         url: `/pages/assessment/form?currentSectionId=${sectionId}` +
             `&currentSection=${currentSection}` +
             `&currentAbllsSectionAlphabet=${currentAbllsSectionObj.abllsSectionAlphabet}` +

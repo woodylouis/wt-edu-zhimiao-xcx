@@ -196,6 +196,9 @@ const handleNavBack = () => {
     const checkModuleStatus = false;
     const confirmToGenerateReport = false;
     prepareAllRecords(checkModuleStatus, confirmToGenerateReport)
+    // 删除当前页面page stack
+    const pages = getCurrentPages();
+    console.log(pages)
 };
 
 const handleConfirm = () => {
