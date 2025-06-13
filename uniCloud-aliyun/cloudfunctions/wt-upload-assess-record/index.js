@@ -62,10 +62,19 @@ exports.main = async (event, context) => {
 			}
 		} else {
 			// 没有任何记录
-			return {
-				code: 404,
-				message: `未找到${data.childName}的评估记录。`,
-			};
+			const newRecordRes = await createNewAssessmentRecord(childId, data, uid);
+			if (newRecordRes && newRecordRes.code === 200) {
+				return {
+					code: 200,
+					result: newRecordRes.result,
+					message: `未找到${data.childName}的任何评估记录。，已为${data.childName}创建新的评估记录。`,
+				};
+			} else {
+				return {
+					code: 500,
+					message: `为${data.childName}创建新的评估记录失败。`,
+				};
+			}
 		}
 
 	} catch (e) {

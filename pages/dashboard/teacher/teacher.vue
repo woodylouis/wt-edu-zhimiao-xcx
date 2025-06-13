@@ -22,13 +22,13 @@
             </view>
         </u-sticky>
         <view class="student-list">
-            <view v-if="loading" class="u-demo-block">
+            <!-- <view v-if="loading" class="u-demo-block">
                 <view class="u-demo-block__content">
                     <u-skeleton rows="6" :title="false" :rowsWidth="['100%', '100%', '100%', '100%', '100%', '100%']"
                         :rowsHeight="['160rpx', '160rpx', '160rpx', '160rpx', '160rpx', '160rpx']" loading
                         :animate="true"></u-skeleton>
                 </view>
-            </view>
+            </view> -->
             <StudentList :studentList="studentList" @handleStudentClick="handleStudentClick" />
         </view>
 

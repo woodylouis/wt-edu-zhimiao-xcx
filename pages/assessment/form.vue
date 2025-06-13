@@ -76,7 +76,7 @@
 
 <script setup>
 import customNav from '@/components/customNav';
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { ref, reactive, onMounted, computed, watch } from "vue";
 import wtRadio from '@/components/radio';
 import { ASSESS_STUDENT, CURRENT_ASSESSMENT_MODULE_STATUS } from '@/lib/types/local_storage.js';
@@ -688,6 +688,10 @@ onLoad(async (options) => {
         uni.hideLoading(); // 无论成功失败都关闭加载
     }
 });
+
+onUnload(() => {
+    prepareAllRecords(false, false);
+})
 </script>
 
 <style lang="scss" scoped>
