@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                }}</view>
+                                    }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -38,6 +38,23 @@
                     </section>
                 </div>
             </div>
+            <view class="collapse" v-for="(section, index) in sectionSummaryList" :key="index">
+                <u-collapse @change="handleCollapseChange" @close="closeCollapse" @open="openCollapse" :border=false
+                    :value="activeCollapse">
+                    <u-collapse-item :title="section.sectionName" :name="section.sectionName">
+                        <view class="collapse-content">
+                            <view class="sectionScore">
+                                得分：{{`${section.abllsSectionSummaryList.reduce(
+                                    (sum, item) => sum + (item.actualTotalScore || 0), 0
+                                )}/${section.abllsSectionSummaryList.reduce(
+                                    (sum, item) =>
+                                        sum + (item.expectedTotalScore || 0), 0
+                                )}`}}
+                            </view>
+                        </view>
+                    </u-collapse-item>
+                </u-collapse>
+            </view>
         </view>
         <view style="z-index: 9999;">
             <popup :historyReports="historyReports" :show="showHistory" @update:show="val => showHistory = val"
@@ -76,6 +93,18 @@ const historyReports = ref([])
 const radarChartRef = ref(null)
 const sectionSummaryList = ref([])
 const sectionScoreList = ref([]);
+
+const assessmentSections = [
+    {
+        name: '语言与沟通技能',
+    },
+    {
+        name: '社会与游戏技能',
+    },
+    {
+        name: '学习与记忆技能',
+    },
+]
 
 const handleNavBack = () => {
     uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
@@ -356,7 +385,25 @@ onUnmounted(() => {
             }
         }
 
+        .collapse {
+            // padding: 0 40rpx;
+            border-radius: 8px;
+            border: 1px solid #E9E9E9;
+            background: #FFF;
+            box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+            margin: 22rpx 40rpx;
+
+            .collapse-content {
+                margin-left: 10rpx;
+            }
+        }
+
 
     }
+}
+
+.u-collapse-content {
+    color: $u-tips-color;
+    font-size: 14px;
 }
 </style>
