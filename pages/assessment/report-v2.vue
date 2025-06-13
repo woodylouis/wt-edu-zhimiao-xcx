@@ -41,7 +41,7 @@
             <view class="collapse" v-for="(section, index) in sectionSummaryList" :key="index">
                 <u-collapse @change="handleCollapseChange" @close="closeCollapse" @open="openCollapse" :border=false
                     :value="activeCollapse">
-                    <u-collapse-item :title="section.sectionName" :name="section.sectionName">
+                    <u-collapse-item :title="section.sectionName" :name="`section_${index}`">
                         <view class="collapse-content">
                             <view class="sectionScore">
                                 得分：{{`${section.abllsSectionSummaryList.reduce(
@@ -93,7 +93,7 @@
 <script setup>
 const echarts = require('../../uni_modules/lime-echart/static/echarts.min');
 import { onLoad } from '@dcloudio/uni-app'
-import { ref, onUnmounted, onMounted, computed, watch } from "vue";
+import { ref, onUnmounted, onMounted, computed, watch, nextTick } from "vue";
 import common from '@/common/common.js';
 import customNav from '@/components/customNav';
 import capabilityLevel from './components/capability-level-v2';
@@ -121,17 +121,23 @@ const radarChartRef = ref(null)
 const sectionSummaryList = ref([])
 const sectionScoreList = ref([]);
 
-const assessmentSections = [
-    {
-        name: '语言与沟通技能',
-    },
-    {
-        name: '社会与游戏技能',
-    },
-    {
-        name: '学习与记忆技能',
-    },
-]
+// 添加折叠面板状态管理
+const activeCollapse = ref([]);
+
+// 折叠面板事件处理函数
+const openCollapse = (e) => {
+    console.log('openCollapse', e)
+}
+
+const handleCollapseChange = (value) => {
+    console.log('handleCollapseChange', value);
+
+}
+
+const closeCollapse = (e) => {
+    console.log('closeCollapse', e)
+}
+
 
 const handleNavBack = () => {
     uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
@@ -155,12 +161,15 @@ const onclickReportCard = (index) => {
     console.log("onclickReportCard received index:", index);
     console.log("Current report data:", historyReports.value[index]);
     const selectedReport = historyReports.value[index];
+
+    // 收起所有折叠版 - 使用nextTick确保在DOM更新后执行
+    nextTick(() => {
+        activeCollapse.value = [];
+    });
+
     // 更新页面显示的报告数据
     sectionSummaryList.value = selectedReport.sectionSummaryList || [];
     reportSummary.value = selectedReport.reportSummary || '';
-    // sectionScores.value = selectedReport.sectionScores || {};
-    // analysisTextAI.value = selectedReport.aiResponse || '';
-    // dateString.value = common.formatDate(selectedReport.completionTime) || '';
 
     // 关闭历史报告弹窗
     showHistory.value = false;
