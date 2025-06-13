@@ -63,6 +63,10 @@
                                 </view>
                             </view>
                         </view>
+                        <view class="sectionAnalysis">
+                            分析：{{ section.analysis }}
+                        </view>
+
                     </u-collapse-item>
                 </u-collapse>
             </view>
@@ -427,6 +431,9 @@ onUnmounted(() => {
                         }
                     }
                 }
+
+                .sectionAnalysis {}
+
             }
         }
 
