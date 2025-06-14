@@ -22,14 +22,14 @@
             </view>
         </u-sticky>
         <view class="student-list">
-            <!-- <view v-if="loading" class="u-demo-block">
+            <view v-if="loading" class="u-demo-block">
                 <view class="u-demo-block__content">
                     <u-skeleton rows="6" :title="false" :rowsWidth="['100%', '100%', '100%', '100%', '100%', '100%']"
                         :rowsHeight="['160rpx', '160rpx', '160rpx', '160rpx', '160rpx', '160rpx']" loading
                         :animate="true"></u-skeleton>
                 </view>
-            </view> -->
-            <StudentList :studentList="studentList" @handleStudentClick="handleStudentClick" />
+            </view>
+            <StudentList v-if="!loading" :studentList="studentList" @handleStudentClick="handleStudentClick" />
         </view>
 
         <view v-if="loadingMore">
@@ -112,6 +112,10 @@ const checkStudentReport = async (childId) => {
 };
 
 const handleStudentClick = async (student) => {
+    uni.showLoading({
+        title: '请稍后',
+        mask: true
+    })
     console.log('点击学生:', student); // 调试用，确保学生信息正确传递
     // 检查学生是否有报告
     const hasReport = await checkStudentReport(student._id);
