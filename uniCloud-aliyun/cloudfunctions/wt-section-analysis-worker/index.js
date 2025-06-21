@@ -141,6 +141,186 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
 	throw lastError
 }
 
+// 新增：技能归类系统提示
+function getSkillCategorizationSystemPrompt() {
+	return `你是一名专业的儿童行为分析师，需要分析ABLLS-R评估中未达标技能的相关性。
+
+任务：根据技能的内容、目标和发展特点，判断技能间的相关性并返回JSON格式的分类结果。
+
+要求：
+1. 分析技能间的相关性（0-1分值，1表示高度相关）
+2. 将相关性>0.6的技能归为一类
+3. 为每个分类组提供简洁的类别名称
+4. 严格按照JSON格式返回结果
+
+输出格式：
+{
+  "categories": [
+    {
+      "name": "类别名称",
+      "skills": ["技能1", "技能2"],
+      "description": "简短描述"
+    }
+  ]
+}`;
+}
+
+// 新增：构建技能归类提示
+function buildSkillCategorizationPrompt(skills, childAge) {
+	let prompt = `请对以下${childAge}的未达标技能进行相关性分析和自动归类：\n\n`;
+
+	skills.forEach((skill, index) => {
+		prompt += `${index + 1}. ${skill.taskName}\n`;
+		prompt += `   当前表现：${skill.actualOutcome}\n`;
+		prompt += `   期望表现：${skill.expectedOutcome}\n\n`;
+	});
+
+	prompt += `请分析这些技能的相关性，将相关的技能归为一类，并严格按照JSON格式返回分类结果。`;
+
+	return prompt;
+}
+
+// 新增：AI技能归类函数
+async function generateSkillCategoriesWithRetry(skills, childAge, taskId) {
+	let attempt = 0;
+	let lastError = null;
+	const models = [
+		{
+			name: 'deepseek',
+			config: {
+				provider: 'deepseek',
+				model: 'deepseek-chat',
+				tokensToGenerate: 500,
+				apiKey: 'sk-e736907dad8a49ffa8e614916b32440f'
+			}
+		}
+	];
+
+	while (attempt < MAX_RETRY) {
+		attempt++;
+		for (const model of models) {
+			try {
+				await log('ai-categorization-attempt', { model: model.name, attempt }, { taskId });
+
+				const llm = uniCloud.ai.getLLMManager({ provider: model.config.provider, apiKey: model.config.apiKey });
+				const prompt = buildSkillCategorizationPrompt(skills, childAge);
+
+				await log('ai-categorization-start', {
+					model: model.name,
+					skillsCount: skills.length
+				}, { taskId });
+
+				const response = await Promise.race([
+					llm.chatCompletion({
+						model: model.config.model,
+						messages: [
+							{ role: 'system', content: getSkillCategorizationSystemPrompt() },
+							{ role: 'user', content: prompt }
+						],
+						tokensToGenerate: model.config.tokensToGenerate
+					}),
+					new Promise((_, reject) =>
+						setTimeout(() => reject(new Error('AI归类请求超时')), TIMEOUT_MS)
+					)
+				]);
+
+				if (response && response.reply) {
+					try {
+						// 清理响应内容，移除markdown代码块标记
+						let cleanedResponse = response.reply.trim();
+						
+						// 移除可能的markdown JSON代码块标记
+						if (cleanedResponse.startsWith('```json')) {
+							cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+						} else if (cleanedResponse.startsWith('```')) {
+							cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+						}
+						
+						// 尝试解析JSON响应
+						const categoriesResult = JSON.parse(cleanedResponse);
+
+						await log('ai-categorization-success', {
+							model: model.name,
+							categoriesCount: categoriesResult.categories?.length || 0
+						}, { taskId });
+
+						return categoriesResult;
+					} catch (parseError) {
+						// 记录原始响应内容以便调试
+						await log('ai-categorization-parse-error', {
+							model: model.name,
+							rawResponse: response.reply,
+							parseError: parseError.message
+						}, { taskId, level: 'error' });
+						throw new Error(`JSON解析失败: ${parseError.message}`);
+					}
+				} else {
+					throw new Error(`${model.name} 返回无效内容`);
+				}
+			} catch (err) {
+				lastError = err;
+				await log('ai-categorization-failed', {
+					model: model.name,
+					error: err.message,
+					attempt: attempt
+				}, { taskId, level: 'error' });
+
+				if (attempt < MAX_RETRY) {
+					await new Promise(resolve => setTimeout(resolve, 1000));
+				}
+			}
+		}
+
+		const waitTime = Math.min(1000 * Math.pow(2, attempt), 5000);
+		await new Promise(resolve => setTimeout(resolve, waitTime));
+	}
+	throw lastError;
+}
+
+// 新增：降级归类方案
+function generateSkillCategoriesFallback(skills) {
+	// 基于技能名称的简单关键词匹配进行分类
+	const categories = [];
+	const uncategorized = [...skills];
+	const keywordGroups = [
+		{ name: "语言表达", keywords: ["语言", "表达", "说话", "口语", "交流", "沟通"] },
+		{ name: "认知理解", keywords: ["认知", "理解", "思考", "记忆", "注意", "专注"] },
+		{ name: "社交技能", keywords: ["社交", "互动", "合作", "分享", "轮流", "游戏"] },
+		{ name: "动作技能", keywords: ["动作", "运动", "精细", "粗大", "协调", "平衡"] },
+		{ name: "自理能力", keywords: ["自理", "独立", "生活", "自主", "照顾"] }
+	];
+
+	keywordGroups.forEach(group => {
+		const matchedSkills = [];
+		for (let i = uncategorized.length - 1; i >= 0; i--) {
+			const skill = uncategorized[i];
+			if (group.keywords.some(keyword => skill.taskName.includes(keyword))) {
+				matchedSkills.push(skill.taskName);
+				uncategorized.splice(i, 1);
+			}
+		}
+		if (matchedSkills.length > 0) {
+			categories.push({
+				name: group.name,
+				skills: matchedSkills,
+				description: `${group.name}相关技能需要重点关注`
+			});
+		}
+	});
+
+	// 处理未分类的技能
+	if (uncategorized.length > 0) {
+		categories.push({
+			name: "其他技能",
+			skills: uncategorized.map(skill => skill.taskName),
+			description: "需要个别化关注的技能"
+		});
+	}
+
+	return { categories };
+}
+
+
 exports.main = async () => {
 	const startTime = Date.now()
 	const tasks = await taskCollection.where({ status: 'pending' }).limit(2).get() // 减少并发处理数量
@@ -184,6 +364,7 @@ exports.main = async () => {
 			}
 
 			let analysis = ''
+			let skillCategories = null;
 			if (skillBelowStandard.length === 0) {
 				analysis = `${childName}在${sectionName}领域的所有技能都达标，表现优秀！建议继续保持并逐步提升。`
 			} else {
@@ -199,12 +380,23 @@ exports.main = async () => {
 					analysis = generateSectionFallbackAnalysis(sectionName, skillBelowStandard, childName)
 					await log('ai-fallback-used', { error: aiError.message }, { taskId, level: 'warn' })
 				}
+
+				try {
+					await log('skill-categorization-start', { skillsCount: skillBelowStandard.length }, { taskId });
+					skillCategories = await generateSkillCategoriesWithRetry(skillBelowStandard, ageInt, taskId);
+					await log('skill-categorization-success', { categoriesCount: skillCategories.categories?.length }, { taskId });
+				} catch (categorizationError) {
+					console.error('AI归类失败，使用降级方案:', categorizationError);
+					skillCategories = generateSkillCategoriesFallback(skillBelowStandard);
+					await log('skill-categorization-fallback', { error: categorizationError.message }, { taskId, level: 'warn' });
+				}
 			}
 
 			// 恢复数据库更新操作
 			await taskCollection.doc(docId).update({
 				status: 'done',
 				analysis,
+				skillCategories,
 				updateTime: Date.now()
 			})
 			await log('section-analysis-success', { sectionId, analysis: analysis.substring(0, 100) + '...' }, { taskId, recordId })
