@@ -16,6 +16,7 @@ async function log(tag, data = null, { taskId = '', recordId = '', level = 'info
 }
 
 function generateReportSummaryFallback(childName, reachCount, belowCount, sections) {
+	console.log("generateReportSummaryFallback sections", sections)
 	const total = reachCount + belowCount
 	const rate = total ? Math.round((reachCount / total) * 100) : 0
 	return `${childName}共参与${sections.join('、')}等${sections.length}个技能领域的评估，完成率${rate}%，建议继续加强训练。`
@@ -34,7 +35,7 @@ exports.main = async () => {
 			const analysisRes = await dbAnalysis.where({ taskId }).get()
 			console.log('有analysisRes')
 			const analysisList = analysisRes.data
-			console.log('有analysisList')
+			console.log('有analysisList', analysisList)
 			if (!analysisList.length) {
 				await dbTask.where({ taskId }).update({
 					status: 'failed',
@@ -82,7 +83,8 @@ exports.main = async () => {
 					sectionName: item.sectionName,
 					sectionId: item.sectionId,
 					abllsSectionSummaryList: item.assessmentRecords || [], // 如果你需要分析中包含技能明细
-					analysis: item.analysis
+					analysis: item.analysis,
+					skillBelowStandard: item.skillCategories
 				}
 				// 简化处理：假设技能明细都不在这合并里，仅靠 analysis
 				// 如果你已经把 skillReachStandard / skillBelowStandard 嵌入 analysisTask，可以加计数逻辑

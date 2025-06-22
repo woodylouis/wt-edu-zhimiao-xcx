@@ -143,23 +143,27 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
 
 // 新增：技能归类系统提示
 function getSkillCategorizationSystemPrompt() {
-	return `你是一名专业的儿童行为分析师，需要分析ABLLS-R评估中未达标技能的相关性。
+	return `你是一个儿童发展评估专家，需要对ABLLS-R评估中的未达标技能进行分析和归类。
 
-任务：根据技能的内容、目标和发展特点，判断技能间的相关性并返回JSON格式的分类结果。
-
-要求：
+任务要求：
 1. 分析技能间的相关性（0-1分值，1表示高度相关）
 2. 将相关性>0.6的技能归为一类
 3. 为每个分类组提供简洁的类别名称
-4. 严格按照JSON格式返回结果
+4. 为每个技能提供20字以内的个性化分析描述
+5. 严格按照JSON格式返回结果
 
 输出格式：
 {
   "categories": [
     {
       "name": "类别名称",
-      "skills": ["技能1", "技能2"],
-      "description": "简短描述"
+      "skills": [
+        {
+          "taskName": "技能名称",
+          "description": "该技能的20字以内个性化分析描述"
+        }
+      ],
+      "description": "分类组的简短描述"
     }
   ]
 }`;
@@ -167,7 +171,7 @@ function getSkillCategorizationSystemPrompt() {
 
 // 新增：构建技能归类提示
 function buildSkillCategorizationPrompt(skills, childAge) {
-	let prompt = `请对以下${childAge}的未达标技能进行相关性分析和自动归类：\n\n`;
+	let prompt = `请对以下${childAge}的未达标技能进行相关性分析和自动归类，并为每个技能提供个性化分析描述：\n\n`;
 
 	skills.forEach((skill, index) => {
 		prompt += `${index + 1}. ${skill.taskName}\n`;
@@ -175,7 +179,7 @@ function buildSkillCategorizationPrompt(skills, childAge) {
 		prompt += `   期望表现：${skill.expectedOutcome}\n\n`;
 	});
 
-	prompt += `请分析这些技能的相关性，将相关的技能归为一类，并严格按照JSON格式返回分类结果。`;
+	prompt += `请分析这些技能的相关性，将相关的技能归为一类，为每个技能生成20字以内的个性化分析描述，并严格按照JSON格式返回分类结果。`;
 
 	return prompt;
 }
@@ -228,14 +232,14 @@ async function generateSkillCategoriesWithRetry(skills, childAge, taskId) {
 					try {
 						// 清理响应内容，移除markdown代码块标记
 						let cleanedResponse = response.reply.trim();
-						
+
 						// 移除可能的markdown JSON代码块标记
 						if (cleanedResponse.startsWith('```json')) {
 							cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
 						} else if (cleanedResponse.startsWith('```')) {
 							cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
 						}
-						
+
 						// 尝试解析JSON响应
 						const categoriesResult = JSON.parse(cleanedResponse);
 
@@ -283,11 +287,31 @@ function generateSkillCategoriesFallback(skills) {
 	const categories = [];
 	const uncategorized = [...skills];
 	const keywordGroups = [
-		{ name: "语言表达", keywords: ["语言", "表达", "说话", "口语", "交流", "沟通"] },
-		{ name: "认知理解", keywords: ["认知", "理解", "思考", "记忆", "注意", "专注"] },
-		{ name: "社交技能", keywords: ["社交", "互动", "合作", "分享", "轮流", "游戏"] },
-		{ name: "动作技能", keywords: ["动作", "运动", "精细", "粗大", "协调", "平衡"] },
-		{ name: "自理能力", keywords: ["自理", "独立", "生活", "自主", "照顾"] }
+		{
+			name: "语言表达",
+			keywords: ["语言", "表达", "说话", "口语", "交流", "沟通"],
+			descriptionTemplate: "需要加强语言表达练习"
+		},
+		{
+			name: "认知理解",
+			keywords: ["认知", "理解", "思考", "记忆", "注意", "专注"],
+			descriptionTemplate: "认知能力需要针对性训练"
+		},
+		{
+			name: "社交技能",
+			keywords: ["社交", "互动", "合作", "分享", "轮流", "游戏"],
+			descriptionTemplate: "社交互动能力待提升"
+		},
+		{
+			name: "动作技能",
+			keywords: ["动作", "运动", "精细", "粗大", "协调", "平衡"],
+			descriptionTemplate: "动作协调性需要练习"
+		},
+		{
+			name: "自理能力",
+			keywords: ["自理", "独立", "生活", "自主", "照顾"],
+			descriptionTemplate: "自理独立性需要培养"
+		}
 	];
 
 	keywordGroups.forEach(group => {
@@ -295,7 +319,10 @@ function generateSkillCategoriesFallback(skills) {
 		for (let i = uncategorized.length - 1; i >= 0; i--) {
 			const skill = uncategorized[i];
 			if (group.keywords.some(keyword => skill.taskName.includes(keyword))) {
-				matchedSkills.push(skill.taskName);
+				matchedSkills.push({
+					taskName: skill.taskName,
+					description: group.descriptionTemplate
+				});
 				uncategorized.splice(i, 1);
 			}
 		}
@@ -312,7 +339,10 @@ function generateSkillCategoriesFallback(skills) {
 	if (uncategorized.length > 0) {
 		categories.push({
 			name: "其他技能",
-			skills: uncategorized.map(skill => skill.taskName),
+			skills: uncategorized.map(skill => ({
+				taskName: skill.taskName,
+				description: "需要个别化评估和训练"
+			})),
 			description: "需要个别化关注的技能"
 		});
 	}
@@ -323,7 +353,7 @@ function generateSkillCategoriesFallback(skills) {
 
 exports.main = async () => {
 	const startTime = Date.now()
-	const tasks = await taskCollection.where({ status: 'pending' }).limit(2).get() // 减少并发处理数量
+	const tasks = await taskCollection.where({ status: 'pending' }).limit(3).get() // 减少并发处理数量
 	console.log('Fetched tasks:', tasks)
 
 	for (const task of tasks.data) {
