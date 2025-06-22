@@ -23,7 +23,7 @@ function generateReportSummaryFallback(childName, reachCount, belowCount, sectio
 }
 
 exports.main = async () => {
-	const tasks = await dbTask.where({ status: 'waiting_merge' }).limit(3).get()
+	const tasks = await dbTask.where({ status: 'waiting_merge' }).limit(5).get()
 	for (const task of tasks.data) {
 		console.log('有待处理任务数量', task)
 		const { taskId, originalParams = {}, assessmentId } = task
@@ -97,6 +97,10 @@ exports.main = async () => {
 			const completionTime = Date.now()
 			const duration = completionTime - (task.createTime || completionTime)
 
+			// const skillBelowStandard = analysisList.map(item => item.skillCategories.categories).flat()
+			// console.log('skillBelowStandard', skillBelowStandard)
+
+
 			const reportData = {
 				reportVersion: 'v2',
 				reportId: `report_${recordId}_${Date.now()}`,
@@ -120,6 +124,7 @@ exports.main = async () => {
 				duration
 			}
 
+			console.log("reportData", reportData)
 			await dbPending.add({
 				taskId,
 				recordId,

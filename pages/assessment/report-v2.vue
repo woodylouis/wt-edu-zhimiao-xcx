@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                    }}</view>
+                                }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -69,15 +69,13 @@
                         </view>
                         <!-- 落后技能 -->
                         <view class="collapse-skillBelowStandard">
-                            <view v-for="(abllsSection, index) in section.abllsSectionSummaryList">
-                                <view class="skill" v-for="(item, index2) in abllsSection.questions">
-                                    {{!item.isStandard ? '落后技能 ' + (section.abllsSectionSummaryList.slice(0,
-                                        index).reduce((count, s) => count + s.questions.filter(q => !q.isStandard).length,
-                                            0) +
-                                        abllsSection.questions.slice(0, index2).filter(q => !q.isStandard).length + 1) + '：'
-                                        +
-                                        item.task_object : ''}}
+                            <view v-for="(skillItems, index) in section.skillBelowStandard.categories">
+                                <!-- <view>{{ skillItems.name }}</view> -->
+                                <view v-for="(skill, index2) in skillItems.skills">
+                                    <view class="skillName">{{ skill.taskName }}</view>
+                                    <view class="skillDesc">{{ skill.description }}</view>
                                 </view>
+                                <view style="border:1px solid #E9E9E9;"></view>
                             </view>
                         </view>
                     </u-collapse-item>
@@ -467,12 +465,13 @@ onUnmounted(() => {
                 padding: 5rpx 20rpx;
 
                 // 为每个技能项添加分界线
-                .skill {
-                    margin-bottom: 20rpx;
-                    font-weight: 400;
-                    // 字体justtify
-                    text-align: justify;
-
+                .skillName {
+                    color: #000;
+                    font-family: "PingFang SC";
+                    font-size: 13px;
+                    font-style: normal;
+                    font-weight: 600;
+                    line-height: normal;
                 }
 
 
