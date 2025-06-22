@@ -68,7 +68,7 @@
 
                         </view>
                         <!-- 落后技能 -->
-                        <view class="collapse-skillBelowStandard">
+                        <view class="collapse-skillBelowStandard" v-if="section.skillBelowStandard">
                             <view class="" v-for="(skillItems, index) in section.skillBelowStandard.categories">
                                 <!-- <view>{{ skillItems.name }}</view> -->
                                 <view class="skillCategory" v-for="(skill, index2) in skillItems.skills">
