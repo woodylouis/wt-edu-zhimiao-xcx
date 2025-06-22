@@ -69,13 +69,16 @@
                         </view>
                         <!-- 落后技能 -->
                         <view class="collapse-skillBelowStandard">
-                            <view v-for="(skillItems, index) in section.skillBelowStandard.categories">
+                            <view class="" v-for="(skillItems, index) in section.skillBelowStandard.categories">
                                 <!-- <view>{{ skillItems.name }}</view> -->
-                                <view v-for="(skill, index2) in skillItems.skills">
-                                    <view class="skillName">{{ skill.taskName }}</view>
+                                <view class="skillCategory" v-for="(skill, index2) in skillItems.skills">
+                                    <view class="skillName">
+                                        落后技能{{ getSkillSequenceNumber(index, index2,
+                                            section.skillBelowStandard.categories) }}: {{ skill.taskName }}
+                                    </view>
                                     <view class="skillDesc">{{ skill.description }}</view>
                                 </view>
-                                <view style="border:1px solid #E9E9E9;"></view>
+                                <!-- <view style="border:1px solid #E9E9E9;"></view> -->
                             </view>
                         </view>
                     </u-collapse-item>
@@ -119,6 +122,16 @@ const historyReports = ref([])
 const radarChartRef = ref(null)
 const sectionSummaryList = ref([])
 const sectionScoreList = ref([]);
+
+const getSkillSequenceNumber = (categoryIndex, skillIndex, categories) => {
+    let totalSkillsBefore = 0;
+    // 计算当前分类之前所有分类的技能总数
+    for (let i = 0; i < categoryIndex; i++) {
+        totalSkillsBefore += categories[i].skills.length;
+    }
+    // 返回当前技能的全局序号（从1开始）
+    return totalSkillsBefore + skillIndex + 1;
+};
 
 // 添加折叠面板状态管理
 const activeCollapse = ref([]);
@@ -463,6 +476,10 @@ onUnmounted(() => {
                 // padding: 20rpx;
                 border-radius: 8rpx;
                 padding: 5rpx 20rpx;
+
+                .skillCategory {
+                    margin: 20rpx 0;
+                }
 
                 // 为每个技能项添加分界线
                 .skillName {
