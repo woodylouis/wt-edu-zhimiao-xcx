@@ -469,9 +469,22 @@ const backToPrevious = () => {
 };
 
 const goToNext = () => {
+    // 检查当前题目是否已填写
+    const currentQuestion = questions.value[currentIndex.value];
+    const hasSelectedOption = currentQuestion?.options?.some(opt => opt.selected);
+
+    if (!hasSelectedOption) {
+        uni.showToast({
+            title: '请先填写当前题目',
+            icon: 'none',
+            duration: 2000
+        });
+        return;
+    }
     if (currentIndex.value < questions.value.length - 1) {
         currentIndex.value++;
         checkIfAllCompleted(allAbllsSectionsRecordForm.value)
+        prepareAllRecords(false, false);
     } else {
         // 当前标签下所有题目已完成
         checkIfAllCompleted(allAbllsSectionsRecordForm.value)
@@ -508,17 +521,6 @@ const goToNext = () => {
                 const checkModuleStatus = true;
                 const confirmToGenerateReport = false;
                 prepareAllRecords(checkModuleStatus, confirmToGenerateReport)
-
-
-                // uni.showModal({
-                //     title: '评测完成',
-                //     content: `已完成${currentSection}评测\n\n本评测包含以下section:\n${Array.isArray(allAssessmentSections)
-                //         ? allAssessmentSections.map(s => s.section).join('\n')
-                //         : Object.values(allAssessmentSections).map(s => s.section).join('\n')
-                //         }`,
-                //     confirmText: '确定',
-                //     showCancel: false
-                // });
             }
         }
     }
