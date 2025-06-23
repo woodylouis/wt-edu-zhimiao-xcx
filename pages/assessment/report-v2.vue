@@ -69,14 +69,12 @@
                         </view>
                         <!-- 落后技能 -->
                         <view class="collapse-skillBelowStandard">
+                            落后技能
                             <view v-for="(abllsSection, index) in section.abllsSectionSummaryList">
+                                <view>{{ abllsSection.sectioName }}</view>
                                 <view class="skill" v-for="(item, index2) in abllsSection.questions">
-                                    {{!item.isStandard ? '落后技能 ' + (section.abllsSectionSummaryList.slice(0,
-                                        index).reduce((count, s) => count + s.questions.filter(q => !q.isStandard).length,
-                                            0) +
-                                        abllsSection.questions.slice(0, index2).filter(q => !q.isStandard).length + 1) + '：'
-                                        +
-                                        item.task_object : ''}}
+                                    <view>{{ item.task_name }}</view>
+                                    <view>{{ item.task_object }}</view>
                                 </view>
                             </view>
                         </view>
