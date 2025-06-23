@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                    }}</view>
+                                }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
                         </view>
@@ -39,7 +39,7 @@
                         <img src="https://cdn.builder.io/api/v1/image/assets/022245c9a8b14954aad66a5dc04d83ff/e6fd64bcab073741b3e800de42955c66c3e1302f?placeholderIfAbsent=true"
                             class="analysis-icon" alt="AI Analysis" />
                         <p class="analysis-text">
-                            <span class="analysis-text-normal">AI正在分析中，</span>约需1分钟
+                            <span class="analysis-text-normal">AI正在分析中，</span>约需5~7分钟
                         </p>
                     </view>
                 </view>
