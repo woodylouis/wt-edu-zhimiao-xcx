@@ -23,7 +23,7 @@ function generateReportSummaryFallback(childName, reachCount, belowCount, sectio
 }
 
 exports.main = async () => {
-	const tasks = await dbTask.where({ status: 'waiting_merge' }).limit(5).get()
+	const tasks = await dbTask.where({ status: 'waiting_merge' }).limit(3).get()
 	for (const task of tasks.data) {
 		console.log('有待处理任务数量', task)
 		const { taskId, originalParams = {}, assessmentId } = task

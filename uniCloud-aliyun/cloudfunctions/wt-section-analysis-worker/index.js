@@ -353,7 +353,7 @@ function generateSkillCategoriesFallback(skills) {
 
 exports.main = async () => {
 	const startTime = Date.now()
-	const tasks = await taskCollection.where({ status: 'pending' }).limit(3).get() // 减少并发处理数量
+	const tasks = await taskCollection.where({ status: 'pending' }).limit(2).get() // 减少并发处理数量
 	console.log('Fetched tasks:', tasks)
 
 	for (const task of tasks.data) {
