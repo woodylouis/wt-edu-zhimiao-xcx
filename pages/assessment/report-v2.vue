@@ -63,7 +63,7 @@
                                 </view>
                             </view>
                             <view class="sectionAnalysis">
-                                分析：<span>{{ section.analysis }}</span>
+                                <span>{{ section.analysis }}</span>
                             </view>
 
                         </view>
@@ -441,7 +441,7 @@ onUnmounted(() => {
             margin: 22rpx 40rpx;
 
             .collapse-content {
-                margin-left: 10rpx;
+                // margin-left: 10rpx;
 
                 .sectionScore {
                     margin-bottom: 30rpx;
@@ -465,7 +465,80 @@ onUnmounted(() => {
                 }
 
                 .sectionAnalysis {
+                    background: linear-gradient(135deg, #F0FDF4 0%, #F7FEE7 50%, #FEFCE8 100%);
+                    border: 2rpx solid #A2CF73;
+                    border-radius: 12rpx;
+                    padding: 24rpx;
                     margin-bottom: 40rpx;
+                    position: relative;
+                    box-shadow: 0 4rpx 16rpx rgba(162, 207, 115, 0.15);
+                    margin-top: 40rpx;
+                    line-height: 1.4rem;
+                    text-align: justify;
+                    text-justify: inter-character;
+                    hyphens: auto;
+
+                    span {
+                        text-align: justify;
+                        text-justify: inter-character;
+                        hyphens: auto;
+                    }
+
+
+                    &:before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 3rpx;
+                        background: linear-gradient(90deg, #A2CF73, #84CC16, #65A30D);
+                        border-radius: 12rpx 12rpx 0 0;
+                    }
+
+                    >text:first-child {
+                        font-size: 26rpx;
+                        font-weight: 600;
+                        color: #365314;
+                        display: block;
+                        margin-bottom: 16rpx;
+
+                        &:before {
+                            content: '📊';
+                            margin-right: 8rpx;
+                            font-size: 22rpx;
+                        }
+                    }
+
+                    span {
+                        font-size: 24rpx;
+                        color: #1F2937;
+                        line-height: 1.5;
+                        font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+                        background: rgba(255, 255, 255, 0.8);
+                        padding: 12rpx 16rpx;
+                        border-radius: 8rpx;
+                        border: 1rpx solid #D9F99D;
+                        display: block;
+                        box-shadow: 0 2rpx 8rpx rgba(162, 207, 115, 0.1);
+
+                        // 文本压缩技巧
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 4;
+                        -webkit-box-orient: vertical;
+
+                        // 悬停展开
+                        transition: all 0.3s ease;
+                        cursor: pointer;
+
+                        &:hover {
+                            -webkit-line-clamp: unset;
+                            box-shadow: 0 4rpx 12rpx rgba(162, 207, 115, 0.2);
+                            background: rgba(255, 255, 255, 0.95);
+                        }
+                    }
                 }
             }
 
