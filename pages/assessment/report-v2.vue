@@ -69,12 +69,24 @@
                         </view>
                         <!-- 落后技能 -->
                         <view class="collapse-skillBelowStandard">
-                            落后技能
-                            <view v-for="(abllsSection, index) in section.abllsSectionSummaryList">
-                                <view>{{ abllsSection.sectioName }}</view>
-                                <view class="skill" v-for="(item, index2) in abllsSection.questions">
-                                    <view>{{ item.task_name }}</view>
-                                    <view>{{ item.task_object }}</view>
+                            <view class="skill-header">
+                                <text class="skill-icon">⚠️</text>
+                                <text class="skill-title">需要关注的技能</text>
+                            </view>
+                            <view class="skill-sections"
+                                v-for="(abllsSection, index) in section.abllsSectionSummaryList" :key="index">
+                                <view class="section-divider">
+                                    <view class="section-name">{{ abllsSection.sectioName }}</view>
+                                </view>
+                                <view class="skill-items">
+                                    <view class="skill-item" v-for="(item, index2) in abllsSection.questions"
+                                        :key="index2">
+                                        <view class="skill-badge">{{ index2 + 1 }}</view>
+                                        <view class="skill-content">
+                                            <view class="skill-name">{{ item.task_name }}</view>
+                                            <view class="skill-description">{{ item.task_object }}</view>
+                                        </view>
+                                    </view>
                                 </view>
                             </view>
                         </view>
@@ -458,22 +470,131 @@ onUnmounted(() => {
             }
 
             .collapse-skillBelowStandard {
-                background-color: #FFE4E6; // 粉色背景
-                color: #000;
-                // padding: 20rpx;
-                border-radius: 8rpx;
-                padding: 5rpx 20rpx;
+                background: linear-gradient(135deg, #FFF5F5 0%, #FEF2F2 50%, #FFEAEA 100%);
+                border: 2rpx solid #FEB2B2;
+                border-radius: 16rpx;
+                padding: 32rpx 24rpx;
+                margin: 24rpx 0;
+                box-shadow: 0 8rpx 24rpx rgba(254, 178, 178, 0.3);
 
-                // 为每个技能项添加分界线
-                .skill {
-                    margin-bottom: 20rpx;
-                    font-weight: 400;
-                    // 字体justtify
-                    text-align: justify;
+                .skill-header {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 32rpx;
+                    padding-bottom: 20rpx;
+                    border-bottom: 2rpx dashed #FEB2B2;
 
+                    .skill-icon {
+                        font-size: 32rpx;
+                        margin-right: 16rpx;
+                    }
+
+                    .skill-title {
+                        font-size: 32rpx;
+                        font-weight: 600;
+                        color: #DC2626;
+                        font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+                        letter-spacing: 1rpx;
+                    }
                 }
 
+                .skill-sections {
+                    margin-bottom: 40rpx;
 
+                    &:last-child {
+                        margin-bottom: 0;
+                    }
+                }
+
+                .section-divider {
+                    position: relative;
+                    text-align: center;
+                    margin: 32rpx 0 24rpx 0;
+
+                    &:before {
+                        content: '';
+                        position: absolute;
+                        top: 50%;
+                        left: 0;
+                        right: 0;
+                        height: 2rpx;
+                        background: linear-gradient(90deg, transparent 0%, #FCA5A5 20%, #F87171 50%, #FCA5A5 80%, transparent 100%);
+                        z-index: 1;
+                    }
+
+                    .section-name {
+                        display: inline-block;
+                        background: #FFFFFF;
+                        padding: 8rpx 20rpx;
+                        border: 2rpx solid #FEB2B2;
+                        border-radius: 20rpx;
+                        font-size: 26rpx;
+                        font-weight: 500;
+                        color: #B91C1C;
+                        position: relative;
+                        z-index: 2;
+                        box-shadow: 0 4rpx 12rpx rgba(254, 178, 178, 0.4);
+                    }
+                }
+
+                .skill-items {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20rpx;
+                }
+
+                .skill-item {
+                    display: flex;
+                    align-items: flex-start;
+                    background: rgba(255, 255, 255, 0.8);
+                    border: 1rpx solid #FCA5A5;
+                    border-radius: 12rpx;
+                    padding: 20rpx;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4rpx 12rpx rgba(254, 178, 178, 0.2);
+
+                    &:hover {
+                        transform: translateY(-2rpx);
+                        box-shadow: 0 8rpx 20rpx rgba(254, 178, 178, 0.3);
+                    }
+                }
+
+                .skill-badge {
+                    min-width: 40rpx;
+                    height: 40rpx;
+                    background: linear-gradient(135deg, #F87171, #EF4444);
+                    color: #FFFFFF;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 20rpx;
+                    font-weight: 600;
+                    margin-right: 20rpx;
+                    margin-top: 4rpx;
+                    box-shadow: 0 4rpx 8rpx rgba(239, 68, 68, 0.3);
+                }
+
+                .skill-content {
+                    flex: 1;
+
+                    .skill-name {
+                        font-size: 28rpx;
+                        font-weight: 600;
+                        color: #991B1B;
+                        margin-bottom: 8rpx;
+                        line-height: 1.4;
+                        font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+                    }
+
+                    .skill-description {
+                        font-size: 24rpx;
+                        color: #7C2D12;
+                        line-height: 1.5;
+                        text-align: justify;
+                        font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+                    }
+                }
             }
         }
 
