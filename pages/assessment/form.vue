@@ -207,7 +207,7 @@ const handleConfirm = () => {
     const checkModuleStatus = true;
     const confirmToGenerateReport = true;
     prepareAllRecords(checkModuleStatus, confirmToGenerateReport)
-    uni.navigateTo({ url: '/pages/assessment/afterAssess' })
+    uni.redirectTo({ url: '/pages/assessment/afterAssess' })
     // TO-DO: 更改状态
     if (confirmToGenerateReport) {
         changeStatus()
