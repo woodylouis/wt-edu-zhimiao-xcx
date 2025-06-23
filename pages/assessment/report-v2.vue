@@ -68,17 +68,16 @@
 
                         </view>
                         <!-- 落后技能 -->
-                        <view class="collapse-skillBelowStandard" v-if="section.skillBelowStandard">
-                            <view class="" v-for="(skillItems, index) in section.skillBelowStandard.categories">
-                                <!-- <view>{{ skillItems.name }}</view> -->
-                                <view class="skillCategory" v-for="(skill, index2) in skillItems.skills">
-                                    <view class="skillName">
-                                        落后技能{{ getSkillSequenceNumber(index, index2,
-                                            section.skillBelowStandard.categories) }}: {{ skill.taskName }}
-                                    </view>
-                                    <view class="skillDesc">{{ skill.description }}</view>
+                        <view class="collapse-skillBelowStandard">
+                            <view v-for="(abllsSection, index) in section.abllsSectionSummaryList">
+                                <view class="skill" v-for="(item, index2) in abllsSection.questions">
+                                    {{!item.isStandard ? '落后技能 ' + (section.abllsSectionSummaryList.slice(0,
+                                        index).reduce((count, s) => count + s.questions.filter(q => !q.isStandard).length,
+                                            0) +
+                                        abllsSection.questions.slice(0, index2).filter(q => !q.isStandard).length + 1) + '：'
+                                        +
+                                        item.task_object : ''}}
                                 </view>
-                                <!-- <view style="border:1px solid #E9E9E9;"></view> -->
                             </view>
                         </view>
                     </u-collapse-item>
