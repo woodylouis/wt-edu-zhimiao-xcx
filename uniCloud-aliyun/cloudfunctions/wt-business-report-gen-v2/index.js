@@ -837,11 +837,11 @@ function generateReportSummaryFallback(childName, reachStandardCount, belowStand
 	let summary = `${childName}在本次ABLLS-R评估中，共完成${sectionsAnalyzed.join('、')}等${sectionsAnalyzed.length}个技能领域的评估，总计${totalSkills}项技能测试。`;
 
 	if (completionRate >= 80) {
-		summary += `整体表现优秀，${reachStandardCount}项技能已达到年龄标准，完成率${completionRate}%，显示出良好的发展基础。`;
+		summary += `整体表现优秀，${reachStandardCount}项技能已达到年龄标准，显示出良好的发展基础。`;
 	} else if (completionRate >= 60) {
-		summary += `整体表现良好，${reachStandardCount}项技能已达标，完成率${completionRate}%，仍有较大提升空间。`;
+		summary += `整体表现良好，${reachStandardCount}项技能已达标，仍有较大提升空间。`;
 	} else {
-		summary += `目前${reachStandardCount}项技能已达标，完成率${completionRate}%，需要重点关注和系统训练。`;
+		summary += `目前${reachStandardCount}项技能已达标，需要重点关注和系统训练。`;
 	}
 
 	if (belowStandardCount > 0) {

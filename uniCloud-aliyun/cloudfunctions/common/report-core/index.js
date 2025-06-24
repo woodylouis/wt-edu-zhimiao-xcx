@@ -44,7 +44,7 @@ function generateSectionFallbackAnalysis(sectionName, skills, childName) {
 function generateReportSummaryFallback(childName, reachCount, belowCount, sections) {
 	const total = reachCount + belowCount
 	const rate = total ? Math.round((reachCount / total) * 100) : 0
-	return `${childName}共参与${sections.join('、')}等${sections.length}个技能领域的评估，完成率${rate}%，建议继续加强训练。`
+	return `${childName}共参与${sections.join('、')}等${sections.length}个技能领域的评估，建议继续加强训练。`
 }
 
 // ✅ 保存报告和更新状态
