@@ -90,6 +90,45 @@
                                 </view>
                             </view>
                         </view>
+                        <!-- 干预计划部分 HTML 结构修改 -->
+                        <view class="collapse-skillImprovementPlan">
+                            <view class="improvement-header">
+                                <view class="improvement-icon">🎯</view>
+                                <view class="improvement-title">干预计划</view>
+                            </view>
+
+                            <!-- 步骤条容器 -->
+                            <view class="steps-container">
+                                <view v-for="(abllsSection, sectionIndex) in section.abllsSectionSummaryList"
+                                    :key="sectionIndex" class="section-step">
+
+                                    <!-- 分区标题步骤 -->
+                                    <view class="section-step-item">
+                                        <view class="step-number">{{ sectionIndex + 1 }}</view>
+                                        <view class="step-content section-header">
+                                            <view class="step-title">{{ abllsSection.sectioName }}</view>
+                                            <view class="step-subtitle">技能领域训练</view>
+                                        </view>
+                                        <view class="step-line"
+                                            v-if="abllsSection.questions && abllsSection.questions.length > 0"></view>
+                                    </view>
+
+                                    <!-- 具体任务步骤 -->
+                                    <view v-for="(item, taskIndex) in abllsSection.questions" :key="taskIndex"
+                                        class="task-step-item">
+                                        <view class="step-number sub-step">{{ sectionIndex + 1 }}.{{ taskIndex + 1 }}
+                                        </view>
+                                        <view class="step-content task-content">
+                                            <view class="step-title">{{ item.task_name }}</view>
+                                            <view class="step-description">{{ item.task_object }}</view>
+                                        </view>
+                                        <view class="step-line"
+                                            v-if="taskIndex < abllsSection.questions.length - 1 || sectionIndex < section.abllsSectionSummaryList.length - 1">
+                                        </view>
+                                    </view>
+                                </view>
+                            </view>
+                        </view>
                     </u-collapse-item>
                 </u-collapse>
             </view>
@@ -547,7 +586,7 @@ onUnmounted(() => {
                 border: 2rpx solid #FEB2B2;
                 border-radius: 16rpx;
                 padding: 32rpx 24rpx;
-                margin: 24rpx 0;
+                margin: 24rpx 0 42rpx 0;
                 box-shadow: 0 8rpx 24rpx rgba(254, 178, 178, 0.3);
 
                 .skill-header {
@@ -667,6 +706,369 @@ onUnmounted(() => {
                         text-align: justify;
                         font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
                     }
+                }
+            }
+
+            /* 步骤条样式 */
+            .collapse-skillImprovementPlan {
+                position: relative;
+                background: #FED9B4;
+                border-radius: 20rpx;
+                padding: 40rpx 32rpx;
+                margin-bottom: 20rpx;
+                box-shadow: 0 8rpx 32rpx rgba(254, 217, 180, 0.3);
+                position: relative;
+                overflow: hidden;
+                border: 2rpx solid #F4B266;
+
+                &:before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    // height: 8rpx;
+                    background: #F4B266;
+                }
+
+                &:after {
+                    content: '💡';
+                    position: absolute;
+                    top: 24rpx;
+                    right: 32rpx;
+                    font-size: 48rpx;
+                    opacity: 0.6;
+                    animation: bounce 2s ease-in-out infinite;
+                }
+
+                .improvement-header {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 40rpx;
+                    padding-bottom: 24rpx;
+                    border-bottom: 2rpx dashed #F4B266;
+                    position: relative;
+                    z-index: 2;
+
+                    .improvement-icon {
+                        font-size: 36rpx;
+                        margin-right: 16rpx;
+                        animation: bounce 2s ease-in-out infinite;
+                    }
+
+                    .improvement-title {
+                        font-size: 32rpx;
+                        font-weight: 600;
+                        color: #B85C38;
+                        font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+                        letter-spacing: 1rpx;
+                    }
+                }
+
+                .steps-container {
+                    position: relative;
+                }
+
+                // 为每个 section-step 添加上下 margin
+                .section-step {
+                    margin: 24rpx 0;
+
+                    &:first-child {
+                        margin-top: 0;
+                    }
+
+                    &:last-child {
+                        margin-bottom: 0;
+                    }
+                }
+
+                // 通用步骤样式
+                .section-step-item,
+                .task-step-item,
+                .completion-step {
+                    position: relative;
+                    display: flex;
+                    align-items: flex-start;
+                    margin-bottom: 32rpx;
+
+                    &:last-child {
+                        margin-bottom: 0;
+                    }
+                }
+
+                // 步骤编号样式
+                .step-number {
+                    min-width: 60rpx;
+                    height: 60rpx;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: 600;
+                    font-size: 24rpx;
+                    margin-right: 24rpx;
+                    position: relative;
+                    z-index: 2;
+
+                    // 主步骤编号（分区）
+                    &:not(.sub-step):not(.final-step) {
+                        background: #F4B266;
+                        color: #FFFFFF;
+                        box-shadow: 0 4rpx 16rpx rgba(244, 178, 102, 0.4);
+
+                        &:before {
+                            content: '';
+                            position: absolute;
+                            top: -4rpx;
+                            left: -4rpx;
+                            right: -4rpx;
+                            bottom: -4rpx;
+                            border: 2rpx solid #FED9B4;
+                            border-radius: 50%;
+                            opacity: 0.6;
+                        }
+                    }
+
+                    // 子步骤编号（具体任务）
+                    &.sub-step {
+                        background: #FFFFFF;
+                        border: 2rpx solid #F4B266;
+                        color: #B85C38;
+                        font-size: 20rpx;
+                        min-width: 54rpx;
+                        height: 54rpx;
+                        box-shadow: 0 2rpx 8rpx rgba(244, 178, 102, 0.2);
+                    }
+
+                    // 最终步骤
+                    &.final-step {
+                        background: #D2691E;
+                        color: #FFFFFF;
+                        font-size: 32rpx;
+                        min-width: 68rpx;
+                        height: 68rpx;
+                        box-shadow: 0 6rpx 20rpx rgba(210, 105, 30, 0.4);
+                        animation: pulse 2s ease-in-out infinite;
+                    }
+                }
+
+                // 步骤内容样式
+                .step-content {
+                    flex: 1;
+                    background: rgba(255, 255, 255, 0.9);
+                    border-radius: 12rpx;
+                    padding: 24rpx;
+                    border: 1rpx solid #F4B266;
+                    box-shadow: 0 4rpx 12rpx rgba(244, 178, 102, 0.2);
+                    transition: all 0.3s ease;
+
+                    &:hover {
+                        transform: translateX(8rpx);
+                        box-shadow: 0 6rpx 16rpx rgba(244, 178, 102, 0.3);
+                    }
+
+                    // 分区标题样式
+                    &.section-header {
+                        background: #FEF0E1;
+                        border-left: 4rpx solid #F4B266;
+
+                        .step-title {
+                            font-size: 28rpx;
+                            font-weight: 600;
+                            color: #B85C38;
+                            margin-bottom: 8rpx;
+
+                            &:before {
+                                content: '📋';
+                                margin-right: 8rpx;
+                                font-size: 24rpx;
+                            }
+                        }
+
+                        .step-subtitle {
+                            font-size: 22rpx;
+                            color: #D2691E;
+                            opacity: 0.8;
+                        }
+                    }
+
+                    // 任务内容样式
+                    &.task-content {
+                        margin-left: 20rpx;
+
+                        .step-title {
+                            font-size: 26rpx;
+                            font-weight: 500;
+                            color: #B85C38;
+                            margin-bottom: 12rpx;
+
+                            &:before {
+                                content: '✓';
+                                margin-right: 8rpx;
+                                font-size: 20rpx;
+                                color: #F4B266;
+                            }
+                        }
+
+                        .step-description {
+                            font-size: 24rpx;
+                            color: #D2691E;
+                            line-height: 1.6;
+                            text-align: justify;
+                            margin-bottom: 12rpx;
+                            background: #FEF8F3;
+                            padding: 12rpx;
+                            border-radius: 6rpx;
+                        }
+                    }
+
+                    // 最终目标样式
+                    &.final-content {
+                        background: #FED9B4;
+                        border-left: 4rpx solid #D2691E;
+
+                        .step-title {
+                            font-size: 28rpx;
+                            font-weight: 600;
+                            color: #8B4513;
+                            margin-bottom: 8rpx;
+
+                            &:before {
+                                content: '🎉';
+                                margin-right: 8rpx;
+                                font-size: 24rpx;
+                            }
+                        }
+
+                        .step-description {
+                            font-size: 24rpx;
+                            color: #B85C38;
+                            line-height: 1.6;
+                        }
+                    }
+                }
+
+                // 连接线样式
+                .step-line {
+                    position: absolute;
+                    left: 30rpx;
+                    top: 60rpx;
+                    bottom: -32rpx;
+                    // width: 2rpx;
+                    background: #F4B266;
+                    z-index: 1;
+
+                    // 虚线效果
+                    &:after {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: -1rpx;
+                        width: 4rpx;
+                        height: 100%;
+                        background: repeating-linear-gradient(180deg,
+                                #F4B266 0%,
+                                #F4B266 10%,
+                                transparent 10%,
+                                transparent 20%);
+                        animation: flowDown 3s ease-in-out infinite;
+                    }
+                }
+
+                // 动画效果
+                @keyframes flowDown {
+                    0% {
+                        transform: translateY(-20rpx);
+                        opacity: 0.5;
+                    }
+
+                    50% {
+                        opacity: 1;
+                    }
+
+                    100% {
+                        transform: translateY(20rpx);
+                        opacity: 0.5;
+                    }
+                }
+
+                @keyframes pulse {
+
+                    0%,
+                    100% {
+                        transform: scale(1);
+                    }
+
+                    50% {
+                        transform: scale(1.05);
+                    }
+                }
+
+                @keyframes bounce {
+
+                    0%,
+                    20%,
+                    50%,
+                    80%,
+                    100% {
+                        transform: translateY(0);
+                    }
+
+                    40% {
+                        transform: translateY(-8rpx);
+                    }
+
+                    60% {
+                        transform: translateY(-4rpx);
+                    }
+                }
+            }
+
+            // 动画效果
+            @keyframes flowDown {
+                0% {
+                    transform: translateY(-20rpx);
+                    opacity: 0.5;
+                }
+
+                50% {
+                    opacity: 1;
+                }
+
+                100% {
+                    transform: translateY(20rpx);
+                    opacity: 0.5;
+                }
+            }
+
+            @keyframes pulse {
+
+                0%,
+                100% {
+                    transform: scale(1);
+                }
+
+                50% {
+                    transform: scale(1.05);
+                }
+            }
+
+            @keyframes bounce {
+
+                0%,
+                20%,
+                50%,
+                80%,
+                100% {
+                    transform: translateY(0);
+                }
+
+                40% {
+                    transform: translateY(-8rpx);
+                }
+
+                60% {
+                    transform: translateY(-4rpx);
                 }
             }
         }
