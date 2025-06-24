@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                    }}</view>
+                                }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -91,7 +91,9 @@
                             </view>
                         </view>
                         <!-- 干预计划部分 HTML 结构修改 -->
-                        <view class="collapse-skillImprovementPlan">
+                        <view class="collapse-skillImprovementPlan"
+                            v-if="section.abllsSectionSummaryList && section.abllsSectionSummaryList.some(abllsSection =>
+                                abllsSection.questions && abllsSection.questions.some(item => item.description && item.description.trim()))">
                             <view class="improvement-header">
                                 <view class="improvement-icon">🎯</view>
                                 <view class="improvement-title">干预计划</view>
@@ -102,30 +104,33 @@
                                 <view v-for="(abllsSection, sectionIndex) in section.abllsSectionSummaryList"
                                     :key="sectionIndex" class="section-step">
 
-                                    <!-- 分区标题步骤 -->
-                                    <view class="section-step-item">
+                                    <!-- 分区标题步骤 - 只有当该section有description的items时才显示 -->
+                                    <view class="section-step-item"
+                                        v-if="abllsSection.questions && abllsSection.questions.some(item => item.description && item.description.trim())">
                                         <view class="step-number">{{ sectionIndex + 1 }}</view>
                                         <view class="step-content section-header">
                                             <view class="step-title">{{ abllsSection.sectioName }}</view>
                                             <view class="step-subtitle">技能领域训练</view>
                                         </view>
                                         <view class="step-line"
-                                            v-if="abllsSection.questions && abllsSection.questions.length > 0"></view>
+                                            v-if="abllsSection.questions && abllsSection.questions.filter(item => item.description && item.description.trim()).length > 0">
+                                        </view>
                                     </view>
 
-                                    <!-- 具体任务步骤 -->
-                                    <view v-for="(item, taskIndex) in abllsSection.questions" :key="taskIndex"
-                                        class="task-step-item">
-                                        <view class="step-number sub-step">{{ sectionIndex + 1 }}.{{ taskIndex + 1 }}
+                                    <!-- 具体任务步骤 - 只显示有description的items -->
+                                    <template v-for="(item, taskIndex) in abllsSection.questions" :key="taskIndex">
+                                        <view v-if="item.description && item.description.trim()" class="task-step-item">
+                                            <view class="step-number sub-step">{{ sectionIndex + 1 }}.{{ taskIndex + 1
+                                                }}</view>
+                                            <view class="step-content task-content">
+                                                <view class="step-title">{{ item.task_name }}</view>
+                                                <view class="step-description">{{ item.description }}</view>
+                                            </view>
+                                            <view class="step-line"
+                                                v-if="taskIndex < abllsSection.questions.length - 1 || sectionIndex < section.abllsSectionSummaryList.length - 1">
+                                            </view>
                                         </view>
-                                        <view class="step-content task-content">
-                                            <view class="step-title">{{ item.task_name }}</view>
-                                            <view class="step-description">{{ item.task_object }}</view>
-                                        </view>
-                                        <view class="step-line"
-                                            v-if="taskIndex < abllsSection.questions.length - 1 || sectionIndex < section.abllsSectionSummaryList.length - 1">
-                                        </view>
-                                    </view>
+                                    </template>
                                 </view>
                             </view>
                         </view>
