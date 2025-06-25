@@ -23,27 +23,45 @@ const processSectionScores = (sectionSummaryList) => {
 
 
 export const getRadarOption = (sectionSummaryList) => {
-    // 从age中提取年龄数字（如"4岁5个月" -> 4）
-    // console.log("chartsjs sectionSummaryList", sectionSummaryList)
     let sectionScoreList = processSectionScores(sectionSummaryList)
+
+    // 方案1：使用固定的max值策略
     const indicators = sectionScoreList.map(section => {
-        // max值需要永远比expectedTotalScore大，但当actualTotalScore比expectedTotalScore大时，需要比actualTotalScore大
-        const maxScore = Math.max(section.expectedTotalScore, section.actualTotalScore);
+        // 以期望分数为基准，增加固定缓冲区作为max值
+        // 这样标准值（期望分数）始终处于相同的相对位置
+        const standardMax = section.expectedTotalScore + Math.ceil(section.expectedTotalScore * 0.2);
+
         return {
             name: section.sectionName,
-            max: maxScore + Math.ceil(maxScore * 0.1) // 在最大值基础上增加20%作为缓冲
+            max: standardMax
         };
     });
+
+    // 方案2（备选）：如果需要处理actualTotalScore超出expectedTotalScore很多的情况
+    // const indicators = sectionScoreList.map(section => {
+    //     // 设置一个最小max值，确保期望分数始终在80%位置
+    //     const minMaxForExpected = Math.ceil(section.expectedTotalScore / 0.8);
+    //     
+    //     // 如果实际分数超出太多，适当扩展max值，但保持期望分数的相对位置稳定
+    //     const actualMax = section.actualTotalScore > minMaxForExpected ? 
+    //         Math.ceil(section.actualTotalScore * 1.1) : minMaxForExpected;
+    //     
+    //     return {
+    //         name: section.sectionName,
+    //         max: actualMax
+    //     };
+    // });
+
     const expectedScores = sectionScoreList.map(section => section.expectedTotalScore);
-    const actualScores = sectionScoreList.map(section => section.actualTotalScore);
+    const actualScores = sectionScoreList.map((section, index) => {
+        const standardMax = section.expectedTotalScore + Math.ceil(section.expectedTotalScore * 0.2);
+        return Math.min(section.actualTotalScore, standardMax);
+    });
+
     return {
         radar: {
             indicator: indicators,
-
-            // radius: '70%',
             splitNumber: 2,
-
-
         },
         series: [
             {
@@ -58,7 +76,6 @@ export const getRadarOption = (sectionSummaryList) => {
                             color: '#F09781'
                         },
                         itemStyle: {
-                            // 设置symbol的颜色
                             normal: {
                                 color: '#EE6666'
                             }
@@ -68,7 +85,6 @@ export const getRadarOption = (sectionSummaryList) => {
                             formatter: function (params) {
                                 return params.value;
                             },
-                            // position: '',
                         },
                     },
                     {
@@ -87,7 +103,6 @@ export const getRadarOption = (sectionSummaryList) => {
                             ])
                         },
                         itemStyle: {
-                            // 设置symbol的颜色
                             normal: {
                                 color: '#B3E7B9'
                             }

@@ -96,7 +96,7 @@
                                 abllsSection.questions && abllsSection.questions.some(item => item.description && item.description.trim()))">
                             <view class="improvement-header">
                                 <view class="improvement-icon">🎯</view>
-                                <view class="improvement-title">干预计划</view>
+                                <view class="improvement-title">干预建议计划</view>
                             </view>
 
                             <!-- 步骤条容器 -->
@@ -269,8 +269,9 @@ const radarOption = ref({});
 
 watch(() => sectionSummaryList.value, (newVal) => {
     if (newVal && newVal.length > 0) {
+
         radarOption.value = getRadarOption(newVal);
-        // console.log("radarOption", radarOption.value)
+        console.log("radarOption", radarOption.value)
         updateChart();
     }
 }, { deep: true });
