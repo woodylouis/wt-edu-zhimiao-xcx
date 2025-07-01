@@ -1,0 +1,43 @@
+{
+  "bsonType": "object",
+  "required": ["alphabet"],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": {
+      "description": "ID，系统自动生成"
+    },
+    "alphabet": {
+      "bsonType": "string",
+      "description": "模块的字母代号（如 A, B, C）"
+    },
+    "age2_subtotal": {
+      "bsonType": "int",
+      "description": "2岁年龄段的总分"
+    },
+    "age3_subtotal": {
+      "bsonType": "int",
+      "description": "3岁年龄段的总分"
+    },
+    "age4_subtotal": {
+      "bsonType": "int",
+      "description": "4岁年龄段的总分"
+    },
+    "age5_subtotal": {
+      "bsonType": "int",
+      "description": "5岁年龄段的总分"
+    },
+    "age6_subtotal": {
+      "bsonType": "int",
+      "description": "6岁年龄段的总分"
+    },
+    "age7_subtotal": {
+      "bsonType": "int",
+      "description": "7岁年龄段的总分"
+    }
+  }
+}

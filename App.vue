@@ -6,6 +6,8 @@ openApp() //创建在h5端全局悬浮引导用户下载app的功能
 // #endif
 import checkIsAgree from '@/pages/uni-agree/utils/uni-agree.js';
 import uniIdPageInit from '@/uni_modules/uni-id-pages/init.js';
+import { ALPHABET_AGE_MAP } from '@/lib/types/local_storage.js';
+
 export default {
 	globalData: {
 		searchText: '',
@@ -22,6 +24,7 @@ export default {
 		uniIdPageInit()
 		// #ifdef MP-WEIXIN
 		this.checkMiniProgramUpdate();
+		this.fetchAbllsStandardByAge();
 		// #endif
 
 		// #ifdef APP
@@ -79,6 +82,32 @@ export default {
 						icon: 'none'
 					});
 				});
+			}
+		},
+		async fetchAbllsStandardByAge() {
+			const res = await uniCloud.callFunction({
+				name: 'wtdb-ablls-standard-by-age',
+			});
+			if (res.result && res.result.code == 200) {
+				const rawData = res.result.data
+				console.log("fetchAbllsStandardByAge res", rawData)
+				const alphabetAgeMap = {}
+				rawData.forEach(item => {
+					const letter = item.alphabet
+					alphabetAgeMap[letter] = {
+						2: item.age2,
+						3: item.age3,
+						4: item.age4,
+						5: item.age5,
+						6: item.age6,
+						7: item.age7
+					}
+				})
+
+				// 存入缓存
+				uni.setStorageSync(ALPHABET_AGE_MAP, alphabetAgeMap)
+
+				console.log('缓存已写入成功')
 			}
 		}
 	}

@@ -13,7 +13,7 @@
                             <view style="display: flex;">
                                 <view style="margin-right: 40rpx"><span style="font-weight: bold;">班级：</span>{{
                                     classDisplay
-                                }}</view>
+                                    }}</view>
                                 <view><span style="font-weight: bold;">年龄：</span>{{ childAge }}</view>
                             </view>
 
@@ -58,7 +58,13 @@
                                     <view class="abllsItemScore">
                                         <u-line-progress
                                             :percentage="Math.round(item.actualTotalScore / item.expectedTotalScore * 100)"
-                                            activeColor="#A2CF73"></u-line-progress>
+                                            :activeColor="getColorByAgeAndStage(childAgeInt, getScoreByAgeAndAlphabet(item.alphabet, item.actualTotalScore))"
+                                            :showText="false" height="20">
+                                            <text class="u-percentage-slot">
+                                                {{ getScoreByAgeAndAlphabet(item.alphabet, item.actualTotalScore) }}
+                                                {{ item.actualTotalScore }}分
+                                            </text>
+                                        </u-line-progress>
                                     </view>
                                 </view>
                             </view>
@@ -70,9 +76,13 @@
                         <!-- 落后技能 -->
                         <view class="collapse-skillBelowStandard">
                             <view class="skill-header">
-                                <text class="skill-icon">⚠️</text>
-                                <text class="skill-title">需要关注的技能</text>
+                                <view style="display: flex; margin-bottom: 16rpx;">
+                                    <text class="skill-icon">⚠️</text>
+                                    <text class="skill-title">需要关注的技能</text>
+                                </view>
+                                <text class="skill-title-desc">虽然在某些方面已经达到总分的标准，根据评测时的选择，下面的技能仍需继续关注。</text>
                             </view>
+
                             <view class="skill-sections"
                                 v-for="(abllsSection, index) in section.abllsSectionSummaryList" :key="index">
                                 <view class="section-divider">
@@ -154,7 +164,7 @@ import customNav from '@/components/customNav';
 import capabilityLevel from './components/capability-level-v2';
 import popup from './components/popup';
 import { getRadarOption } from './charts';
-
+import { ALPHABET_AGE_MAP } from '@/lib/types/local_storage.js';
 let displayName = ref('李思'); // 
 let classDisplay = ref('小班3班');
 let avatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png");
@@ -163,6 +173,7 @@ const totalScore = ref(0);
 const sectionScores = ref({});
 const completionTime = ref('');
 const childAge = ref('');
+const childAgeInt = ref(0);
 const dateString = ref('');
 const reportSummary = ref('');
 const showHistory = ref(false);
@@ -202,15 +213,51 @@ const handleClickHistory = () => {
     showHistory.value = true;
 }
 
+const getColorByAgeAndStage = (age, stageStr) => {
+    console.log("getColorByAgeAndStage", age, stageStr)
+    const stage = parseInt(stageStr?.replace('阶', ''))
+    console.log("getColorByAgeAndStage stage", stage)
 
+    if (isNaN(stage)) {
+        return '#CCCCCC' // 错误处理色
+    }
 
+    if (stage === age) {
+        return '#A2CF73' // 正常
+    } else if (stage > age) {
+        return '#4BAE4F' // 超前
+    } else {
+        return '#CF7274' // 落后
+    }
+}
 
-// watch(sectionScoreList, (newVal) => {
-//     console.log("sectionScoreList watch", newVal)
-//     if (newVal && newVal.length > 0) {
-//         radarOption.value = getRadarOption(newVal);
-//     }
-// }, { immediate: true, deep: true });
+const getScoreByAgeAndAlphabet = (alphabet, actualTotalScore) => {
+    const map = uni.getStorageSync(ALPHABET_AGE_MAP)
+
+    if (!map || !map[alphabet]) {
+        return `-阶 ${actualTotalScore}/-`
+    }
+
+    const ageScoreMap = map[alphabet] // 如 {2: 51, 3: 106, 4: 155}
+
+    // 按阶段数字顺序排序
+    const stages = Object.keys(ageScoreMap).map(Number).sort((a, b) => a - b)
+
+    // 遍历查找第一个比 actualTotalScore 更大的分数
+    for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i]
+        const score = ageScoreMap[stage]
+        if (actualTotalScore < score) {
+            // 分数没达到这个阶段 → 属于上一个阶段
+            const currentStage = i === 0 ? stage : stages[i - 1]
+            return `${currentStage}阶`
+        }
+    }
+
+    // 如果比所有阶段都高，返回最后一阶
+    const lastStage = stages[stages.length - 1]
+    return `${lastStage}阶`
+}
 
 const onclickReportCard = (index) => {
     console.log("onclickReportCard received index:", index);
@@ -225,7 +272,7 @@ const onclickReportCard = (index) => {
     // 更新页面显示的报告数据
     sectionSummaryList.value = selectedReport.sectionSummaryList || [];
     reportSummary.value = selectedReport.reportSummary || '';
-
+    childAgeInt.value = selectedReport.ageInt || 0;
     // 关闭历史报告弹窗
     showHistory.value = false;
 
@@ -304,6 +351,7 @@ onLoad(async function (options) {
             classDisplay.value = currentClass.nickname || '未知班级';
             childAge.value = common.ageDisplay(student.birthdate) || '未知年龄';
             sectionSummaryList.value = latestReport.sectionSummaryList || [];
+            childAgeInt.value = latestReport.ageInt || 0;
             dateString.value = common.formatDate(latestReport.completionTime) || '';
             reportSummary.value = latestReport.reportSummary || '';
             console.log("latestReport", latestReport)
@@ -596,7 +644,7 @@ onUnmounted(() => {
                 box-shadow: 0 8rpx 24rpx rgba(254, 178, 178, 0.3);
 
                 .skill-header {
-                    display: flex;
+                    // display: flex;
                     align-items: center;
                     margin-bottom: 32rpx;
                     padding-bottom: 20rpx;
@@ -613,6 +661,15 @@ onUnmounted(() => {
                         color: #DC2626;
                         font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
                         letter-spacing: 1rpx;
+                    }
+
+                    .skill-title-desc {
+                        font-size: 26rpx;
+                        color: #6B7280;
+                        font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+                        line-height: 1.5;
+                        // margin-top: 16rpx;
+                        letter-spacing: 0.5rpx;
                     }
                 }
 
@@ -1086,5 +1143,14 @@ onUnmounted(() => {
 .u-collapse-content {
     color: $u-tips-color;
     font-size: 14px;
+}
+
+.u-percentage-slot {
+    padding: 1px 5px;
+    background-color: $u-warning;
+    color: #fff;
+    border-radius: 100px;
+    font-size: 10px;
+    // margin-right: -5px;
 }
 </style>

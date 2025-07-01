@@ -1,0 +1,7 @@
+{
+  "name": "wtdb-ablls-standard-by-age",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}
