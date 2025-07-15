@@ -8,7 +8,7 @@ exports.main = async (event) => {
 	// 	assessmentId: '6826d1093d029cca22a1ee0b',
 	// 	age: 2,
 	// };
-	const { assessmentId, age } = event;	
+	const { assessmentId, age } = event;
 	const assessmentSectionDbName = 'wtdb-business-assess-section';
 	const assessmentQuestionDbName = 'wtdb-business-assessment-q';
 	const sectionIdList = []; // 存储section_id的数组
@@ -52,10 +52,21 @@ exports.main = async (event) => {
 			question.age_standards.forEach((ageStandard) => {
 				if (ageStandard.age === age && ageStandard.expected_score > 0) {
 					question.expected_score = ageStandard.expected_score;
+
+					// 过滤掉 options 中 score 小于等于 expected_score 的项
+					if (Array.isArray(question.options)) {
+						question.options = question.options.filter(option => option.score <= ageStandard.expected_score);
+					}
+
+					console.log("question output", question);
 					output.push(question);
 				}
 			});
-		})
+		});
+		console.log("age", age)
+		console.log("groupedResult output", output)
+
+
 		// 处理output，按照section_id进行分组，然后往下下面再通过ablls_r_section进行分组，只输出唯一的ablls_r_section和对应的题目数量的长度
 		// 先按section_id分组，再按ablls_r_section分组
 		const groupedResult = output.reduce((acc, question) => {

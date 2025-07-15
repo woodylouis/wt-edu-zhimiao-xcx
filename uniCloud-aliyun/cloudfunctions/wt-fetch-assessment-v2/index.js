@@ -33,10 +33,17 @@ exports.main = async (event) => {
 			question.age_standards.forEach((ageStandard) => {
 				if (ageStandard.age === age && ageStandard.expected_score > 0) {
 					question.expected_score = ageStandard.expected_score;
+
+					// 过滤掉 options 中 score 小于等于 expected_score 的项
+					if (Array.isArray(question.options)) {
+						question.options = question.options.filter(option => option.score <= ageStandard.expected_score);
+					}
+
+					console.log("question output", question);
 					output.push(question);
 				}
 			});
-		})
+		});
 		return {
 			code: 200,
 			data: {
