@@ -20,6 +20,7 @@
                     style="margin:20rpx;box-sizing: border-box;"></u-tag>
             </view>
 
+            <text class="help-link" @click="handleHelp">找不到？点击创建</text>
         </view>
 
         <up-overlay :show="show">
@@ -57,11 +58,12 @@ const filteredStudents = ref([]); // 过滤后的学生列表
 const searchKeyword = ref('');   // 搜索关键词
 const searchHistory = ref(['杨浩宇', '李文津']);   // 搜索历史
 
-// 更新模板绑定（修改search组件使用方式）
-const formValue = ref({
-    // ... 其他字段保持不变 ...
-    childId: '' // 新增选中儿童ID存储
-});
+const handleHelp = () => {
+    uni.navigateTo({
+        url: '/pages/enter-class/createChildfForm_v1',
+    })
+}
+
 const confirmInfo = ref([
     {
         label: "姓名：",
@@ -316,6 +318,18 @@ onMounted((params) => {
             justify-content: space-between;
             margin-top: 36rpx
         }
+
+        .help-link {
+            color: rgba(111, 115, 116, 1);
+            font-size: 28rpx;
+            text-decoration: underline;
+            text-align: center;
+            margin-top: 32rpx;
+            display: block;
+            width: 100%;
+        }
     }
 }
+
+
 </style>

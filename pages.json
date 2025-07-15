@@ -82,6 +82,13 @@
 			}
 		},
 		{
+			"path": "pages/enter-class/createChildfForm_v1",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "创建学生"
+			}
+		},
+		{
 			"path": "pages/enter-class/applyClassForm1",
 			"style": {
 				"navigationStyle": "custom",
