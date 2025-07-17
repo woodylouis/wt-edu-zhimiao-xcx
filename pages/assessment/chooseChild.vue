@@ -58,11 +58,7 @@ const filteredStudents = ref([]); // 过滤后的学生列表
 const searchKeyword = ref('');   // 搜索关键词
 const searchHistory = ref(['杨浩宇', '李文津']);   // 搜索历史
 
-const handleHelp = () => {
-    uni.navigateTo({
-        url: '/pages/enter-class/createChildfForm_v1',
-    })
-}
+
 
 const confirmInfo = ref([
     {
@@ -218,6 +214,13 @@ const handleConfirm = () => {
 
     show.value = false;
 };
+
+const handleHelp = () => {
+     uni.navigateTo({
+        url: `/pages/enter-class/createChildfForm_v1?assessmentId=${assessmentId.value}` +
+            `&assessmentTitle=${assessmentTitle.value}`
+    });
+}
 
 // 新增搜索历史管理方法
 const updateSearchHistory = (name) => {
