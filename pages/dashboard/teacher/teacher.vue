@@ -281,8 +281,28 @@ onReachBottom(() => {
     loadStudentsWithData(currentClass.value._id, page.value, pageSize.value)
 })
 
+const checkIfAnyClass = async () => {
+    try {
+        const classRes = await uniCloud.callFunction({
+            name: 'wtdb-business-class-list'
+        });
+
+        if (classRes.result.code == 200 && classRes.result.data.length == 0) {
+             uni.reLaunch({
+                url: '/pages/enter-class/index'
+            });
+            return false
+        }
+    } catch (e) {
+        console.error('班级查询失败:', e);
+    }
+}
+
 onLoad((options) => {
     console.log('onLoad options:', options);
+    if (!checkIfAnyClass()) {
+        return
+    }
     // 读取从switchClass页面传递的selectedClass参数
     if (options.userNickname) {
         try {

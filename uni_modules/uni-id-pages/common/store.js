@@ -162,6 +162,10 @@ export const mutations = {
 					url: '/pages/dashboard/teacher/teacher'
 				});
 				return
+			} else {
+				uni.reLaunch({
+					url: '/pages/enter-class/index'
+				});
 			}
 		} catch (e) {
 			console.error('班级查询失败:', e);

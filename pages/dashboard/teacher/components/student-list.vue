@@ -1,10 +1,13 @@
 <template>
     <view class="container">
-        <view v-if="studentList" class="student-list">
+        <view v-if="studentList.length > 0" class="student-list">
             <view v-for="(student, index) in studentList" :key="index" class="student-item"
                 @click="handleStudentClick(student)">
                 <StudentCard :student="student" />
             </view>
+        </view>
+        <view v-else>
+            <u-empty mode="list" />
         </view>
     </view>
 </template>

@@ -10,13 +10,13 @@
                         <text class="input-label">班级码</text>
                         <u-form-item prop="code" :borderBottom="false">
                             <u--input v-model="formData.code" placeholder="输入班级码" border="false"
-                                :custom-style="inputStyle" type="number" @blur="handleCodeBlur" disabled />
+                                :custom-style="inputStyle" type="number" @blur="handleCodeBlur" />
                         </u-form-item>
                     </view>
                     <text class="help-link">*如何获得班级码？</text>
                     <view class="help-tips">
-                        <view>1、通过家长或老师分享到微信、朋友圈的班级信息可以获得班级代码；</view>
-                        <view>2、已经加入班级的其他家长或老师可在班级首页查看班级代码。</view>
+                        <!-- <view>1、通过家长或老师分享到微信、朋友圈的班级信息可以获得班级代码；</view> -->
+                        <view>通过已经加入班级的其他家长或老师可在班级首页查看班级代码。</view>
                     </view>
 
                     <u-button @click="handleSubmit" :custom-style="buttonStyle">直接点击下一步</u-button>
@@ -45,7 +45,7 @@ export default {
             show: false,
             formData: {  // 增加classInfo字段定义
                 role: '',
-                code: '537264',
+                code: '',
                 nickname: '',
                 classInfo: null  // 初始化班级信息字段
             },
@@ -194,7 +194,7 @@ export default {
         const cacheData = uni.getStorageSync('tempFormData') || {};
         this.formData = {
             role: '',
-            code: '537264',
+            code: '',
             nickname: '',
             classInfo: null,
             ...cacheData // 现在会合并nickname字段
