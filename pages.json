@@ -252,7 +252,10 @@
 					}
 				},
 				{
-					"path": "login/login-withoutpwd"
+					"path": "login/login-withoutpwd",
+					"style": {
+						"navigationBarBackgroundColor": "#6EDD8A"
+					}
 				},
 				{
 					"path": "login/login-withpwd"

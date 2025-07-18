@@ -1,18 +1,17 @@
 <!-- 免密登录页 -->
 <template>
 	<view class="uni-content">
-		<view class="login-logo">
-			<image :src="logo"></image>
-		</view>
+		<image class="center-circle-image" :src="logo"></image>
 		<!-- 顶部文字 -->
-		<text class="title" style="color:white;">请选择登录方式</text>
+		<!-- <text class="title" style="color:white;">请选择登录方式</text> -->
 		<!-- 快捷登录框 当url带参数时有效 -->
 		<template v-if="['apple', 'weixin', 'weixinMobile'].includes(type)">
-			<text class="tip" style="color:white;">将根据第三方账号服务平台的授权范围获取你的信息</text>
+			<!-- <text class="tip" style="color:white;">将根据第三方账号服务平台的授权范围获取你的信息</text> -->
+		
 			<view class="quickLogin">
 				<image v-if="type !== 'weixinMobile'" @click="quickLogin" :src="imgSrc" mode="widthFix" class="quickLoginBtn"></image>
 				<button v-else type="primary" open-type="getPhoneNumber" @getphonenumber="quickLogin" class="uni-btn">微信授权手机号登录</button>
-				<uni-id-pages-agreements scope="register" ref="agreements"></uni-id-pages-agreements>
+				<!-- <uni-id-pages-agreements scope="register" ref="agreements"></uni-id-pages-agreements> -->
 			</view>
 		</template>
 		<template v-else>
@@ -40,7 +39,7 @@ export default {
 			type: "", //快捷登录方式
 			phone: "", //手机号码
 			focusPhone: false,
-			logo: "/static/logo.png"
+			logo: "https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/banner/logo.png"
 		}
 	},
 	computed: {
@@ -180,6 +179,19 @@ export default {
 	}
 }
 
+.uni-content {
+	background-color: #6EDD8A;
+	height: 100vh;
+	.center-circle-image {
+		align-self: center; /* 水平居中 */
+		margin: 200rpx 0 150rpx 0; /* 上下添加间距 */
+		border-radius: 50%; /* 使图片变为圆形 */
+		overflow: hidden; /* 确保图片完全显示为圆形 */
+		width: 200rpx;
+		height: 200rpx;
+	}
+}
+
 .uni-content,
 .quickLogin {
 	/* #ifndef APP-NVUE */
@@ -227,7 +239,7 @@ export default {
 }
 
 .quickLogin {
-	height: 350px;
+	// height: 350px;
 	align-items: center;
 	justify-content: center;
 }
