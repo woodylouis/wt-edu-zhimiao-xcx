@@ -11,6 +11,8 @@
 			<view class="quickLogin">
 				<image v-if="type !== 'weixinMobile'" @click="quickLogin" :src="imgSrc" mode="widthFix" class="quickLoginBtn"></image>
 				<button v-else type="primary" open-type="getPhoneNumber" @getphonenumber="quickLogin" class="uni-btn">微信授权手机号登录</button>
+				<text class="tip" style="color:white;margin-top: 20rpx;">* 账号仅限特定人群登录并进行登录账号鉴权</text>
+
 				<!-- <uni-id-pages-agreements scope="register" ref="agreements"></uni-id-pages-agreements> -->
 			</view>
 		</template>

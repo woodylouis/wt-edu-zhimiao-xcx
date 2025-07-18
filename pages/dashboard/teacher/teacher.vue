@@ -82,7 +82,7 @@ const displayName = computed(() => {
 
 
 const navigateToLogin = () => {
-    uni.navigateTo({
+    uni.reLaunch({
         url: '/uni_modules/uni-id-pages/pages/login/login-withoutpwd'
     });
 }
