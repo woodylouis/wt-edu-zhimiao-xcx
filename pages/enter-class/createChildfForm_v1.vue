@@ -276,28 +276,33 @@
           }
           const age = `${years}岁${months}个月`;
           const ageInt = years;
-          uni.showModal({
-            title: "创建成功",
-            content: "是否直接进入ABLLS评估？",
-            success: (res) => {
-              if (res.confirm) {
-                uni.redirectTo({
-                  url:
-                    `/pages/assessment/listMoudules?classId=${currentClass._id}` +
-                    `&className=${currentClass.nickname}` +
-                    `&childId=${childrenRes.result.data.child_id}` +
-                    `&avatar=${this.formData.avatar}` +
-                    `&childName=${this.formData.name}` +
-                    `&childAge=${age}` +
-                    `&ageInt=${ageInt}` +
-                    `&assessmentId=${this.assessmentId}` +
-                    `&assessmentTitle=${this.assessmentTitle}`,
-                });
-              } else if (res.cancel) {
-                uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
-              }
-            },
-          });
+
+          if (this.assessmentId && this.assessmentTitle) {
+            uni.showModal({
+              title: "创建成功",
+              content: "是否直接进入ABLLS评估？",
+              success: (res) => {
+                if (res.confirm) {
+                  uni.redirectTo({
+                    url:
+                      `/pages/assessment/listMoudules?classId=${currentClass._id}` +
+                      `&className=${currentClass.nickname}` +
+                      `&childId=${childrenRes.result.data.child_id}` +
+                      `&avatar=${this.formData.avatar}` +
+                      `&childName=${this.formData.name}` +
+                      `&childAge=${age}` +
+                      `&ageInt=${ageInt}` +
+                      `&assessmentId=${this.assessmentId}` +
+                      `&assessmentTitle=${this.assessmentTitle}`,
+                  });
+                } else if (res.cancel) {
+                  uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
+                }
+              },
+            });
+          } else {
+            uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
+          }
         } else {
           uni.showToast({
             title: `创建失败，请重试`,
