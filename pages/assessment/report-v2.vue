@@ -121,15 +121,25 @@
               </view>
             </view>
             <!-- 落后技能 -->
-            <view class="collapse-skillBelowStandard">
+            <view
+              class="collapse-skillBelowStandard"
+              v-if="
+                section.abllsSectionSummaryList &&
+                section.abllsSectionSummaryList.some(
+                  (abllsSection) =>
+                    abllsSection.questions &&
+                    abllsSection.questions.some((q) => !q.isStandard)
+                )
+              "
+            >
               <view class="skill-header">
                 <view style="display: flex; margin-bottom: 16rpx">
                   <text class="skill-icon">⚠️</text>
                   <text class="skill-title">需要关注的技能</text>
                 </view>
-                <text class="skill-title-desc"
-                  >虽然在某些方面已经达到总分的标准，根据评测时的选择，下面的技能仍需继续关注。</text
-                >
+                <text class="skill-title-desc">
+                  虽然在某些方面已经达到总分的标准，根据评测时的选择，下面的技能仍需继续关注。
+                </text>
               </view>
 
               <view
@@ -137,33 +147,33 @@
                 v-for="(abllsSection, index) in section.abllsSectionSummaryList"
                 :key="index"
               >
-                <view class="section-divider">
-                  <view class="section-name">{{
-                    abllsSection.sectioName
-                  }}</view>
-                </view>
-                <view
-                  class="skill-items"
-                  v-if="abllsSection.questions.some((q) => !q.isStandard)"
-                >
-                  <view
-                    class="skill-item"
-                    v-for="(item, index2) in abllsSection.questions.filter(
-                      (q) => !q.isStandard
-                    )"
-                    :key="index2"
-                  >
-                    <view class="skill-badge">{{ index2 + 1 }}</view>
-                    <view class="skill-content">
-                      <view class="skill-name">{{ item.task_name }}</view>
-                      <view class="skill-description">{{
-                        item.task_object
-                      }}</view>
+                <view v-if="abllsSection.questions.some((q) => !q.isStandard)">
+                  <view class="section-divider">
+                    <view class="section-name">{{
+                      abllsSection.sectioName
+                    }}</view>
+                  </view>
+                  <view class="skill-items">
+                    <view
+                      class="skill-item"
+                      v-for="(item, index2) in abllsSection.questions.filter(
+                        (q) => !q.isStandard
+                      )"
+                      :key="index2"
+                    >
+                      <view class="skill-badge">{{ index2 + 1 }}</view>
+                      <view class="skill-content">
+                        <view class="skill-name">{{ item.task_name }}</view>
+                        <view class="skill-description">{{
+                          item.task_object
+                        }}</view>
+                      </view>
                     </view>
                   </view>
                 </view>
               </view>
             </view>
+
             <!-- 干预计划部分 HTML 结构修改 -->
             <view
               class="collapse-skillImprovementPlan"
