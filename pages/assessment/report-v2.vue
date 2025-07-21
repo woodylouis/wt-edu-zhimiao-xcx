@@ -173,7 +173,10 @@
                   (abllsSection) =>
                     abllsSection.questions &&
                     abllsSection.questions.some(
-                      (item) => item.description && item.description.trim()
+                      (item) =>
+                        !item.isStandard &&
+                        item.description &&
+                        item.description.trim()
                     )
                 )
               "
@@ -192,13 +195,16 @@
                   :key="sectionIndex"
                   class="section-step"
                 >
-                  <!-- 分区标题步骤 - 只有当该section有description的items时才显示 -->
+                  <!-- 分区标题步骤 - 只有当该section有符合条件的items时才显示 -->
                   <view
                     class="section-step-item"
                     v-if="
                       abllsSection.questions &&
                       abllsSection.questions.some(
-                        (item) => item.description && item.description.trim()
+                        (item) =>
+                          !item.isStandard &&
+                          item.description &&
+                          item.description.trim()
                       )
                     "
                   >
@@ -209,27 +215,18 @@
                       }}</view>
                       <view class="step-subtitle">技能领域训练</view>
                     </view>
-                    <view
-                      class="step-line"
-                      v-if="
-                        abllsSection.questions &&
-                        abllsSection.questions.filter(
-                          (item) => item.description && item.description.trim()
-                        ).length > 0
-                      "
-                    >
-                    </view>
+                    <view class="step-line"></view>
                   </view>
 
-                  <!-- 具体任务步骤 - 只显示有description的items -->
+                  <!-- 具体任务步骤 - 只显示符合条件的项 -->
                   <template
-                    v-for="(item, taskIndex) in abllsSection.questions"
+                    v-for="(item, taskIndex) in abllsSection.questions.filter(
+                      (q) =>
+                        !q.isStandard && q.description && q.description.trim()
+                    )"
                     :key="taskIndex"
                   >
-                    <view
-                      v-if="item.description && item.description.trim()"
-                      class="task-step-item"
-                    >
+                    <view class="task-step-item">
                       <view class="step-number sub-step"
                         >{{ sectionIndex + 1 }}.{{ taskIndex + 1 }}</view
                       >
@@ -241,13 +238,8 @@
                       </view>
                       <view
                         class="step-line"
-                        v-if="
-                          taskIndex < abllsSection.questions.length - 1 ||
-                          sectionIndex <
-                            section.abllsSectionSummaryList.length - 1
-                        "
-                      >
-                      </view>
+                        v-if="taskIndex < abllsSection.questions.length - 1"
+                      ></view>
                     </view>
                   </template>
                 </view>
