@@ -1,0 +1,9 @@
+{
+  "name": "wtdb-business-join-class-cron",
+  "dependencies": {
+    "wtdb-business-join-class": "file:../common/wtdb-business-join-class"
+  },
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}
