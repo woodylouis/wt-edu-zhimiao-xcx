@@ -65,18 +65,19 @@ exports.main = async function findSchoolUsers(params) {
               code: joinedUser.code ? joinedUser.code : null,
               nickname: joinedUser.nickname,
             };
-            await classMemberCollection.add(joinResult);
+            // await classMemberCollection.add(joinResult);
+            console.log(joinResult);
           });
         });
 
-        // result.push({
-        //   schoolUserId: schoolUser._id,
-        //   mobile: schoolUser.mobile,
-        //   allUserIds: allUserIds,
-        //   joinedUsers: joinedUsers,
-        //   notJoinedUserIds: notJoinedUserIds,
-        //   hasAllJoined: false,
-        // });
+        result.push({
+          schoolUserId: schoolUser._id,
+          mobile: schoolUser.mobile,
+          allUserIds: allUserIds,
+          joinedUsers: joinedUsers,
+          notJoinedUserIds: notJoinedUserIds,
+          hasAllJoined: notJoinedUserIds.length === 0,
+        });
       }
     }
 
