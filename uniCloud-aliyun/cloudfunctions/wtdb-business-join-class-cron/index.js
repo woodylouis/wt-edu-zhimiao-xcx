@@ -49,21 +49,34 @@ exports.main = async function findSchoolUsers(params) {
         .get();
 
       // 组织结果数据
-      const joinedUsers = classMemberResult.data;
+      const joinedUsers = classMemberResult.data; // 已经入的班级
       const notJoinedUserIds = allUserIds.filter(
         (userId) => !joinedUsers.some((member) => member.user_id === userId)
       );
 
       // 只有当有已加入用户且还有未加入用户时才添加到结果中
       if (joinedUsers.length > 0 && notJoinedUserIds.length > 0) {
-        result.push({
-          schoolUserId: schoolUser._id,
-          mobile: schoolUser.mobile,
-          allUserIds: allUserIds,
-          joinedUsers: joinedUsers,
-          notJoinedUserIds: notJoinedUserIds,
-          hasAllJoined: false,
+        notJoinedUserIds.forEach(async (userId) => {
+          joinedUsers.forEach(async (joinedUser) => {
+            const joinResult = {
+              classId: joinedUser.class_id,
+              userId: userId,
+              role: joinedUser.role,
+              code: joinedUser.code ? joinedUser.code : null,
+              nickname: joinedUser.nickname,
+            };
+            await classMemberCollection.add(joinResult);
+          });
         });
+
+        // result.push({
+        //   schoolUserId: schoolUser._id,
+        //   mobile: schoolUser.mobile,
+        //   allUserIds: allUserIds,
+        //   joinedUsers: joinedUsers,
+        //   notJoinedUserIds: notJoinedUserIds,
+        //   hasAllJoined: false,
+        // });
       }
     }
 
