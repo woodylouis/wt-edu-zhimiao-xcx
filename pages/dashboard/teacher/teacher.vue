@@ -95,7 +95,7 @@
   );
   const switchIconUrl = "../../../static/general/switch.png";
   const page = ref(1);
-  const pageSize = ref(14);
+  const pageSize = ref(30);
   const loading = ref(true); // 新增加载状态
   const loadingMore = ref(false); // 新增加载更多状态
   const noMoreData = ref(false); // 新增无更多数据标志

@@ -42,10 +42,10 @@
       </unicloud-db>
     </view>
     <view class="enter-class-option">
-      <view class="option" @click="onClickButton(0)">
+      <!-- <view class="option" @click="onClickButton(0)">
         <view class="title">{{ $t("enterClassMethod.create") }}</view>
         <image class="image" src="../../static/enter-class/create.svg" />
-      </view>
+      </view> -->
       <view class="option" @click="onClickButton(1)">
         <view class="title"> {{ $t("enterClassMethod.apply") }}</view>
         <image class="image" src="../../static/enter-class/apply.svg" />
@@ -106,32 +106,49 @@
     },
     methods: {
       onClickEnter() {
-        this.checkLoginStatus().then(async (valid) => {
-          // 改为 async
-          if (valid) {
-            // 要先检查是否当前用户是否已经加入班级
-            const res = await uniCloud.callFunction({
-              name: "wtdb-business-member-class",
-              data: {
-                uniIdToken: uni.getStorageSync("uni_id_token"),
-              },
-            });
-            if (res.result.code === 200) {
-              if (res.result.data.length > 0) {
-                console.log("是否有加入过任何班级", res.result.data.length > 0);
-                uni.navigateTo({
-                  url: "/pages/enter-class/switchClass",
-                });
-              } else {
-                uni.showModal({
-                  title: "提示",
-                  content: "您还没有加入任何班级",
-                  showConfirm: true,
-                  showCancel: false,
-                });
-              }
+        uni.showModal({
+          title: "登录提示",
+          content: "登录后才能申请进入班级",
+          showConfirm: true,
+          confirmText: "去登录",
+          showCancel: true,
+          cancelText: "稍后再说",
+          success: (res) => {
+            if (res.confirm) {
+              this.checkLoginStatus().then(async (valid) => {
+                // 改为 async
+                if (valid) {
+                  // 要先检查是否当前用户是否已经加入班级
+                  const res = await uniCloud.callFunction({
+                    name: "wtdb-business-member-class",
+                    data: {
+                      uniIdToken: uni.getStorageSync("uni_id_token"),
+                    },
+                  });
+                  if (res.result.code === 200) {
+                    if (res.result.data.length > 0) {
+                      console.log(
+                        "是否有加入过任何班级",
+                        res.result.data.length > 0
+                      );
+                      uni.navigateTo({
+                        url: "/pages/enter-class/switchClass",
+                      });
+                    } else {
+                      uni.showModal({
+                        title: "提示",
+                        content: "您还没有加入任何班级",
+                        showConfirm: true,
+                        showCancel: false,
+                      });
+                    }
+                  }
+                }
+              });
+            } else if (res.cancel) {
+              console.log("用户点击取消");
             }
-          }
+          },
         });
       },
       onInitModal() {
@@ -196,31 +213,45 @@
       },
       onClickButton(item) {
         console.log(item);
-        this.checkLoginStatus().then(async (valid) => {
-          // 改为 async
-          if (valid) {
-            if (item === 0) {
-              const res = await uniCloud.callFunction({
-                name: "wt-fetch-admin-user",
-              });
+        uni.showModal({
+          title: "登录提示",
+          content: "登录后才能进入班级",
+          showConfirm: true,
+          confirmText: "去登录",
+          showCancel: true,
+          cancelText: "稍后再说",
+          success: (res) => {
+            if (res.confirm) {
+              this.checkLoginStatus().then(async (valid) => {
+                // 改为 async
+                if (valid) {
+                  if (item === 0) {
+                    const res = await uniCloud.callFunction({
+                      name: "wt-fetch-admin-user",
+                    });
 
-              if (res.result.code !== 200) {
-                return uni.showModal({
-                  title: "提示",
-                  content: "您暂时没有权限创建班级",
-                  showConfirm: true,
-                  showCancel: false,
-                });
-              }
+                    if (res.result.code !== 200) {
+                      return uni.showModal({
+                        title: "提示",
+                        content: "您暂时没有权限创建班级",
+                        showConfirm: true,
+                        showCancel: false,
+                      });
+                    }
+                  }
+                  if (item === 1) {
+                    this.isJoinClass = true;
+                    this.tips = "加入班级";
+                    this.modalOptionsList = ["我是老师", "我是家长"];
+                    this.confirmText = "立即加入";
+                  }
+                  this.show = true;
+                }
+              });
+            } else if (res.cancel) {
+              console.log("用户点击取消");
             }
-            if (item === 1) {
-              this.isJoinClass = true;
-              this.tips = "加入班级";
-              this.modalOptionsList = ["我是老师", "我是家长"];
-              this.confirmText = "立即加入";
-            }
-            this.show = true;
-          }
+          },
         });
       },
     },
