@@ -272,7 +272,7 @@
 
 <script setup>
   const echarts = require("../../uni_modules/lime-echart/static/echarts.min");
-  import { onLoad } from "@dcloudio/uni-app";
+  import { onLoad, onShareAppMessage } from "@dcloudio/uni-app";
   import { ref, onUnmounted, onMounted, computed, watch, nextTick } from "vue";
   import common from "@/common/common.js";
   import customNav from "@/components/customNav";
@@ -480,6 +480,27 @@
         reportSummary.value = latestReport.reportSummary || "";
         console.log("latestReport", latestReport);
       }
+    } else if ((options.isShare = "true")) {
+      console.log("isShare", options);
+      uni.showLoading({
+        title: "加载中...",
+        mask: true,
+      });
+
+      historyReports.value = await fetchChildReportHistory(options.studentId);
+
+      if (historyReports.value.length > 0) {
+        const latestReport = historyReports.value[0];
+        displayName.value = options.name || "未知姓名";
+        classDisplay.value = options.nickname || "未知班级";
+        childAge.value =
+          common.ageDisplay(Number(options.birthdate)) || "未知年龄";
+        sectionSummaryList.value = latestReport.sectionSummaryList || [];
+        childAgeInt.value = latestReport.ageInt || 0;
+        dateString.value = common.formatDate(latestReport.completionTime) || "";
+        reportSummary.value = latestReport.reportSummary || "";
+        console.log("latestReport", latestReport);
+      }
     } else {
       console.log(options);
       assessmentId.value = options.assessmentId;
@@ -513,6 +534,21 @@
     const cacheKey = `assessment_${assessmentId.value}`;
     uni.removeStorageSync(cacheKey);
     console.log("已清除评估缓存:", cacheKey);
+  });
+
+  onShareAppMessage((res) => {
+    const student = uni.getStorageSync("current_student");
+    const currentClass = uni.getStorageSync("currentClass");
+
+    console.log("onShareAppMessage", res);
+    if (res.from === "button") {
+      // 来自页面内分享按钮
+      console.log(res.target);
+    }
+    return {
+      title: `${uni.getStorageSync("current_student").name}的评估报告`,
+      path: `/pages/assessment/report-v2?isShare=true&nickname=${currentClass.nickname}&studentId=${student._id}&name=${student.name}&avatar=${student.avatar}&birthdate=${student.birthdate}&class_id=${student.class_id}&gender=${student.gender}&lastAssessmentDate=${student.lastAssessmentDate}`,
+    };
   });
 </script>
 
