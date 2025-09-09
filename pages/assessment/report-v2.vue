@@ -381,7 +381,6 @@
     console.log("onclickReportCard received index:", index);
     console.log("Current report data:", historyReports.value[index]);
     const selectedReport = historyReports.value[index];
-
     // 收起所有折叠版 - 使用nextTick确保在DOM更新后执行
     nextTick(() => {
       activeCollapse.value = [];
@@ -391,6 +390,8 @@
     sectionSummaryList.value = selectedReport.sectionSummaryList || [];
     reportSummary.value = selectedReport.reportSummary || "";
     childAgeInt.value = selectedReport.ageInt || 0;
+    dateString.value = selectedReport.date;
+
     // 关闭历史报告弹窗
     showHistory.value = false;
   };
