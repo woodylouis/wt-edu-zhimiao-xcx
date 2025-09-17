@@ -70,7 +70,7 @@
                 line-height: 20px; /* 153.846% */
               "
             >
-              {{ task_sample ? task_sample : taskObject }}
+              {{ taskSample ? taskSample : taskObject }}
             </p>
           </view>
         </view>
@@ -194,6 +194,9 @@
   );
   const taskObject = computed(
     () => questions.value[currentIndex.value]?.task_object || ""
+  );
+  const taskSample = computed(
+    () => questions.value[currentIndex.value]?.task_sample || ""
   );
   const assessmentRecords = ref({}); // 每个ablls section的缓存，存储所有已加载的题目记录，例如：{ LANG_1_E: [] }
   const assessmentRecordForm = ref({}); // 组织提交的表单数据
