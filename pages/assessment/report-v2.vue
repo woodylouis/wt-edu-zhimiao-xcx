@@ -110,7 +110,7 @@
                             item.actualTotalScore
                           )
                         }}
-                        {{ item.actualTotalScore }}分
+                        {{ Math.round((item.actualTotalScore / item.expectedTotalScore ) * 100 ) }}分
                       </text>
                     </u-line-progress>
                   </view>
