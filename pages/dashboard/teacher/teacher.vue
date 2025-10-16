@@ -441,18 +441,18 @@
 <style lang="scss" scoped>
   .dashboard {
     .user-profile {
-      height: calc(100vh / 8);
+      min-height: 160rpx;
       background: linear-gradient(to right, #f5fdf8, #f1fcf5, #f9fcef);
       display: flex;
       justify-content: space-between;
-      padding: 0 40rpx;
+      padding: 20rpx 40rpx;
       box-shadow: inset 0 -20rpx 30rpx rgba(255, 255, 255, 0.8);
 
       .profile-left {
         display: flex;
         gap: 24rpx;
-        height: 60%;
         align-items: center;
+        flex: 1;
       }
 
       .avatar-image {
@@ -475,14 +475,18 @@
         display: flex;
         flex-direction: column;
         gap: 8rpx;
+        flex: 1;
+        min-width: 0;
 
         .name {
           color: #00214d;
           font-family: "PingFang SC";
-          font-size: 18px;
+          font-size: 32rpx;
           font-style: normal;
           font-weight: 600;
-          line-height: 24px;
+          line-height: 1.2;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
 
         .class {
@@ -490,7 +494,7 @@
           gap: 8rpx;
           color: #3d464a;
           font-family: "PingFang SC";
-          font-size: 14px;
+          font-size: 28rpx;
           font-style: normal;
           font-weight: 400;
           line-height: 20px;
@@ -513,7 +517,7 @@
         .school {
           color: #3d464a;
           font-family: "PingFang SC";
-          font-size: 12px;
+          font-size: 24rpx;
           font-style: normal;
           font-weight: 400;
         }
