@@ -139,7 +139,7 @@ export default {
                         }))
                     
                     // 按学校分类班级数据
-                    this.groupClassesBySchool();
+                    await this.groupClassesBySchool();
                     
                     console.log('this.classes', this.classes)
                     console.log('this.groupedClasses', this.groupedClasses)
@@ -164,27 +164,60 @@ export default {
             this.selectedRole = role;
         },
         // 按学校分类班级数据
-        groupClassesBySchool() {
+        async groupClassesBySchool() {
             const roles = ['parent', 'teacher'];
+            
+            // 获取所有学校信息
+            const schoolIds = new Set();
+            roles.forEach(role => {
+                this.classes[role].forEach(classItem => {
+                    if (classItem.schoolId && classItem.schoolId !== 'other') {
+                        schoolIds.add(classItem.schoolId);
+                    }
+                });
+            });
+            
+            // 查询学校信息
+            const schoolMap = new Map();
+            if (schoolIds.size > 0) {
+                try {
+                    const { result } = await uniCloud.callFunction({
+                        name: 'wtdb-business-school-list',
+                        data: {
+                            schoolIds: Array.from(schoolIds)
+                        }
+                    });
+                    
+                    if (result.code === 200 && result.data) {
+                        result.data.forEach(school => {
+                            schoolMap.set(school.school_id, school.name);
+                        });
+                    }
+                } catch (error) {
+                    console.error('查询学校信息失败', error);
+                }
+            }
+            
             roles.forEach(role => {
                 const classes = this.classes[role];
-                const schoolMap = new Map();
+                const roleSchoolMap = new Map();
                 
                 // 按school_id分组
                 classes.forEach(classItem => {
                     const schoolId = classItem.schoolId || 'other';
-                    if (!schoolMap.has(schoolId)) {
-                        schoolMap.set(schoolId, {
+                    if (!roleSchoolMap.has(schoolId)) {
+                        const schoolName = schoolId === 'other' ? '其它' : (schoolMap.get(schoolId) || `学校${schoolId}`);
+                        roleSchoolMap.set(schoolId, {
                             schoolId: schoolId,
-                            schoolName: schoolId === 'other' ? '其它' : `学校${schoolId}`,
+                            schoolName: schoolName,
                             classes: []
                         });
                     }
-                    schoolMap.get(schoolId).classes.push(classItem);
+                    roleSchoolMap.get(schoolId).classes.push(classItem);
                 });
                 
                 // 转换为数组并排序（其它放在最后）
-                this.groupedClasses[role] = Array.from(schoolMap.values()).sort((a, b) => {
+                this.groupedClasses[role] = Array.from(roleSchoolMap.values()).sort((a, b) => {
                     if (a.schoolId === 'other') return 1;
                     if (b.schoolId === 'other') return -1;
                     return a.schoolId.localeCompare(b.schoolId);
