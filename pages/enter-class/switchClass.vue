@@ -17,17 +17,25 @@
                 </u-button>
             </view>
             <view class="class-list">
-                <view v-if="classes[selectedRole].length === 0" class="no-data">
+                <view v-if="groupedClasses[selectedRole].length === 0" class="no-data">
                     ～～ 暂无数据 ～～
                 </view>
-                <view v-else v-for="(item, index) in classes[selectedRole]" :key="index" class="class-item"
-                    @click="handleChooseClass(index)">
-                    <image
-                        :src="selected === index ? '/static/switch-class/selected.png' : '/static/switch-class/unselected.png'"
-                        class="class-bg" />
-                    <view class="class-info">
-                        <text class="class-name">{{ item.name }}</text>
-                        <text class="user-nickname">{{ item.nickname }}</text>
+                <view v-else v-for="(schoolGroup, schoolIndex) in groupedClasses[selectedRole]" :key="schoolIndex" class="school-group">
+                    <view class="school-header">
+                        <text class="school-name">{{ schoolGroup.schoolName }}</text>
+                        <text class="class-count">{{ schoolGroup.classes.length }}个班级</text>
+                    </view>
+                    <view class="class-grid">
+                        <view v-for="(item, classIndex) in schoolGroup.classes" :key="classIndex" class="class-item"
+                            @click="handleChooseClass(schoolGroup.schoolId, classIndex)">
+                            <image
+                                :src="selectedSchoolId === schoolGroup.schoolId && selectedClassIndex === classIndex ? '/static/switch-class/selected.png' : '/static/switch-class/unselected.png'"
+                                class="class-bg" />
+                            <view class="class-info">
+                                <text class="class-name">{{ item.name }}</text>
+                                <text class="user-nickname">{{ item.nickname }}</text>
+                            </view>
+                        </view>
                     </view>
                 </view>
             </view>
@@ -81,7 +89,13 @@ export default {
         return {
             selectedRole: 'parent',
             selected: 0,
+            selectedSchoolId: null,
+            selectedClassIndex: 0,
             classes: {
+                parent: [],
+                teacher: []
+            },
+            groupedClasses: {
                 parent: [],
                 teacher: []
             },
@@ -111,8 +125,8 @@ export default {
                             name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
                             nickname: item.nickname || '家长', // 用户在本班的昵称
-                            role: item.role
-
+                            role: item.role,
+                            schoolId: item.classInfo.school_id || null
                         }))
 
                     this.classes.teacher = res.result.data
@@ -121,24 +135,21 @@ export default {
                             name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
                             nickname: item.classInfo.teacherName || '老师',
-                            role: item.role
+                            role: item.role,
+                            schoolId: item.classInfo.school_id || null
                         }))
+                    
+                    // 按学校分类班级数据
+                    this.groupClassesBySchool();
+                    
                     console.log('this.classes', this.classes)
+                    console.log('this.groupedClasses', this.groupedClasses)
+                    
                     const currentClass = uni.getStorageSync('currentClass');
                     console.log('currentClass', currentClass)
                     if (currentClass?.code) {
-                        // 合并所有班级数据
-                        const allClasses = [...this.classes.parent, ...this.classes.teacher];
-                        const targetIndex = allClasses.findIndex(
-                            item => item.classCode == currentClass.code
-                        );
-                        console.log('targetIndex', targetIndex)
-                        if (targetIndex > -1) {
-                            // 计算所属角色
-                            const targetRole = targetIndex < this.classes.parent.length ? 'parent' : 'teacher';
-                            this.selected = targetRole === 'parent' ? targetIndex : targetIndex - this.classes.parent.length;
-                            this.selectedRole = targetRole;
-                        }
+                        // 查找当前班级在分组中的位置
+                        this.setCurrentClassSelection(currentClass.code);
                     }
                 }
 
@@ -153,20 +164,72 @@ export default {
         handleRoleChange(role) {
             this.selectedRole = role;
         },
-        async handleChooseClass(index, code) {
+        // 按学校分类班级数据
+        groupClassesBySchool() {
+            const roles = ['parent', 'teacher'];
+            roles.forEach(role => {
+                const classes = this.classes[role];
+                const schoolMap = new Map();
+                
+                // 按school_id分组
+                classes.forEach(classItem => {
+                    const schoolId = classItem.schoolId || 'other';
+                    if (!schoolMap.has(schoolId)) {
+                        schoolMap.set(schoolId, {
+                            schoolId: schoolId,
+                            schoolName: schoolId === 'other' ? '其它' : `学校${schoolId}`,
+                            classes: []
+                        });
+                    }
+                    schoolMap.get(schoolId).classes.push(classItem);
+                });
+                
+                // 转换为数组并排序（其它放在最后）
+                this.groupedClasses[role] = Array.from(schoolMap.values()).sort((a, b) => {
+                    if (a.schoolId === 'other') return 1;
+                    if (b.schoolId === 'other') return -1;
+                    return a.schoolId.localeCompare(b.schoolId);
+                });
+            });
+        },
+        // 设置当前班级选择状态
+        setCurrentClassSelection(classCode) {
+            const role = this.selectedRole;
+            const groupedClasses = this.groupedClasses[role];
+            
+            for (let schoolIndex = 0; schoolIndex < groupedClasses.length; schoolIndex++) {
+                const schoolGroup = groupedClasses[schoolIndex];
+                for (let classIndex = 0; classIndex < schoolGroup.classes.length; classIndex++) {
+                    if (schoolGroup.classes[classIndex].classCode === classCode) {
+                        this.selectedSchoolId = schoolGroup.schoolId;
+                        this.selectedClassIndex = classIndex;
+                        return;
+                    }
+                }
+            }
+        },
+        // 处理班级选择
+        async handleChooseClass(schoolId, classIndex) {
             if (this.debounceTimer) {
                 clearTimeout(this.debounceTimer);
             }
 
             this.debounceTimer = setTimeout(async () => {
-                console.log("选择的班级：", code);
-                this.selected = index;
-                const selectedClass = this.classes[this.selectedRole][index];
-                console.log("选择的班级信息：", selectedClass);
+                this.selectedSchoolId = schoolId;
+                this.selectedClassIndex = classIndex;
+                
+                // 查找选中的班级
+                const schoolGroup = this.groupedClasses[this.selectedRole].find(group => group.schoolId === schoolId);
+                if (!schoolGroup) return;
+                
+                const selectedClass = schoolGroup.classes[classIndex];
+                console.log("选择的班级：", selectedClass);
+                
                 const { result } = await uniCloud.callFunction({
                     name: 'wtdb-business-class-detail',
                     data: { code: selectedClass.classCode }
                 });
+                
                 uni.showModal({
                     title: '提示',
                     content: '确定切换到选中班级吗？',
@@ -180,7 +243,7 @@ export default {
                         }
                     }
                 });
-            }, 1000); // 500毫秒防抖间隔
+            }, 1000); // 防抖间隔
         }
 
     },
@@ -259,8 +322,39 @@ export default {
 .class-list {
     margin-top: 40rpx;
     display: flex;
+    flex-direction: column;
+    gap: 40rpx;
+}
+
+.school-group {
+    display: flex;
+    flex-direction: column;
+    gap: 24rpx;
+}
+
+.school-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16rpx;
+    
+    .school-name {
+        font-size: 32rpx;
+        color: #00214D;
+        font-weight: 600;
+        font-family: "PingFang SC";
+    }
+    
+    .class-count {
+        font-size: 24rpx;
+        color: #6F7374;
+        font-family: "PingFang SC";
+    }
+}
+
+.class-grid {
+    display: flex;
     flex-wrap: wrap;
-    // justify-content: space-between;
     gap: 30rpx;
     /* 列间距 */
 }
@@ -269,19 +363,12 @@ export default {
     position: relative;
     width: calc(33.33% - 20rpx);
     /* 调整为更精确的三列计算 */
-    margin-bottom: 30rpx;
-    // padding: 12rpx;
-    // box-sizing: border-box;
-    /* 新增盒模型计算方式 */
-    // background: #FFFFFF;
-    // border-radius: 24rpx;
-    // box-shadow: 0 8rpx 24rpx rgba(0, 33, 77, 0.08);
+    margin-bottom: 0;
 }
 
 .class-bg {
     width: 100%;
     height: 230rpx;
-    // border-radius: 16rpx;
     object-fit: cover;
 }
 
@@ -293,10 +380,8 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: center;
-    // background-color: red;
     margin-top: 76rpx;
     font-family: "PingFang SC";
-
 
     /* 文字居中 */
     .class-name {

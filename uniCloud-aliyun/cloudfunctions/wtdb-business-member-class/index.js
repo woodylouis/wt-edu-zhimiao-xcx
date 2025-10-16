@@ -35,7 +35,8 @@ exports.main = async (event, context) => {
 					code: 1,
 					section: 1,
 					grade: 1,
-					class: 1
+					class: 1,
+					school_id: 1
 				}
 			})
 			.end()
