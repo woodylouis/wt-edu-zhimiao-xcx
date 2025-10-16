@@ -65,16 +65,16 @@
             :name="`section_${index}`"
           >
             <view class="collapse-content">
-              <view class="sectionScore">
-                得分：{{
-                  `${section.abllsSectionSummaryList.reduce(
-                    (sum, item) => sum + (item.actualTotalScore || 0),
-                    0
-                  )}/${section.abllsSectionSummaryList.reduce(
-                    (sum, item) => sum + (item.expectedTotalScore || 0),
-                    0
-                  )}`
-                }}
+              <view class="sectionScore">	
+               综合得分：{{
+                (() => {
+                  const actual = section.abllsSectionSummaryList.reduce((sum, i) => sum + (i.actualTotalScore || 0), 0)
+                  const expected = section.abllsSectionSummaryList.reduce((sum, i) => sum + (i.expectedTotalScore || 0), 0)
+                  if (expected === 0) return 0
+                  const percent = (actual / expected) * 100
+                  return percent === 100 ? 100 : percent.toFixed(1)
+                })()
+                }}分
               </view>
               <view
                 class="abllsSection"
@@ -110,7 +110,14 @@
                             item.actualTotalScore
                           )
                         }}
-                        {{ Math.round((item.actualTotalScore / item.expectedTotalScore ) * 100 ) }}分
+                        {{ 
+                          item.expectedTotalScore
+                            ? ((item.actualTotalScore / item.expectedTotalScore) * 100 === 100 
+                                ? 100 
+                                : ((item.actualTotalScore / item.expectedTotalScore) * 100).toFixed(1)
+                              )
+                            : 0
+                        }}分
                       </text>
                     </u-line-progress>
                   </view>
