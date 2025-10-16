@@ -105,8 +105,7 @@ export default {
     // 修正handleSubmit中的逻辑
     methods: {
         async loadClasses() {
-            this.selectedRole = this.defaultRole
-
+            this.selectedRole = "teacher" // 暂时设置为老师角色
             try {
                 const res = await uniCloud.callFunction({
                     name: 'wtdb-business-member-class',
