@@ -19,6 +19,7 @@
                 >邀请加入本班</view
               >
             </view>
+            <view class="school">{{ schoolDisplay }}</view>
           </view>
         </view>
 
@@ -80,7 +81,7 @@
 
 <script setup>
   import customNav from "@/components/customNav";
-  import { ref, onMounted, computed, reactive } from "vue";
+  import { ref, onMounted, computed, reactive, watch } from "vue";
   import { onShow, onLoad, onUnload, onReachBottom } from "@dcloudio/uni-app";
   import { CURRENT_STUDENT } from "@/lib/types/local_storage.js";
 
@@ -197,6 +198,44 @@
       return `${currentClass.value.grade}${currentClass.value.class}班`;
     }
     return "暂无班级信息";
+  });
+
+  // 学校名称响应式数据
+  const schoolName = ref("");
+  
+  // 查询学校名称
+  const fetchSchoolName = async (schoolId) => {
+    if (!schoolId) return "暂无学校信息";
+    
+    try {
+      const { result } = await uniCloud.callFunction({
+        name: 'wtdb-business-school-list',
+        data: {
+          schoolId: schoolId
+        }
+      });
+      
+      if (result.code === 200 && result.data && result.data.length > 0) {
+        return result.data[0].name;
+      }
+      return `学校${schoolId}`;
+    } catch (error) {
+      console.error('查询学校名称失败:', error);
+      return `学校${schoolId}`;
+    }
+  };
+  
+  // 监听当前班级变化，自动查询学校名称
+  watch(() => currentClass.value.school_id, async (newSchoolId) => {
+    if (newSchoolId) {
+      schoolName.value = await fetchSchoolName(newSchoolId);
+    } else {
+      schoolName.value = "暂无学校信息";
+    }
+  }, { immediate: true });
+  
+  const schoolDisplay = computed(() => {
+    return schoolName.value;
   });
 
   const onClickSwitch = () => {
@@ -456,6 +495,7 @@
           font-weight: 400;
           line-height: 20px;
           align-items: center;
+          font-weight: 500;
 
           .invite {
             background: #dbe9ff;
@@ -468,6 +508,14 @@
             line-height: 20px;
             margin-left: 8px;
           }
+        }
+
+        .school {
+          color: #3d464a;
+          font-family: "PingFang SC";
+          font-size: 12px;
+          font-style: normal;
+          font-weight: 400;
         }
       }
     }
