@@ -280,7 +280,7 @@
   import popup from "./components/popup";
   import { getRadarOption } from "./charts";
   import { ALPHABET_AGE_MAP } from "@/lib/types/local_storage.js";
-  let displayName = ref("李思"); //
+  let displayName = ref("可爱宝宝"); //
   let classDisplay = ref("小班3班");
   let avatarUrl = ref(
     "https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png"
