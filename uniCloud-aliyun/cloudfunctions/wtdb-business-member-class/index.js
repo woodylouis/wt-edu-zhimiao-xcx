@@ -23,6 +23,17 @@ exports.main = async (event, context) => {
 				as: 'classInfo'
 			})
 			.unwind('$classInfo')
+			// 关联学校表获取学校信息
+			.lookup({
+				from: 'wtdb-business-school-list',
+				localField: 'classInfo.school_id',
+				foreignField: 'school_id',
+				as: 'schoolInfo'
+			})
+			.unwind({
+				path: '$schoolInfo',
+				preserveNullAndEmptyArrays: true // 保留没有学校信息的班级
+			})
 			.project({
 				_id: 1,
 				role: 1,
@@ -35,7 +46,14 @@ exports.main = async (event, context) => {
 					code: 1,
 					section: 1,
 					grade: 1,
-					class: 1
+					class: 1,
+					school_id: 1,
+					teacherName: 1,
+					class_creator_teacher: 1
+				},
+				schoolInfo: {
+					school_id: 1,
+					name: 1
 				}
 			})
 			.end()
