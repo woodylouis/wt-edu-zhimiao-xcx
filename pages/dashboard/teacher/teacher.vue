@@ -34,7 +34,7 @@
           <image class="switch-icon" :src="switchIconUrl" mode="aspectFit" />
         </view>
       </view>
-        </u-sticky>
+    </u-sticky>
     
     <!-- 搜索栏 -->
     <view class="search-bar">
@@ -53,7 +53,30 @@
       </view>
     </view>
     
+    <!-- 学生总数和下拉提示 -->
+    <view class="list-header">
+      <view class="student-count">
+        <text class="count-label">共</text>
+        <text class="count-num">{{ totalStudents }}</text>
+        <text class="count-label">名学生</text>
+      </view>
+      <view class="pull-hint" v-if="!noMoreData && studentList.length > 0">
+        <text>↓ 下拉加载更多</text>
+      </view>
+    </view>
+    
     <view class="student-list">
+      <!-- 空状态：显眼的创建学生入口 -->
+      <view v-if="!loading && filteredStudentList.length === 0" class="empty-state">
+        <view class="empty-icon">👶</view>
+        <text class="empty-title">还没有学生哦~</text>
+        <text class="empty-desc">点击下方按钮添加第一个学生</text>
+        <button class="create-student-btn" @click="handleHelp">
+          <text class="btn-icon">➕</text>
+          <text>创建学生</text>
+        </button>
+      </view>
+      
       <view v-if="loading" class="u-demo-block">
         <view class="u-demo-block__content">
           <u-skeleton
@@ -73,13 +96,17 @@
           ></u-skeleton>
         </view>
       </view>
-            <StudentList
-        v-if="!loading"
+      <StudentList
+        v-if="!loading && filteredStudentList.length > 0"
         :studentList="filteredStudentList"
         @handleStudentClick="handleStudentClick"
         @handleAssessClick="handleAssessClick"
       />
-      <text class="help-link" @click="handleHelp">找不到？点击创建</text>
+      
+      <!-- 底部创建学生入口 -->
+      <view v-if="!loading && filteredStudentList.length > 0" class="bottom-create">
+        <text class="help-link" @click="handleHelp">找不到？点击创建新学生</text>
+      </view>
     </view>
 
     <view v-if="loadingMore">
@@ -97,6 +124,14 @@
       :padding="10"
       @childClick="btnConfig.childClick"
     />
+    
+    <!-- 评估列表弹窗 -->
+    <AssessModal 
+      :visible="showAssessModal" 
+      :student="selectedStudent"
+      @close="showAssessModal = false"
+      @confirm="onAssessConfirm"
+    />
   </view>
 </template>
 
@@ -107,7 +142,8 @@
   import { CURRENT_STUDENT } from "@/lib/types/local_storage.js";
 
   import QcSuspendBtn from "@/components/qc-suspendBtn/qc-suspendBtn.vue";
-  import StudentList from "./components/student-list";
+  import StudentList from "./components/student-list.vue";
+  import AssessModal from "./components/assess-modal.vue";
   import btnConfig from "@/common/suspen-btn/config.js";
 
   const navCustomStyle =
@@ -118,36 +154,35 @@
   const switchIconUrl = "../../../static/general/switch.png";
   const page = ref(1);
   const pageSize = ref(30);
-  const loading = ref(true); // 新增加载状态
-  const loadingMore = ref(false); // 新增加载更多状态
-  const noMoreData = ref(false); // 新增无更多数据标志
+  const loading = ref(true);
+  const loadingMore = ref(false);
+  const noMoreData = ref(false);
+  const totalStudents = ref(0); // 学生总数
 
-    const studentList = ref([]);
-    const searchKeyword = ref('');
+  const studentList = ref([]);
+  const searchKeyword = ref('');
+  
+  // 评估弹窗相关
+  const showAssessModal = ref(false);
+  const selectedStudent = ref({});
     
-    // 计算属性：过滤后的学生列表
-    const filteredStudentList = computed(() => {
-      if (!searchKeyword.value.trim()) {
-        return studentList.value;
-      }
-      const keyword = searchKeyword.value.trim().toLowerCase();
-      return studentList.value.filter(student => 
-        student.name && student.name.toLowerCase().includes(keyword)
-      );
-    });
+  // 计算属性：过滤后的学生列表
+  const filteredStudentList = computed(() => {
+    if (!searchKeyword.value.trim()) {
+      return studentList.value;
+    }
+    const keyword = searchKeyword.value.trim().toLowerCase();
+    return studentList.value.filter(student => 
+      student.name && student.name.toLowerCase().includes(keyword)
+    );
+  });
     
-    // 搜索相关方法
-    const onSearchInput = () => {
-      // 实时搜索，无需额外处理
-    };
-    
-    const onSearchConfirm = () => {
-      // 确认搜索
-    };
-    
-    const clearSearch = () => {
-      searchKeyword.value = '';
-    };
+  // 搜索相关方法
+  const onSearchInput = () => {};
+  const onSearchConfirm = () => {};
+  const clearSearch = () => {
+    searchKeyword.value = '';
+  };
   // 新增用户信息获取
   const userInfo = ref(uni.getStorageSync("uni-id-pages-userInfo") || {});
   const currentClass = ref(uni.getStorageSync("currentClass") || {});
@@ -229,16 +264,16 @@
     }
   };
   
-    // 开始评估入口
+      // 开始评估入口 - 显示评估列表弹窗
   const handleAssessClick = (student) => {
     console.log("开始评估 - 学生:", student);
-    uni.setStorageSync(CURRENT_STUDENT, {
-      ...student,
-    });
-    // 跳转到评估列表页面
-    uni.navigateTo({
-      url: `/pages/assessment/list`,
-    });
+    selectedStudent.value = student;
+    showAssessModal.value = true;
+  };
+  
+  // 评估确认回调
+  const onAssessConfirm = (data) => {
+    console.log("评估确认:", data);
   };
 
   const onClickInvite = () => {
@@ -291,7 +326,7 @@
       });
   };
 
-  const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
+    const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
     try {
       // 第一页显示骨架屏，加载更多显示 loading
       loading.value = pageNum === 1;
@@ -312,6 +347,8 @@
         } else {
           studentList.value = [...studentList.value, ...res.result.data.list];
         }
+        // 更新学生总数
+        totalStudents.value = res.result.data.total || studentList.value.length;
         noMoreData.value = res.result.data.list.length < pageSizeNum;
       }
     } catch (e) {
@@ -607,6 +644,109 @@
       }
     }
     
+    // 列表头部：学生总数和下拉提示
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8rpx 40rpx 16rpx;
+      
+      .student-count {
+        display: flex;
+        align-items: center;
+        
+        .count-label {
+          font-size: 26rpx;
+          color: #888;
+        }
+        
+        .count-num {
+          font-size: 32rpx;
+          font-weight: 700;
+          color: #66BB6A;
+          margin: 0 6rpx;
+        }
+      }
+      
+      .pull-hint {
+        font-size: 22rpx;
+        color: #aaa;
+        display: flex;
+        align-items: center;
+        animation: bounce 1.5s infinite;
+        
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(6rpx); }
+        }
+      }
+    }
+    
+    // 空状态样式
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 100rpx 40rpx;
+      
+      .empty-icon {
+        font-size: 120rpx;
+        margin-bottom: 24rpx;
+      }
+      
+      .empty-title {
+        font-size: 34rpx;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 12rpx;
+      }
+      
+      .empty-desc {
+        font-size: 26rpx;
+        color: #888;
+        margin-bottom: 40rpx;
+      }
+      
+      .create-student-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12rpx;
+        width: 360rpx;
+        height: 88rpx;
+        background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%);
+        border-radius: 44rpx;
+        color: #fff;
+        font-size: 32rpx;
+        font-weight: 600;
+        box-shadow: 0 8rpx 24rpx rgba(102, 187, 106, 0.35);
+        border: none;
+        margin: 0;
+        padding: 0;
+        
+        &::after {
+          border: none;
+        }
+        
+        .btn-icon {
+          font-size: 28rpx;
+        }
+      }
+    }
+    
+    // 底部创建入口
+    .bottom-create {
+      padding: 32rpx 0 48rpx;
+      text-align: center;
+      
+      .help-link {
+        font-size: 28rpx;
+        color: #888;
+        text-decoration: underline;
+      }
+    }
+    
     // 搜索栏样式
     .search-bar {
       padding: 16rpx 32rpx;
@@ -647,18 +787,7 @@
     }
 
     .student-list {
-      // margin-top: 40rpx;
       padding: 5rpx 40rpx;
-
-      .help-link {
-        color: rgba(111, 115, 116, 1);
-        font-size: 28rpx;
-        text-decoration: underline;
-        text-align: center;
-        margin-top: 32rpx;
-        display: block;
-        width: 100%;
-      }
     }
 
     .assessment-option {
