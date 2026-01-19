@@ -267,7 +267,7 @@ onUnload(() => {
 })
 
 const handleNavBack = () => {
-    uni.redirectTo({ url: '/pages/assessment/list' })
+    uni.redirectTo({ url: '/pages/teacher/teacher' })
     uni.removeStorageSync(ASSESS_STUDENT)
     uni.removeStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS)
 }
