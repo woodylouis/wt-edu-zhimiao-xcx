@@ -61,16 +61,31 @@ exports.main = async (event, context) => {
 
 		// 5. 返回全部数据
 		const total = childrenWithStats.length;
-		const result = childrenWithStats.map(child => ({
-			_id: child._id,
-			name: child.name,
-			avatar: child.avatar,
-			gender: child.gender,
-			birthday: child.birthday,
-			class_id: child.class_id,
-			lastAssessmentDate: child.latestTime ? formatDate(child.latestTime) : '暂无评估记录',
-			assessmentNumber: `共评估${child.reportCount}次`
-		}));
+		const result = childrenWithStats.map(child => {
+			// 计算年龄
+			const birthDate = new Date(child.birthdate);
+			const today = new Date();
+			let years = today.getFullYear() - birthDate.getFullYear();
+			let months = today.getMonth() - birthDate.getMonth();
+			if (today.getDate() < birthDate.getDate()) months--;
+			if (months < 0) {
+				years--;
+				months += 12;
+			}
+
+			return {
+				_id: child._id,
+				name: child.name,
+				avatar: child.avatar,
+				gender: child.gender,
+				birthdate: child.birthdate,
+				age: `${years}岁${months}个月`,
+				ageInt: years,
+				class_id: child.class_id,
+				lastAssessmentDate: child.latestTime ? formatDate(child.latestTime) : '暂无评估记录',
+				assessmentNumber: `共评估${child.reportCount}次`
+			};
+		});
 
 		return {
 			code: 0,

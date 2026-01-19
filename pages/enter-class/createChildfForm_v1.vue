@@ -261,12 +261,29 @@
           mask: true,
         });
 
+        // 1. 计算并添加年龄相关信息
+        const birthDate = new Date(this.formData.birthdate);
+        const today = new Date();
+        let years = today.getFullYear() - birthDate.getFullYear();
+        let months = today.getMonth() - birthDate.getMonth();
+        if (today.getDate() < birthDate.getDate()) months--;
+        if (months < 0) {
+          years--;
+          months += 12;
+        }
+        const ageStr = `${years}岁${months}个月`;
+        const ageInt = years;
+
         this.formData.class_id = currentClass._id;
+        this.formData.age = ageStr;
+        this.formData.ageInt = ageInt;
+
         if (this.formData.gender === "男孩") {
           this.formData.avatar = DEFAULT_AVATAR_BOY;
         } else {
           this.formData.avatar = DEFAULT_AVATAR_GIRL;
         }
+
         try {
           const childrenRes = await uniCloud.callFunction({
             name: "wtdb-business-children-edit",
@@ -285,18 +302,6 @@
             );
           }
 
-          const birthDate = new Date(this.formData.birthdate);
-          const today = new Date();
-          let years = today.getFullYear() - birthDate.getFullYear();
-          let months = today.getMonth() - birthDate.getMonth();
-          if (today.getDate() < birthDate.getDate()) months--;
-          if (months < 0) {
-            years--;
-            months += 12;
-          }
-          const age = `${years}岁${months}个月`;
-          const ageInt = years;
-
           if (this.assessmentId && this.assessmentTitle) {
             uni.showModal({
               title: "创建成功",
@@ -310,7 +315,7 @@
                       `&childId=${childrenRes.result.data.child_id}` +
                       `&avatar=${this.formData.avatar}` +
                       `&childName=${this.formData.name}` +
-                      `&childAge=${age}` +
+                      `&childAge=${ageStr}` +
                       `&ageInt=${ageInt}` +
                       `&assessmentId=${this.assessmentId}` +
                       `&assessmentTitle=${this.assessmentTitle}`,
