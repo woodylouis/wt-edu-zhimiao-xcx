@@ -62,19 +62,15 @@
       </view>
     </view>
 
-    <view style="right: 30rpx; bottom: 120rpx; z-index: 9999">
-      <view style="z-index: 9999">
-        <QcSuspendBtn
-          :mainBtn="btnConfig.suspen.mainBtn"
-          :childSize="btnConfig.suspen.childSize"
-          :childBtns="btnConfig.suspen.childBtns"
-          :openType="btnConfig.suspen.openType"
-          :padding="btnConfig.suspen.padding"
-          @childClick="btnConfig.childClick"
-        >
-        </QcSuspendBtn>
-      </view>
-    </view>
+    <!-- 悬浮球：可拖拽并自动吸附到屏幕左/右侧 -->
+    <QcSuspendBtn
+      :mainBtn="btnConfig.suspen.mainBtn"
+      :childSize="btnConfig.suspen.childSize"
+      :childBtns="btnConfig.suspen.childBtns"
+      :openType="btnConfig.suspen.openType"
+      :padding="10"
+      @childClick="btnConfig.childClick"
+    />
   </view>
 </template>
 
