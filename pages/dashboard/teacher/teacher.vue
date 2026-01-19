@@ -616,6 +616,14 @@
             }
           }
         }
+
+        .school {
+          color: #3d464a;
+          font-family: "PingFang SC";
+          font-size: 24rpx;
+          font-style: normal;
+          font-weight: 400;
+        }
       }
       
       .switch-btn {
