@@ -55,6 +55,7 @@
                     开始评估
                 </button>
             </view>
+        </view>
     </view>
 </template>
 
@@ -122,7 +123,6 @@ const ageInt = computed(() => {
 watch(() => props.visible, (val) => {
     if (val) {
         selectedAssessment.value = null
-        showConfirm.value = false
         loadAssessments()
     }
 })
