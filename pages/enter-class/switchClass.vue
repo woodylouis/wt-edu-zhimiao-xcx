@@ -178,7 +178,7 @@ export default {
     data() {
         return {
             // ========== 开发配置 ==========
-            USE_MOCK_LOCATION: true,
+            USE_MOCK_LOCATION: false,
             MOCK_LOCATION: {
                 latitude: 22.504876,
                 longitude: 113.408551
@@ -415,8 +415,9 @@ export default {
                 success: (res) => {
                     this.userLocation = { latitude: res.latitude, longitude: res.longitude }
                     this.calculateSchoolDistances()
+                    console.log('用户位置获取成功', res)
                 },
-                fail: () => { this.userLocation = null }
+                fail: () => { this.userLocation = null; console.log('用户位置获取失败') }
             })
         },
         
