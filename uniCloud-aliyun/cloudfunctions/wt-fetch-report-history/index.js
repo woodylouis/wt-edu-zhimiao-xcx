@@ -3,7 +3,7 @@ const db = uniCloud.database();
 const dbCmd = db.command;
 
 exports.main = async (event, context) => {
-	const { classId, page = 1, pageSize = 10 } = event;
+	const { classId } = event;
 
 	if (!classId) {
 		return {
@@ -59,13 +59,9 @@ exports.main = async (event, context) => {
 			return b.latestTime - a.latestTime;
 		});
 
-		// 5. 分页处理
+		// 5. 返回全部数据
 		const total = childrenWithStats.length;
-		const startIndex = (page - 1) * pageSize;
-		const paginatedData = childrenWithStats.slice(startIndex, startIndex + pageSize);
-
-		// 6. 构建最终结果（无需再次查询数据库）
-		const result = paginatedData.map(child => ({
+		const result = childrenWithStats.map(child => ({
 			_id: child._id,
 			name: child.name,
 			avatar: child.avatar,
@@ -80,9 +76,7 @@ exports.main = async (event, context) => {
 			code: 0,
 			data: {
 				list: result,
-				total,
-				page,
-				pageSize
+				total
 			},
 			message: '查询成功'
 		};

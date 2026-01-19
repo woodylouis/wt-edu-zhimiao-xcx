@@ -53,15 +53,12 @@
       </view>
     </view>
     
-    <!-- 学生总数和下拉提示 -->
+    <!-- 学生总数 -->
     <view class="list-header">
       <view class="student-count">
         <text class="count-label">共</text>
         <text class="count-num">{{ totalStudents }}</text>
         <text class="count-label">名学生</text>
-      </view>
-      <view class="pull-hint" v-if="!noMoreData && studentList.length > 0">
-        <text>↓ 下拉加载更多</text>
       </view>
     </view>
     
@@ -109,12 +106,6 @@
       </view>
     </view>
 
-    <view v-if="loadingMore">
-      <view class="u-page__loading-item">
-        <u-loading-icon mode="circle" timingFunction="linear"></u-loading-icon>
-      </view>
-    </view>
-
     <!-- 悬浮球：可拖拽并自动吸附到屏幕左/右侧 -->
     <QcSuspendBtn
       :mainBtn="btnConfig.suspen.mainBtn"
@@ -138,7 +129,7 @@
 <script setup>
   import customNav from "@/components/customNav";
   import { ref, onMounted, computed, reactive } from "vue";
-  import { onShow, onLoad, onUnload, onReachBottom } from "@dcloudio/uni-app";
+  import { onShow, onLoad, onUnload } from "@dcloudio/uni-app";
   import { CURRENT_STUDENT } from "@/lib/types/local_storage.js";
 
   import QcSuspendBtn from "@/components/qc-suspendBtn/qc-suspendBtn.vue";
@@ -152,11 +143,7 @@
     "https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png"
   );
   const switchIconUrl = "../../../static/general/switch.png";
-  const page = ref(1);
-  const pageSize = ref(30);
   const loading = ref(true);
-  const loadingMore = ref(false);
-  const noMoreData = ref(false);
   const totalStudents = ref(0); // 学生总数
   const lastLoadedClassId = ref(''); // 记录上次加载的班级ID
 
@@ -327,33 +314,21 @@
       });
   };
 
-    const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
+    const loadStudentsWithData = async (classId) => {
     try {
-      // 第一页显示骨架屏，加载更多显示 loading
-      loading.value = pageNum === 1;
-      loadingMore.value = pageNum > 1;
+      loading.value = true;
 
       const res = await uniCloud.callFunction({
         name: "wt-fetch-report-history",
         data: {
-          classId,
-          page: pageNum,
-          pageSize: pageSizeNum,
+          classId
         },
       });
 
       if (res.result.code === 0) {
-        if (pageNum === 1) {
-          studentList.value = res.result.data.list;
-        } else {
-          // 防止重复数据：使用 _id 去重
-          const existingIds = new Set(studentList.value.map(s => s._id));
-          const newItems = res.result.data.list.filter(item => !existingIds.has(item._id));
-          studentList.value = [...studentList.value, ...newItems];
-        }
+        studentList.value = res.result.data.list;
         // 更新学生总数
         totalStudents.value = res.result.data.total || studentList.value.length;
-        noMoreData.value = res.result.data.list.length < pageSizeNum;
         // 记录当前加载的班级ID
         lastLoadedClassId.value = classId;
       }
@@ -362,7 +337,6 @@
       uni.showToast({ title: "加载失败", icon: "none" });
     } finally {
       loading.value = false;
-      loadingMore.value = false;
     }
   };
 
@@ -400,34 +374,14 @@
     // 检查班级是否变化，如果变化则重新加载数据
     if (newClass._id && newClass._id !== lastLoadedClassId.value) {
       currentClass.value = newClass;
-      // 重置分页状态
-      page.value = 1;
-      noMoreData.value = false;
       studentList.value = [];
-      // 重新加载第一页数据
-      loadStudentsWithData(newClass._id, 1, pageSize.value);
+      // 重新加载全部数据
+      loadStudentsWithData(newClass._id);
     } else {
       currentClass.value = newClass;
     }
     
     checkLoginStatus();
-  });
-
-  onReachBottom(() => {
-    console.log("onReachBottom");
-    if (loadingMore.value) return;
-
-    if (noMoreData.value) {
-      uni.showToast({
-        title: "没有更多数据了~",
-        icon: "none",
-        duration: 1500,
-      });
-      return;
-    }
-
-    page.value += 1;
-    loadStudentsWithData(currentClass.value._id, page.value, pageSize.value);
   });
 
   onLoad(async (options) => {
@@ -448,7 +402,7 @@
     currentClass.value = uni.getStorageSync("currentClass") || {};
 
     // 加载学生数据
-    loadStudentsWithData(currentClass.value._id, page.value, pageSize.value);
+    loadStudentsWithData(currentClass.value._id);
   });
 
   onUnload(() => {
