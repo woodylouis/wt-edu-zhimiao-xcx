@@ -158,6 +158,7 @@
   const loadingMore = ref(false);
   const noMoreData = ref(false);
   const totalStudents = ref(0); // 学生总数
+  const lastLoadedClassId = ref(''); // 记录上次加载的班级ID
 
   const studentList = ref([]);
   const searchKeyword = ref('');
@@ -345,11 +346,16 @@
         if (pageNum === 1) {
           studentList.value = res.result.data.list;
         } else {
-          studentList.value = [...studentList.value, ...res.result.data.list];
+          // 防止重复数据：使用 _id 去重
+          const existingIds = new Set(studentList.value.map(s => s._id));
+          const newItems = res.result.data.list.filter(item => !existingIds.has(item._id));
+          studentList.value = [...studentList.value, ...newItems];
         }
         // 更新学生总数
         totalStudents.value = res.result.data.total || studentList.value.length;
         noMoreData.value = res.result.data.list.length < pageSizeNum;
+        // 记录当前加载的班级ID
+        lastLoadedClassId.value = classId;
       }
     } catch (e) {
       console.error("加载失败:", e);
@@ -389,7 +395,21 @@
   onShow(() => {
     // 更新用户信息
     userInfo.value = uni.getStorageSync("uni-id-pages-userInfo") || {};
-    currentClass.value = uni.getStorageSync("currentClass") || {};
+    const newClass = uni.getStorageSync("currentClass") || {};
+    
+    // 检查班级是否变化，如果变化则重新加载数据
+    if (newClass._id && newClass._id !== lastLoadedClassId.value) {
+      currentClass.value = newClass;
+      // 重置分页状态
+      page.value = 1;
+      noMoreData.value = false;
+      studentList.value = [];
+      // 重新加载第一页数据
+      loadStudentsWithData(newClass._id, 1, pageSize.value);
+    } else {
+      currentClass.value = newClass;
+    }
+    
     checkLoginStatus();
   });
 

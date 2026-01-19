@@ -13,95 +13,74 @@ exports.main = async (event, context) => {
 	}
 
 	try {
-		// 1. 先查询有评估报告的儿童ID（按最新评估时间排序）
-		const reportRes = await db.collection('wtdb-business-assess-report')
-			.where({
-				classId: classId
-			})
-			.orderBy('completionTime', 'desc')
-			.field({
-				childId: true,
-				completionTime: true
-			})
-			.get();
+		// 使用 Promise.all 并行查询，减少等待时间
+		const [childrenRes, statsRes] = await Promise.all([
+			// 1. 查询班级下所有儿童
+			db.collection('wtdb-business-children')
+				.where({ class_id: classId })
+				.get(),
 
-		// 2. 获取去重后的儿童ID列表（已按最新评估时间排序）
-		const childIdMap = new Map();
-		reportRes.data.forEach(report => {
-			if (!childIdMap.has(report.childId)) {
-				childIdMap.set(report.childId, report.completionTime);
-			}
-		});
-		const sortedChildIds = Array.from(childIdMap.keys());
+			// 2. 从统计缓存表查询（快速）
+			db.collection('wtdb-business-children-stats')
+				.where({ classId: classId })
+				.get()
+		]);
 
-		// 3. 查询所有儿童信息（包括无报告的）
-		const allChildrenRes = await db.collection('wtdb-business-children')
-			.where({
-				class_id: classId
-			})
-			.get();
-
-		if (!allChildrenRes.data || allChildrenRes.data.length === 0) {
+		if (!childrenRes.data || childrenRes.data.length === 0) {
 			return {
 				code: 404,
 				message: '该班级下没有儿童'
 			};
 		}
 
-		// 4. 合并数据并排序
-		const childrenWithReports = allChildrenRes.data.map(child => {
-			const hasReports = sortedChildIds.includes(child._id);
-			const latestReportTime = hasReports ? childIdMap.get(child._id) : 0;
+		// 3. 构建统计数据 Map（O(1) 查找）
+		const statsMap = new Map();
+		statsRes.data.forEach(item => {
+			statsMap.set(item.childId, {
+				reportCount: item.reportCount || 0,
+				latestTime: item.latestReportTime || 0
+			});
+		});
 
+		// 4. 合并数据并排序
+		const childrenWithStats = childrenRes.data.map(child => {
+			const stats = statsMap.get(child._id);
 			return {
 				...child,
-				hasReports,
-				latestReportTime
+				hasReports: !!stats && stats.reportCount > 0,
+				reportCount: stats?.reportCount || 0,
+				latestTime: stats?.latestTime || 0
 			};
 		});
 
-		// 排序：有报告的在前，按最新评估时间降序；无报告的在后
-		childrenWithReports.sort((a, b) => {
-			if (a.hasReports && !b.hasReports) return -1;
-			if (!a.hasReports && b.hasReports) return 1;
-			if (!a.hasReports && !b.hasReports) return 0;
-			return b.latestReportTime - a.latestReportTime;
+		// 排序：有报告的在前（按最新评估时间降序），无报告的在后
+		childrenWithStats.sort((a, b) => {
+			if (a.hasReports !== b.hasReports) return b.hasReports - a.hasReports;
+			return b.latestTime - a.latestTime;
 		});
 
 		// 5. 分页处理
+		const total = childrenWithStats.length;
 		const startIndex = (page - 1) * pageSize;
-		const paginatedData = childrenWithReports.slice(startIndex, startIndex + pageSize);
+		const paginatedData = childrenWithStats.slice(startIndex, startIndex + pageSize);
 
-		// 6. 获取分页儿童的详细报告数据
-		const pageChildIds = paginatedData.map(child => child._id);
-		const pageReportsRes = await db.collection('wtdb-business-assess-report')
-			.where({
-				childId: dbCmd.in(pageChildIds)
-			})
-			.orderBy('completionTime', 'desc')
-			.get();
-
-		// 7. 构建最终结果
-		const result = paginatedData.map(child => {
-			const reports = pageReportsRes.data.filter(report => report.childId === child._id);
-
-			return {
-				...child,
-
-				lastAssessmentDate: reports.length > 0
-					? formatDate(reports[0].completionTime)
-					: '暂无评估记录',
-				assessmentNumber: `共评估${reports.length}次`,
-				hasReports: undefined,
-				latestReportTime: undefined
-			};
-		});
+		// 6. 构建最终结果（无需再次查询数据库）
+		const result = paginatedData.map(child => ({
+			_id: child._id,
+			name: child.name,
+			avatar: child.avatar,
+			gender: child.gender,
+			birthday: child.birthday,
+			class_id: child.class_id,
+			lastAssessmentDate: child.latestTime ? formatDate(child.latestTime) : '暂无评估记录',
+			assessmentNumber: `共评估${child.reportCount}次`
+		}));
 
 		return {
 			code: 0,
 			data: {
 				list: result,
-				total: allChildrenRes.data.length,
+				total,
 				page,
 				pageSize
 			},
@@ -116,8 +95,6 @@ exports.main = async (event, context) => {
 		};
 	}
 };
-
-// ... formatDate函数保持不变 ...
 
 // 辅助函数：格式化时间戳为日期字符串
 function formatDate(timestamp) {

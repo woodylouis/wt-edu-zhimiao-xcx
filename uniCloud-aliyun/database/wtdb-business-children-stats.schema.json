@@ -1,0 +1,37 @@
+{
+    "bsonType": "object",
+    "required": [
+        "childId",
+        "classId"
+    ],
+    "properties": {
+        "_id": {
+            "description": "记录ID"
+        },
+        "childId": {
+            "bsonType": "string",
+            "description": "儿童ID，与 wtdb-business-children 表关联"
+        },
+        "classId": {
+            "bsonType": "string",
+            "description": "班级ID，冗余字段用于快速查询"
+        },
+        "reportCount": {
+            "bsonType": "int",
+            "description": "评估报告总数",
+            "defaultValue": 0
+        },
+        "latestReportTime": {
+            "bsonType": "timestamp",
+            "description": "最新报告完成时间"
+        },
+        "latestReportId": {
+            "bsonType": "string",
+            "description": "最新报告ID"
+        },
+        "updateTime": {
+            "bsonType": "timestamp",
+            "description": "统计数据更新时间"
+        }
+    }
+}
