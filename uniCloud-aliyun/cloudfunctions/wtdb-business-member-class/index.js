@@ -53,7 +53,9 @@ exports.main = async (event, context) => {
 				},
 				schoolInfo: {
 					school_id: 1,
-					name: 1
+					name: 1,
+					latitude: 1,
+					longitude: 1
 				}
 			})
 			.end()

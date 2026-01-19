@@ -1,72 +1,135 @@
 <template>
     <view class="growth-assessment">
         <u-sticky>
-            <custom-nav :needBack="true" :xcxName="'切换'" :backHandler="handleNavBack" />
+            <custom-nav :needBack="true" :needBar="false" :xcxName="'切换'" :backHandler="handleNavBack" />
         </u-sticky>
         <view class="form-container">
-            <view class="form-description">请选择您要进入的班级：</view>
-            <view class="form-button">
-                <u-button style="margin-right:20rpx" size="large"
-                    :color="selectedRole === 'parent' ? '#6EDD8A' : '#FFFFFF'" shape="circle"
-                    @click="handleRoleChange('parent')">
-                    <span :style="buttonTextStyle.parent">我是家长</span>
-                </u-button>
-                <u-button size="large" shape="circle" :color="selectedRole === 'teacher' ? '#6EDD8A' : '#FFFFFF'"
-                    @click="handleRoleChange('teacher')">
-                    <span :style="buttonTextStyle.teacher">我是老师</span>
-                </u-button>
+            <view class="form-header">
+                <view class="form-title">选择班级</view>
+                <view class="form-description">请选择您要进入的班级</view>
+            </view>
+            
+            <!-- 角色切换 -->
+            <view class="role-tabs">
+                <view 
+                    class="role-tab" 
+                    :class="{ 'role-tab-active': selectedRole === 'parent' }"
+                    @click="handleRoleChange('parent')"
+                >
+                    <text class="role-icon">👨‍👩‍👧</text>
+                    <text class="role-text">我是家长</text>
+                </view>
+                <view 
+                    class="role-tab" 
+                    :class="{ 'role-tab-active': selectedRole === 'teacher' }"
+                    @click="handleRoleChange('teacher')"
+                >
+                    <text class="role-icon">👩‍🏫</text>
+                    <text class="role-text">我是老师</text>
+                </view>
             </view>
             
             <!-- 无数据状态 -->
             <view v-if="groupedClasses[selectedRole].length === 0" class="no-data">
-                <image src="/static/empty-state.png" class="empty-icon" mode="aspectFit" />
-                <text>暂无班级数据</text>
+                <view class="empty-illustration">🏫</view>
+                <text class="empty-text">暂无班级数据</text>
+                <text class="empty-hint">请先加入班级</text>
             </view>
             
-            <!-- 按学校分组展示 -->
+            <!-- 学校分组列表 -->
             <view v-else class="school-groups">
                 <view 
                     v-for="(school, schoolIndex) in groupedClasses[selectedRole]" 
                     :key="school.schoolId || schoolIndex"
                     class="school-group"
+                    :class="{ 
+                        'school-group-expanded': expandedSchoolId === school.schoolId,
+                        'school-group-nearest': schoolIndex === 0 && school.distance !== null
+                    }"
                 >
-                    <!-- 学校分组头部 -->
-                    <view class="school-header">
-                        <view class="school-icon">
-                            <text class="icon-text">校</text>
+                    <!-- 学校头部（可点击展开/收起） -->
+                    <view class="school-header" @click="toggleSchool(school.schoolId)">
+                        <view class="school-header-left">
+                            <view class="school-avatar" :class="getSchoolAvatarClass(schoolIndex)">
+                                <text class="school-emoji">{{ getSchoolEmoji(schoolIndex) }}</text>
+                            </view>
+                            <view class="school-info">
+                                <view class="school-name-row">
+                                    <text class="school-name">{{ school.schoolName }}</text>
+                                    <view v-if="schoolIndex === 0 && school.distance !== null" class="nearest-badge">
+                                        <text>最近</text>
+                                    </view>
+                                </view>
+                                <view class="school-meta">
+                                    <view class="meta-item">
+                                        <!-- <text class="meta-icon">🏫</text> -->
+                                        <text>{{ school.classes.length }}个班级</text>
+                                    </view>
+                                    <view v-if="school.distance !== null" class="meta-item" :class="getDistanceClass(school.distance)">
+                                        <text class="meta-icon">📍</text>
+                                        <text>{{ formatDistance(school.distance) }}</text>
+                                    </view>
+                                    <view v-if="school.distance !== null && school.distance <= 1500" class="in-range-tag">
+                                        <text>✅ 范围内</text>
+                                    </view>
+                                </view>
+                            </view>
                         </view>
-                        <text class="school-name">{{ school.schoolName }}</text>
-                        <text class="class-count">{{ school.classes.length }}个班级</text>
+                        <view class="school-header-right">
+                            <view class="expand-icon" :class="{ 'expand-icon-rotated': expandedSchoolId === school.schoolId }">
+                                <text>▼</text>
+                            </view>
+                        </view>
                     </view>
                     
-                    <!-- 班级列表 -->
-                    <view class="class-list">
+                    <!-- 班级列表（可展开/收起） -->
+                    <view class="class-list" v-if="expandedSchoolId === school.schoolId">
                         <view 
                             v-for="(item, classIndex) in school.classes" 
                             :key="item.classCode"
                             class="class-item"
                             :class="{ 'class-item-selected': isSelected(school.schoolId, classIndex) }"
-                            @click="handleChooseClass(school.schoolId, classIndex)"
+                            @click.stop="handleSelectClass(school.schoolId, classIndex)"
                         >
                             <view class="class-card">
-                                <view class="class-card-left">
-                                    <view class="class-avatar">
-                                        <text class="avatar-text">{{ item.name.charAt(0) }}</text>
-                                    </view>
+                                <view class="class-avatar" :style="{ background: getClassColor(classIndex) }">
+                                    <text class="avatar-text">{{ item.name.charAt(0) }}</text>
                                 </view>
-                                <view class="class-card-center">
+                                <view class="class-info">
                                     <text class="class-name">{{ item.name }}</text>
-                                    <text class="user-nickname">{{ item.nickname }}</text>
+                                    <text class="class-role">{{ item.nickname }}</text>
                                 </view>
-                                <view class="class-card-right">
-                                    <view v-if="isSelected(school.schoolId, classIndex)" class="check-icon">
-                                        <text class="check-text">✓</text>
+                                <view class="class-check">
+                                    <view v-if="isSelected(school.schoolId, classIndex)" class="check-circle">
+                                        <text class="check-icon">✓</text>
                                     </view>
+                                    <view v-else class="uncheck-circle"></view>
                                 </view>
                             </view>
                         </view>
                     </view>
                 </view>
+            </view>
+            
+            <!-- 底部占位 -->
+            <view style="height: 160rpx;"></view>
+        </view>
+        
+        <!-- 底部固定按钮 -->
+        <view class="bottom-action" v-if="selectedClass">
+            <view class="selected-info">
+                <view class="selected-class-row">
+                    <text class="selected-label">已选择：</text>
+                    <text class="selected-name">{{ selectedClass.name }}</text>
+                </view>
+                <view class="selected-school-row">
+                    <!-- <text class="school-tag">🏫</text> -->
+                    <text class="school-text">{{ selectedSchoolName }}</text>
+                </view>
+            </view>
+            <view class="enter-btn" @click="handleEnterClass">
+                <text class="enter-text">进入班级</text>
+                <text class="enter-arrow">→</text>
             </view>
         </view>
     </view>
@@ -78,26 +141,12 @@ export default {
         userInfo() {
             return store.userInfo
         },
-        buttonTextStyle() {
-            return {
-                parent: {
-                    color: this.selectedRole === 'parent' ? '#00214D' : '#6F7374',
-                    fontWeight: this.selectedRole === 'parent' ? 500 : 400
-                },
-                teacher: {
-                    color: this.selectedRole === 'teacher' ? '#00214D' : '#6F7374',
-                    fontWeight: this.selectedRole === 'teacher' ? 500 : 400
-                }
-            }
-        },
-        // 按学校分组的班级数据
         groupedClasses() {
             return {
                 parent: this.groupBySchool(this.classes.parent),
                 teacher: this.groupBySchool(this.classes.teacher)
             }
         },
-        // 添加计算属性判断默认角色
         hasClassData() {
             return {
                 parent: this.classes.parent.length > 0,
@@ -107,22 +156,50 @@ export default {
         defaultRole() {
             return this.hasClassData.parent ? 'parent' :
                 this.hasClassData.teacher ? 'teacher' : 'parent'
+        },
+        selectedClass() {
+            if (!this.selectedSchoolId) return null
+            const school = this.groupedClasses[this.selectedRole].find(s => s.schoolId === this.selectedSchoolId)
+            return school?.classes[this.selectedClassIndex] || null
+        },
+        // 获取选中班级所属学校名称
+        selectedSchoolName() {
+            if (!this.selectedSchoolId) return ''
+            const school = this.groupedClasses[this.selectedRole].find(s => s.schoolId === this.selectedSchoolId)
+            return school?.schoolName || '未分配学校'
         }
     },
     data() {
         return {
+            // ========== 开发配置 ==========
+            USE_MOCK_LOCATION: true,
+            MOCK_LOCATION: {
+                latitude: 22.504876,
+                longitude: 113.408551
+            },
+            // ========== 开发配置 END ==========
+            
             selectedRole: 'parent',
             selectedSchoolId: null,
             selectedClassIndex: 0,
+            expandedSchoolId: null,
             classes: {
                 parent: [],
                 teacher: []
             },
-            debounceTimer: null
+            userLocation: null,
+            schoolDistances: {},
+            classColors: [
+                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+            ]
         };
     },
     methods: {
-        // 按学校分组
         groupBySchool(classList) {
             const schoolMap = new Map()
             
@@ -134,18 +211,93 @@ export default {
                     schoolMap.set(schoolId, {
                         schoolId,
                         schoolName,
+                        latitude: item.schoolLatitude,
+                        longitude: item.schoolLongitude,
+                        hasLocation: !!(item.schoolLatitude && item.schoolLongitude),
+                        distance: this.schoolDistances[schoolId] ?? null,
                         classes: []
                     })
                 }
                 schoolMap.get(schoolId).classes.push(item)
             })
             
-            return Array.from(schoolMap.values())
+            const result = Array.from(schoolMap.values())
+            result.sort((a, b) => {
+                if (a.distance === null && b.distance === null) return 0
+                if (a.distance === null) return 1
+                if (b.distance === null) return -1
+                return a.distance - b.distance
+            })
+            
+            return result
         },
         
-        // 检查是否选中
+        toggleSchool(schoolId) {
+            this.expandedSchoolId = this.expandedSchoolId === schoolId ? null : schoolId
+        },
+        
+        handleSelectClass(schoolId, classIndex) {
+            this.selectedSchoolId = schoolId
+            this.selectedClassIndex = classIndex
+        },
+        
+        async handleEnterClass() {
+            if (!this.selectedClass) return
+            
+            // 二次确认弹窗
+            uni.showModal({
+                title: '确认进入',
+                content: `确定要进入「${this.selectedClass.name}」吗？`,
+                confirmText: '确定进入',
+                confirmColor: '#4CAF50',
+                success: async (res) => {
+                    if (res.confirm) {
+                        await this.doEnterClass()
+                    }
+                }
+            })
+        },
+        
+        // 执行进入班级
+        async doEnterClass() {
+            uni.showLoading({ title: '正在进入...' })
+            
+            try {
+                const { result } = await uniCloud.callFunction({
+                    name: 'wtdb-business-class-detail',
+                    data: { code: this.selectedClass.classCode }
+                })
+                
+                uni.hideLoading()
+                
+                if (result.code === 200) {
+                    uni.setStorageSync('currentClass', result.data)
+                    uni.redirectTo({
+                        url: `/pages/dashboard/teacher/teacher?userNickname=${this.selectedClass.nickname}&role=${this.selectedClass.role}`
+                    })
+                }
+            } catch (e) {
+                uni.hideLoading()
+                uni.showToast({ title: '进入失败', icon: 'none' })
+            }
+        },
+        
         isSelected(schoolId, classIndex) {
             return this.selectedSchoolId === schoolId && this.selectedClassIndex === classIndex
+        },
+        
+        getClassColor(index) {
+            return this.classColors[index % this.classColors.length]
+        },
+        
+        getSchoolAvatarClass(index) {
+            const classes = ['avatar-green', 'avatar-blue', 'avatar-purple', 'avatar-orange']
+            return classes[index % classes.length]
+        },
+        
+        getSchoolEmoji(index) {
+            const emojis = ['🏫', '🏢', '🏰', '🌟']
+            return emojis[index % emojis.length]
         },
         
         async loadClasses() {
@@ -158,9 +310,6 @@ export default {
                 })
 
                 if (res.result.code === 200) {
-                    console.log('班级数据加载成功', res.result.data)
-                    
-                    // 按角色分类班级数据，并包含学校信息
                     this.classes.parent = res.result.data
                         .filter(item => item.role === 'parent')
                         .map(item => ({
@@ -169,7 +318,9 @@ export default {
                             nickname: item.nickname || '家长',
                             role: item.role,
                             schoolId: item.classInfo.school_id || item.schoolInfo?.school_id || 'unknown',
-                            schoolName: item.schoolInfo?.name || '未分配学校'
+                            schoolName: item.schoolInfo?.name || '未分配学校',
+                            schoolLatitude: item.schoolInfo?.latitude,
+                            schoolLongitude: item.schoolInfo?.longitude
                         }))
 
                     this.classes.teacher = res.result.data
@@ -180,137 +331,209 @@ export default {
                             nickname: item.classInfo.teacherName || item.classInfo.class_creator_teacher || '老师',
                             role: item.role,
                             schoolId: item.classInfo.school_id || item.schoolInfo?.school_id || 'unknown',
-                            schoolName: item.schoolInfo?.name || '未分配学校'
+                            schoolName: item.schoolInfo?.name || '未分配学校',
+                            schoolLatitude: item.schoolInfo?.latitude,
+                            schoolLongitude: item.schoolInfo?.longitude
                         }))
                     
-                    // 设置默认角色
                     this.selectedRole = this.defaultRole
+                    this.calculateSchoolDistances()
                     
-                    // 恢复之前选中的班级
+                    this.$nextTick(() => {
+                        const groups = this.groupedClasses[this.selectedRole]
+                        if (groups.length > 0) {
+                            this.expandedSchoolId = groups[0].schoolId
+                            this.selectedSchoolId = groups[0].schoolId
+                            this.selectedClassIndex = 0
+                        }
+                    })
+                    
                     const currentClass = uni.getStorageSync('currentClass')
                     if (currentClass?.code) {
                         this.restoreSelection(currentClass.code)
-                    } else {
-                        // 默认选中第一个
-                        this.selectFirstClass()
                     }
                 }
             } catch (error) {
                 console.error('班级数据加载失败', error)
-                uni.showToast({
-                    title: '班级数据加载失败',
-                    icon: 'none'
-                })
+                uni.showToast({ title: '加载失败', icon: 'none' })
             }
         },
         
-        // 恢复之前的选中状态
         restoreSelection(classCode) {
-            // 遍历家长班级
             for (const school of this.groupedClasses.parent) {
                 const classIndex = school.classes.findIndex(c => c.classCode === classCode)
                 if (classIndex > -1) {
                     this.selectedRole = 'parent'
                     this.selectedSchoolId = school.schoolId
                     this.selectedClassIndex = classIndex
+                    this.expandedSchoolId = school.schoolId
                     return
                 }
             }
-            // 遍历老师班级
             for (const school of this.groupedClasses.teacher) {
                 const classIndex = school.classes.findIndex(c => c.classCode === classCode)
                 if (classIndex > -1) {
                     this.selectedRole = 'teacher'
                     this.selectedSchoolId = school.schoolId
                     this.selectedClassIndex = classIndex
+                    this.expandedSchoolId = school.schoolId
                     return
                 }
-            }
-            // 未找到，选中第一个
-            this.selectFirstClass()
-        },
-        
-        // 默认选中第一个班级
-        selectFirstClass() {
-            const groups = this.groupedClasses[this.selectedRole]
-            if (groups.length > 0 && groups[0].classes.length > 0) {
-                this.selectedSchoolId = groups[0].schoolId
-                this.selectedClassIndex = 0
             }
         },
         
         handleRoleChange(role) {
             this.selectedRole = role
-            this.selectFirstClass()
+            this.$nextTick(() => {
+                const groups = this.groupedClasses[role]
+                if (groups.length > 0) {
+                    this.expandedSchoolId = groups[0].schoolId
+                    this.selectedSchoolId = groups[0].schoolId
+                    this.selectedClassIndex = 0
+                } else {
+                    this.expandedSchoolId = null
+                    this.selectedSchoolId = null
+                }
+            })
         },
         
-        async handleChooseClass(schoolId, classIndex) {
-            if (this.debounceTimer) {
-                clearTimeout(this.debounceTimer)
+        getUserLocation() {
+            if (this.USE_MOCK_LOCATION) {
+                this.userLocation = { ...this.MOCK_LOCATION }
+                this.calculateSchoolDistances()
+                return
             }
-
-            this.debounceTimer = setTimeout(async () => {
-                this.selectedSchoolId = schoolId
-                this.selectedClassIndex = classIndex
-                
-                // 查找选中的班级
-                const school = this.groupedClasses[this.selectedRole].find(s => s.schoolId === schoolId)
-                const selectedClass = school?.classes[classIndex]
-                
-                if (!selectedClass) return
-                
-                const { result } = await uniCloud.callFunction({
-                    name: 'wtdb-business-class-detail',
-                    data: { code: selectedClass.classCode }
-                })
-                
-                uni.showModal({
-                    title: '切换班级',
-                    content: `确定切换到「${selectedClass.name}」吗？`,
-                    showCancel: true,
-                    confirmColor: '#6EDD8A',
-                    success: ({ confirm }) => {
-                        if (confirm) {
-                            uni.setStorageSync('currentClass', result.data)
-                            uni.redirectTo({
-                                url: `/pages/dashboard/teacher/teacher?userNickname=${selectedClass.nickname}&role=${selectedClass.role}`
-                            })
-                        }
-                    }
-                })
-            }, 300)
+            
+            uni.getFuzzyLocation({
+                type: 'wgs84',
+                success: (res) => {
+                    this.userLocation = { latitude: res.latitude, longitude: res.longitude }
+                    this.calculateSchoolDistances()
+                },
+                fail: () => { this.userLocation = null }
+            })
+        },
+        
+        calculateSchoolDistances() {
+            if (!this.userLocation) return
+            
+            const allClasses = [...this.classes.parent, ...this.classes.teacher]
+            const schoolSet = new Set()
+            
+            allClasses.forEach(item => {
+                if (item.schoolId && item.schoolLatitude && item.schoolLongitude && !schoolSet.has(item.schoolId)) {
+                    schoolSet.add(item.schoolId)
+                    const distance = this.calculateDistance(
+                        this.userLocation.latitude,
+                        this.userLocation.longitude,
+                        item.schoolLatitude,
+                        item.schoolLongitude
+                    )
+                    this.$set(this.schoolDistances, item.schoolId, distance)
+                }
+            })
+        },
+        
+        calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000
+            const dLat = this.toRad(lat2 - lat1)
+            const dLon = this.toRad(lon2 - lon1)
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2)
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+            return Math.round(R * c)
+        },
+        
+        toRad(deg) { return deg * (Math.PI / 180) },
+        
+        formatDistance(distance) {
+            if (distance === null || distance === undefined) return ''
+            return distance < 1000 ? `${distance}m` : `${(distance / 1000).toFixed(1)}km`
+        },
+        
+        getDistanceClass(distance) {
+            if (distance === null) return ''
+            if (distance <= 500) return 'distance-near'
+            if (distance <= 1500) return 'distance-medium'
+            return 'distance-far'
         }
     },
 
     onLoad() {
+        this.getUserLocation()
         this.loadClasses()
     }
 }
 </script>
 
 <style lang="scss" scoped>
+.growth-assessment {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #e8f5e9 0%, #f5f5f5 30%);
+}
+
 .form-container {
-    background-color: #f8f9fa;
-    border-radius: 48rpx 48rpx 0 0;
-    min-height: 80vh;
-    padding: 32rpx 32rpx;
-    display: flex;
-    flex-direction: column;
+    padding: 32rpx;
+    padding-bottom: 180rpx;
 }
 
-.form-description {
-    color: #3D464A;
-    font-size: 28rpx;
-    line-height: 1.4;
-    margin-bottom: 24rpx;
-    font-weight: 500;
+.form-header {
+    margin-bottom: 32rpx;
+    
+    .form-title {
+        font-size: 44rpx;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 8rpx;
+    }
+    
+    .form-description {
+        font-size: 28rpx;
+        color: #666;
+    }
 }
 
-.form-button {
+// 角色切换Tab
+.role-tabs {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 24rpx;
-    gap: 20rpx;
+    gap: 24rpx;
+    margin-bottom: 32rpx;
+    
+    .role-tab {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12rpx;
+        padding: 28rpx 24rpx;
+        background: #fff;
+        border-radius: 24rpx;
+        border: 3rpx solid transparent;
+        box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        
+        .role-icon {
+            font-size: 36rpx;
+        }
+        
+        .role-text {
+            font-size: 28rpx;
+            font-weight: 500;
+            color: #666;
+        }
+        
+        &-active {
+            border-color: #4CAF50;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            box-shadow: 0 4rpx 20rpx rgba(76, 175, 80, 0.2);
+            
+            .role-text {
+                color: #2e7d32;
+                font-weight: 600;
+            }
+        }
+    }
 }
 
 // 无数据状态
@@ -320,100 +543,210 @@ export default {
     align-items: center;
     justify-content: center;
     padding: 120rpx 40rpx;
-    color: #9CA3AF;
-    font-size: 28rpx;
-    font-family: "PingFang SC";
     
-    .empty-icon {
-        width: 200rpx;
-        height: 200rpx;
+    .empty-illustration {
+        font-size: 120rpx;
         margin-bottom: 24rpx;
-        opacity: 0.6;
+    }
+    
+    .empty-text {
+        font-size: 32rpx;
+        color: #666;
+        margin-bottom: 12rpx;
+    }
+    
+    .empty-hint {
+        font-size: 26rpx;
+        color: #999;
     }
 }
 
-// 学校分组容器
+// 学校分组
 .school-groups {
     display: flex;
     flex-direction: column;
-    gap: 32rpx;
+    gap: 24rpx;
 }
 
-// 学校分组
 .school-group {
-    background: #FFFFFF;
-    border-radius: 24rpx;
+    background: #fff;
+    border-radius: 28rpx;
     overflow: hidden;
-    box-shadow: 0 4rpx 16rpx rgba(0, 33, 77, 0.06);
+    box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    
+    &-expanded {
+        box-shadow: 0 12rpx 40rpx rgba(76, 175, 80, 0.15);
+    }
+    
+    &-nearest {
+        border: 3rpx solid #4CAF50;
+    }
 }
 
 // 学校头部
 .school-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 28rpx 32rpx;
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    border-bottom: 1rpx solid rgba(110, 221, 138, 0.2);
+    background: #fff;
     
-    .school-icon {
-        width: 56rpx;
-        height: 56rpx;
-        background: linear-gradient(135deg, #6EDD8A 0%, #4ade80 100%);
-        border-radius: 12rpx;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 20rpx;
-        box-shadow: 0 4rpx 12rpx rgba(110, 221, 138, 0.3);
-        
-        .icon-text {
-            color: #FFFFFF;
-            font-size: 28rpx;
-            font-weight: 600;
-        }
+    &:active {
+        background: #f9f9f9;
+    }
+}
+
+.school-header-left {
+    display: flex;
+    align-items: flex-start;
+    flex: 1;
+    min-width: 0;
+}
+
+.school-avatar {
+    width: 80rpx;
+    height: 80rpx;
+    border-radius: 20rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 24rpx;
+    margin-top: 4rpx;
+    flex-shrink: 0;
+    
+    .school-emoji {
+        font-size: 40rpx;
     }
     
-    .school-name {
-        flex: 1;
-        font-size: 32rpx;
-        font-weight: 600;
-        color: #1f2937;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    &.avatar-green {
+        background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
+    }
+    &.avatar-blue {
+        background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
+    }
+    &.avatar-purple {
+        background: linear-gradient(135deg, #e1bee7 0%, #ce93d8 100%);
+    }
+    &.avatar-orange {
+        background: linear-gradient(135deg, #ffe0b2 0%, #ffcc80 100%);
+    }
+}
+
+.school-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.school-name-row {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    margin-bottom: 8rpx;
+}
+
+.school-name {
+    font-size: 30rpx;
+    font-weight: 600;
+    color: #1a1a1a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nearest-badge {
+    background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+    color: #fff;
+    font-size: 20rpx;
+    font-weight: 600;
+    padding: 4rpx 12rpx;
+    border-radius: 12rpx;
+}
+
+.school-meta {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    flex-wrap: wrap;
+    line-height: 1;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6rpx;
+    font-size: 24rpx;
+    color: #888;
+    height: 40rpx;
+    line-height: 40rpx;
+    
+    .meta-icon {
+        font-size: 22rpx;
+        line-height: 1;
     }
     
-    .class-count {
-        font-size: 24rpx;
-        color: #6B7280;
-        background: rgba(255, 255, 255, 0.8);
-        padding: 8rpx 16rpx;
-        border-radius: 20rpx;
+    &.distance-near { color: #2e7d32; }
+    &.distance-medium { color: #f57c00; }
+    &.distance-far { color: #c62828; }
+}
+
+.in-range-tag {
+    display: flex;
+    align-items: center;
+    font-size: 22rpx;
+    color: #2e7d32;
+    background: #e8f5e9;
+    padding: 0 12rpx;
+    height: 40rpx;
+    line-height: 40rpx;
+    border-radius: 12rpx;
+}
+
+.school-header-right {
+    margin-left: 16rpx;
+}
+
+.expand-icon {
+    width: 48rpx;
+    height: 48rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 24rpx;
+    transition: transform 0.3s ease;
+    
+    &-rotated {
+        transform: rotate(180deg);
     }
 }
 
 // 班级列表
 .class-list {
-    padding: 16rpx;
+    padding: 0 24rpx 24rpx;
     display: flex;
     flex-direction: column;
     gap: 16rpx;
+    animation: slideDown 0.3s ease;
 }
 
-// 班级卡片
-.class-item {
-    border-radius: 16rpx;
-    transition: all 0.3s ease;
-    
-    &:active {
-        transform: scale(0.98);
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10rpx);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-.class-item-selected {
-    .class-card {
-        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-        border-color: #6EDD8A;
+.class-item {
+    border-radius: 20rpx;
+    transition: all 0.2s ease;
+    
+    &:active {
+        transform: scale(0.98);
     }
 }
 
@@ -421,71 +754,165 @@ export default {
     display: flex;
     align-items: center;
     padding: 24rpx;
-    background: #FAFBFC;
-    border-radius: 16rpx;
-    border: 2rpx solid transparent;
-    transition: all 0.3s ease;
+    background: #f8f9fa;
+    border-radius: 20rpx;
+    border: 3rpx solid transparent;
+    transition: all 0.2s ease;
+}
+
+.class-item-selected .class-card {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-color: #4CAF50;
+}
+
+.class-avatar {
+    width: 88rpx;
+    height: 88rpx;
+    border-radius: 18rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20rpx;
+    flex-shrink: 0;
     
-    .class-card-left {
-        margin-right: 20rpx;
+    .avatar-text {
+        font-size: 36rpx;
+        font-weight: 700;
+        color: #fff;
+    }
+}
+
+.class-info {
+    flex: 1;
+    min-width: 0;
+    
+    .class-name {
+        font-size: 30rpx;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 6rpx;
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     
-    .class-avatar {
-        width: 88rpx;
-        height: 88rpx;
-        background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%);
-        border-radius: 16rpx;
+    .class-role {
+        font-size: 24rpx;
+        color: #888;
+    }
+}
+
+.class-check {
+    margin-left: 16rpx;
+    
+    .check-circle {
+        width: 48rpx;
+        height: 48rpx;
+        background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         
-        .avatar-text {
-            font-size: 36rpx;
-            font-weight: 600;
-            color: #4F46E5;
-        }
-    }
-    
-    .class-card-center {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 8rpx;
-        overflow: hidden;
-        
-        .class-name {
-            font-size: 30rpx;
-            font-weight: 500;
-            color: #1f2937;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .user-nickname {
-            font-size: 24rpx;
-            color: #6B7280;
-        }
-    }
-    
-    .class-card-right {
-        margin-left: 16rpx;
-        
         .check-icon {
-            width: 48rpx;
-            height: 48rpx;
-            background: #6EDD8A;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            
-            .check-text {
-                color: #FFFFFF;
-                font-size: 28rpx;
-                font-weight: 600;
-            }
+            color: #fff;
+            font-size: 28rpx;
+            font-weight: 700;
         }
+    }
+    
+    .uncheck-circle {
+        width: 48rpx;
+        height: 48rpx;
+        border: 3rpx solid #ddd;
+        border-radius: 50%;
+        background: #fff;
+    }
+}
+
+// 底部固定按钮
+.bottom-action {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 24rpx 32rpx;
+    padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+    background: #fff;
+    box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 100;
+}
+
+.selected-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8rpx;
+    
+    .selected-class-row {
+        display: flex;
+        align-items: center;
+    }
+    
+    .selected-label {
+        font-size: 24rpx;
+        color: #888;
+    }
+    
+    .selected-name {
+        font-size: 30rpx;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-left: 8rpx;
+    }
+    
+    .selected-school-row {
+        display: flex;
+        align-items: center;
+        gap: 6rpx;
+    }
+    
+    .school-tag {
+        font-size: 22rpx;
+    }
+    
+    .school-text {
+        font-size: 24rpx;
+        color: #666;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.enter-btn {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    padding: 24rpx 48rpx;
+    background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+    border-radius: 48rpx;
+    box-shadow: 0 8rpx 24rpx rgba(76, 175, 80, 0.3);
+    
+    &:active {
+        transform: scale(0.96);
+        box-shadow: 0 4rpx 16rpx rgba(76, 175, 80, 0.3);
+    }
+    
+    .enter-text {
+        font-size: 30rpx;
+        font-weight: 600;
+        color: #fff;
+    }
+    
+    .enter-arrow {
+        font-size: 32rpx;
+        color: #fff;
     }
 }
 </style>
