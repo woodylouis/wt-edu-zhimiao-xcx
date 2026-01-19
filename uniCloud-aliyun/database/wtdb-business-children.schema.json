@@ -21,11 +21,6 @@
     },
     "gender": {
       "bsonType": "string",
-      "enum": [
-        "male",
-        "female",
-        "unknown"
-      ],
       "defaultValue": "unknown",
       "title": "性别"
     },
