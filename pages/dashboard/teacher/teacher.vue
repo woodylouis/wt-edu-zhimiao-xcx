@@ -222,24 +222,7 @@
 
   const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
     try {
-      // 检查是否有缓存数据
-      const cacheKey = `current_class_students`;
-      const cachedData = uni.getStorageSync(cacheKey);
-
-      // 检查缓存是否有效：存在缓存数据且缓存中的学生属于当前班级
-      const isCacheValid =
-        cachedData &&
-        cachedData.some(
-          (student) => student.class_id === currentClass.value._id
-        );
-
-      // 如果是第一页且缓存有效，则使用缓存
-      if (pageNum === 1 && isCacheValid) {
-        studentList.value = cachedData;
-        loading.value = false;
-        return;
-      }
-
+      // 第一页显示骨架屏，加载更多显示 loading
       loading.value = pageNum === 1;
       loadingMore.value = pageNum > 1;
 
@@ -255,35 +238,14 @@
       if (res.result.code === 0) {
         if (pageNum === 1) {
           studentList.value = res.result.data.list;
-          // 缓存第一页数据
-          // uni.setStorageSync(cacheKey, res.result.data.list);
         } else {
           studentList.value = [...studentList.value, ...res.result.data.list];
         }
-
         noMoreData.value = res.result.data.list.length < pageSizeNum;
-      }
-      const pagination = ref({ page: 1, pageSize: 10, total: 0 });
-      const res1 = await uniCloud.callFunction({
-        name: "wt-fetch-assessment-list",
-        data: {
-          page: pagination.value.page,
-          pageSize: pagination.value.pageSize,
-        },
-      });
-
-      if (res1.result.code === 0) {
-        // 更新缓存（包含时间戳）
-        const CACHE_KEY = "teacher_assessment_list";
-        uni.setStorageSync(CACHE_KEY, {
-          list: res1.result.data.list,
-          total: res1.result.data.total,
-          timestamp: Date.now(),
-        });
-        console.log("teacher_assessment_list:", uni.getStorageSync(CACHE_KEY));
       }
     } catch (e) {
       console.error("加载失败:", e);
+      uni.showToast({ title: "加载失败", icon: "none" });
     } finally {
       loading.value = false;
       loadingMore.value = false;
@@ -296,8 +258,28 @@
     uni.removeStorageSync(cacheKey);
   };
 
+  // 检查是否有班级
+  const checkIfAnyClass = async () => {
+    try {
+      const classRes = await uniCloud.callFunction({
+        name: "wtdb-business-class-list",
+      });
+
+      if (classRes.result.code == 200 && classRes.result.data.length == 0) {
+        uni.reLaunch({
+          url: "/pages/enter-class/index",
+        });
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error("班级查询失败:", e);
+      return true;
+    }
+  };
+
   onShow(() => {
-    // 新增用户信息更新逻辑
+    // 更新用户信息
     userInfo.value = uni.getStorageSync("uni-id-pages-userInfo") || {};
     currentClass.value = uni.getStorageSync("currentClass") || {};
     checkLoginStatus();
@@ -320,51 +302,29 @@
     loadStudentsWithData(currentClass.value._id, page.value, pageSize.value);
   });
 
-  const checkIfAnyClass = async () => {
-    try {
-      const classRes = await uniCloud.callFunction({
-        name: "wtdb-business-class-list",
-      });
+  onLoad(async (options) => {
+    // 检查是否有班级
+    const hasClass = await checkIfAnyClass();
+    if (!hasClass) return;
 
-      if (classRes.result.code == 200 && classRes.result.data.length == 0) {
-        uni.reLaunch({
-          url: "/pages/enter-class/index",
-        });
-        return false;
-      }
-    } catch (e) {
-      console.error("班级查询失败:", e);
-    }
-  };
-
-  onLoad((options) => {
-    console.log("onLoad options:", options);
-    if (!checkIfAnyClass()) {
-      return;
-    }
-    // 读取从switchClass页面传递的selectedClass参数
+    // 读取传递的参数
     if (options.userNickname) {
-      try {
-        // 给displayName
-        userNickname.value = options.userNickname;
-      } catch (e) {
-        console.error("解析selectedClass参数失败:", e);
-      }
+      userNickname.value = options.userNickname;
     }
     if (options.role) {
       role.value = options.role;
     }
 
-    // 保持原有的currentClass逻辑不变
+    // 获取用户和班级信息
     userInfo.value = uni.getStorageSync("uni-id-pages-userInfo") || {};
     currentClass.value = uni.getStorageSync("currentClass") || {};
 
+    // 加载学生数据
     loadStudentsWithData(currentClass.value._id, page.value, pageSize.value);
-    uni.$on("reachBottom", onReachBottom);
   });
 
   onUnload(() => {
-    uni.$off("reachBottom", onReachBottom);
+    // 页面卸载时的清理工作
   });
 
   const checkLoginStatus = () => {
