@@ -21,23 +21,64 @@
                 </view>
             </view>
         </u-sticky>
+        
+        <!-- 状态提示区域 -->
+        <view class="status-banner" :class="statusBannerClass">
+            <view class="status-icon">{{ statusIcon }}</view>
+            <view class="status-content">
+                <text class="status-title">{{ statusTitle }}</text>
+                <text class="status-desc">{{ statusDesc }}</text>
+            </view>
+        </view>
 
         <!-- 折叠模板和列表 -->
         <view class="collapse" v-for="(section, index) in assessmentSections" :key="index">
-            <u-collapse @change="handleCollapseChange" @close="closeCollapse" @open="openCollapse" :border=false
-                :value="activeCollapse">
-                <u-collapse-item :title="section.section" :name="section.name">
-                    <text>{{ section.desc }}</text>
-                    <view v-for="(ablls, idx) in section.abllsSections" :key="idx">
-                        <uni-list>
-                            <uni-list-item :title="ablls.sectionName" :rightText="`共${ablls.questionCount}项`"
-                                @click="handleOnClickSection(section.section_id, section.section, section.abllsSections.length, idx, ablls, section.abllsSections)"
-                                :clickable="true">
-                            </uni-list-item>
-                        </uni-list>
+            <view class="collapse-header" @click="toggleCollapse(section.name)">
+                <view class="collapse-title-area">
+                    <view class="title-row">
+                        <text class="collapse-title">{{ section.section }}</text>
+                        <view class="module-status" v-if="getModuleStatus(section.section_id)">
+                            <text class="status-tag" :class="getModuleStatusClass(section.section_id)">
+                                {{ getModuleStatusText(section.section_id) }}
+                            </text>
+                        </view>
                     </view>
-                </u-collapse-item>
-            </u-collapse>
+                    <!-- 正在做的子模块显示在模块名称下方 -->
+                    <view class="current-sub-row" v-if="getCurrentSubSectionName(section.section_id)">
+                        <text class="current-sub-label">正在评估:</text>
+                        <text class="current-sub-name">{{ getCurrentSubSectionName(section.section_id) }}</text>
+                    </view>
+                </view>
+                <view class="collapse-right">
+                    <text class="progress-text">{{ getModuleProgress(section.section_id) }}</text>
+                    <text class="arrow" :class="{ 'arrow-up': activeCollapse === section.name }">▼</text>
+                </view>
+            </view>
+            <view class="collapse-content" v-show="activeCollapse === section.name">
+                <text class="section-desc">{{ section.desc }}</text>
+                <view class="sub-section-list">
+                    <view v-for="(ablls, idx) in section.abllsSections" :key="idx" 
+                        class="sub-section-item"
+                        :class="getSubSectionStatusClass(section.section_id, ablls.abllsSectionAlphabet)"
+                        @click="handleOnClickSection(section.section_id, section.section, section.abllsSections.length, idx, ablls, section.abllsSections)">
+                        <view class="sub-section-left">
+                            <view class="sub-section-status">
+                                <text v-if="isSubSectionCompleted(section.section_id, ablls.abllsSectionAlphabet)" class="check-icon">✓</text>
+                                <text v-else class="pending-icon">{{ idx + 1 }}</text>
+                            </view>
+                            <text class="sub-section-name">{{ ablls.sectionName }}</text>
+                        </view>
+                        <view class="sub-section-right">
+                            <text class="sub-progress" v-if="getSubSectionProgress(section.section_id, ablls.abllsSectionAlphabet)"
+                                :class="{ 'completed': isSubSectionCompleted(section.section_id, ablls.abllsSectionAlphabet) }">
+                                {{ getSubSectionProgress(section.section_id, ablls.abllsSectionAlphabet) }}
+                            </text>
+                            <text class="question-count" v-else>共{{ ablls.questionCount }}项</text>
+                            <text class="arrow-right">›</text>
+                        </view>
+                    </view>
+                </view>
+            </view>
         </view>
 
 
@@ -52,60 +93,25 @@
 
 <script setup>
 import customNav from '@/components/customNav'
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { onShow, onLoad, onUnload, onReachBottom } from '@dcloudio/uni-app'
 import modalBox from '../../components/modalBox-v3/modalBox.vue';
 import { ASSESS_STUDENT, CURRENT_ASSESSMENT_MODULE_STATUS } from '@/lib/types/local_storage.js';
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
-// 新增用户信息获取
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
-const currentStudent = ref({
-    // ageInt: "3",
-    // assessmentId: "6826d1093d029cca22a1ee0b",
-    // assessmentTitle: "ABLLS-R",
-    // avatar: "https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/boy.png",
-    // childAge: "3岁10个月",
-    // childId: "6803b3a02ab442235e289bc5",
-    // childName: "武昊天1",
-    // classId: "67d2841d8a5c78c37ff0b54b",
-    // className: "小班8班"
-});
+const currentStudent = ref({});
 const assessmentSections = ref([]);
 const recordObj = ref({});
-let activeCollapse = ['语言与沟通技能'];
-// {
-//     abllsSections: [
-//         {
-//             questionCount: "10题",
-//             sectionName: "语言理解"
-//         },
-//         {
-//             questionCount: "10题",
-//             sectionName: "要求"
-//         }
-//     ],
-//     assessment_id: "6826d1093d029cca22a1ee0b",
-//     create_time: 1710000000000,
-//     desc: "本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。",
-//     order: 1,
-//     section: "语言与沟通技能",
-//     section_id: "LANG_1",
-//     update_time: 1710000000000,
-//     _id: "681b033621821bbfdb469a48",
-// },
-// {
-//     assessment_id: "6826d1093d029cca22a1ee0b",
-//     create_time: 1710000000000,
-//     desc: "本模块根据ABLLS-R量表编排，包含语言理解、要求表达、要求、命名、内部语言、自发性语言和语句和语法。",
-//     order: 1,
-//     section: "语言与沟通技能2",
-//     section_id: "LANG_1",
-//     update_time: 1710000000000,
-//     _id: "681b033621821bbfdb469a48",
-// }
+const activeCollapse = ref(''); // 当前展开的模块
 
+// 状态信息
+const isContinue = ref(false); // 是否继续评估
+const isFirstTime = ref(false); // 是否第一次评估
+const lastSaveTime = ref(null); // 上次保存时间
+const lastCompletedTime = ref(null); // 上次完成时间
+const modulesStatusMap = ref({}); // 模块状态映射
 
 const abllsSections = []
 
@@ -117,6 +123,149 @@ const confirmInfo = ref([
     }
 ]);
 
+// 计算属性：状态栏样式类
+const statusBannerClass = computed(() => {
+    if (isContinue.value) return 'continue-banner';
+    if (isFirstTime.value) return 'first-banner';
+    return 'new-banner';
+});
+
+// 计算属性：状态图标
+const statusIcon = computed(() => {
+    if (isContinue.value) return '⏰';
+    if (isFirstTime.value) return '🌟';
+    return '✨';
+});
+
+// 计算属性：状态标题
+const statusTitle = computed(() => {
+    if (isContinue.value) return '继续评估';
+    if (isFirstTime.value) return '第一次评估';
+    return '开始新评估';
+});
+
+// 计算属性：状态描述
+const statusDesc = computed(() => {
+    if (isContinue.value && lastSaveTime.value) {
+        return `上次保存: ${formatTime(lastSaveTime.value)}，请继续完成评估`;
+    }
+    if (isFirstTime.value) {
+        return `欢迎开始${currentStudent.value.childName}的第一次评估！`;
+    }
+    if (lastCompletedTime.value) {
+        return `上次完成: ${formatTime(lastCompletedTime.value)}，这是一次新的评估`;
+    }
+    return '请从第一个模块开始评估';
+});
+
+// 格式化时间
+const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${month}月${day}日 ${hours}:${minutes}`;
+};
+
+// 切换折叠状态（手风琴效果）
+const toggleCollapse = (name) => {
+    activeCollapse.value = activeCollapse.value === name ? '' : name;
+};
+
+// 获取模块状态
+const getModuleStatus = (sectionId) => {
+    return modulesStatusMap.value[sectionId];
+};
+
+// 获取模块状态样式类
+const getModuleStatusClass = (sectionId) => {
+    const status = modulesStatusMap.value[sectionId];
+    if (!status) return '';
+    if (status.status === 1) return 'status-completed';
+    // 只要有任何进度（完成的子模块 > 0 或者 hasStarted 为 true）都算进行中
+    if (status.completedSubSections > 0 || status.hasStarted || status.lastSubSectionIndex > 0) return 'status-progress';
+    return 'status-pending';
+};
+
+// 获取模块状态文字
+const getModuleStatusText = (sectionId) => {
+    const status = modulesStatusMap.value[sectionId];
+    if (!status) return '';
+    if (status.status === 1) return '已完成';
+    // 只要有任何进度都算进行中
+    if (status.completedSubSections > 0 || status.hasStarted || status.lastSubSectionIndex > 0) return '进行中';
+    return '未开始';
+};
+
+// 获取模块进度文字 - 从 assessmentSections 获取正确的总数
+const getModuleProgress = (sectionId) => {
+    const status = modulesStatusMap.value[sectionId];
+    // 从 assessmentSections 获取子模块总数
+    const section = assessmentSections.value.find(s => s.section_id === sectionId);
+    const total = section?.abllsSections?.length || status?.totalSubSections || 0;
+    const completed = status?.completedSubSections || 0;
+    if (total === 0) return '';
+    return `${completed}/${total}`;
+};
+
+// 获取当前正在做的子模块名称 - 使用 lastSubSectionName 字段
+const getCurrentSubSectionName = (sectionId) => {
+    const status = modulesStatusMap.value[sectionId];
+    if (!status || status.status === 1) return ''; // 已完成不显示
+    
+    // 优先使用保存的 lastSubSectionName
+    if (status.lastSubSectionName) {
+        return status.lastSubSectionName;
+    }
+    
+    return '';
+};
+
+// 判断子模块是否完成 - 使用 subSectionsProgress
+const isSubSectionCompleted = (sectionId, subSectionId) => {
+    const status = modulesStatusMap.value[sectionId];
+    if (!status || !status.subSectionsProgress) return false;
+    
+    const subProgress = status.subSectionsProgress.find(p => p.subSectionId === subSectionId);
+    return subProgress?.isCompleted || false;
+};
+
+// 获取子模块进度文字
+const getSubSectionProgress = (sectionId, subSectionId, questionCount) => {
+    const status = modulesStatusMap.value[sectionId];
+    if (!status || !status.subSectionsProgress) {
+        // 没有进度数据，返空（使用默认的题目总数）
+        return '';
+    }
+    
+    const subProgress = status.subSectionsProgress.find(p => p.subSectionId === subSectionId);
+    if (!subProgress) {
+        // 该子模块还没有开始做
+        return '';
+    }
+    
+    const { completedQuestions, totalQuestions, isCompleted } = subProgress;
+    if (isCompleted) return '已完成';
+    // 显示进度，即使 completedQuestions 为 0 也显示
+    if (totalQuestions > 0) return `${completedQuestions}/${totalQuestions}`;
+    return '';
+};
+
+// 获取子模块状态样式
+const getSubSectionStatusClass = (sectionId, subSectionId) => {
+    const status = modulesStatusMap.value[sectionId];
+    if (!status || !status.subSectionsProgress) return 'sub-pending';
+    
+    const subProgress = status.subSectionsProgress.find(p => p.subSectionId === subSectionId);
+    if (!subProgress) return 'sub-pending';
+    
+    if (subProgress.isCompleted) return 'sub-completed';
+    if (subProgress.completedQuestions > 0) return 'sub-progress';
+    return 'sub-pending';
+};
+
 const openCollapse = (e) => {
     console.log('openCollapse', e)
 }
@@ -126,7 +275,7 @@ const closeCollapse = (e) => {
 }
 
 const handleCollapseChange = (value) => {
-    activeCollapse = [value];
+    activeCollapse.value = value;
     console.log('当前展开的面板:', value);
 };
 
@@ -203,10 +352,13 @@ const fetchAssessmentRecordData = async (childId, assessmentSections) => {
     console.log('assessmentSections', assessmentSections)
     const data = {
         ...currentStudent.value,
-        modulesStatus: assessmentSections.map(section => ({
+        modulesStatus: assessmentSections.map((section, index) => ({
             sectionId: section.section_id,
             sectionName: section.section,
-            status: 0 // 初始状态设为pending 0 未开始或进行中，1已完成
+            status: 0, // 初始状态设为pending 0 未开始或进行中，1已完成
+            totalSubSections: section.abllsSections?.length || 0,
+            completedSubSections: 0,
+            lastSubSectionIndex: 0
         }))
     }
     try {
@@ -217,13 +369,38 @@ const fetchAssessmentRecordData = async (childId, assessmentSections) => {
         if (res.result.code == 200) {
             const temp = res.result.result;
             console.log('查询结果:', temp);
+            console.log('是否继续评估:', res.result.isContinue);
+            console.log('是否第一次:', res.result.isFirstTime);
+            
+            // 设置状态信息
+            isContinue.value = res.result.isContinue || false;
+            isFirstTime.value = res.result.isFirstTime || false;
+            lastSaveTime.value = temp.lastSaveTime || null;
+            lastCompletedTime.value = temp.lastCompletedTime || null;
+            
+            // 构建模块状态映射
+            if (temp.modulesStatus) {
+                temp.modulesStatus.forEach(m => {
+                    modulesStatusMap.value[m.sectionId] = m;
+                });
+            }
+            
+            // 设置默认展开的模块（上次做到的模块）
+            if (temp.lastSectionId) {
+                const section = assessmentSections.find(s => s.section_id === temp.lastSectionId);
+                if (section) {
+                    activeCollapse.value = section.name;
+                }
+            } else if (assessmentSections.length > 0) {
+                // 没有上次记录，默认展开第一个
+                activeCollapse.value = assessmentSections[0].name;
+            }
+            
             // 保存到本地存储
             uni.setStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS, temp);
-
         }
     } catch (error) {
         console.error('查询失败:', error);
-        reject(error);
     }
 };
 
@@ -231,6 +408,11 @@ onShow(() => {
     // 新增用户信息更新逻辑
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
     checkLoginStatus();
+    
+    // 从 form 页面返回时，重新加载数据以获取最新的保存时间和进度
+    if (currentStudent.value.childId && assessmentSections.value.length > 0) {
+        fetchAssessmentRecordData(currentStudent.value.childId, assessmentSections.value);
+    }
 })
 
 onReachBottom(() => {
@@ -267,7 +449,7 @@ onUnload(() => {
 })
 
 const handleNavBack = () => {
-    uni.redirectTo({ url: '/pages/assessment/list' })
+    uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
     uni.removeStorageSync(ASSESS_STUDENT)
     uni.removeStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS)
 }
@@ -312,13 +494,289 @@ onMounted(() => {
         justify-content: center;
         height: 100%;
     }
+    
+    // 状态提示横幅
+    .status-banner {
+        display: flex;
+        align-items: center;
+        margin: 20rpx 40rpx;
+        padding: 24rpx 32rpx;
+        border-radius: 16rpx;
+        
+        &.continue-banner {
+            background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+            border: 2rpx solid #FFB74D;
+        }
+        
+        &.first-banner {
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border: 2rpx solid #81C784;
+        }
+        
+        &.new-banner {
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+            border: 2rpx solid #64B5F6;
+        }
+        
+        .status-icon {
+            font-size: 48rpx;
+            margin-right: 20rpx;
+        }
+        
+        .status-content {
+            flex: 1;
+            
+            .status-title {
+                display: block;
+                font-size: 30rpx;
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 4rpx;
+            }
+            
+            .status-desc {
+                display: block;
+                font-size: 24rpx;
+                color: #666;
+            }
+        }
+    }
 
     .collapse {
-        border-radius: 8px;
+        border-radius: 16rpx;
         border: 1px solid #E9E9E9;
         background: #FFF;
-        box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
-        margin: 22rpx 40rpx;
+        box-shadow: 0px 4rpx 12rpx rgba(0, 0, 0, 0.08);
+        margin: 20rpx 40rpx;
+        overflow: hidden;
+        
+        .collapse-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 28rpx 32rpx;
+            background: #FAFAFA;
+            
+            .collapse-title-area {
+                display: flex;
+                flex-direction: column;
+                gap: 8rpx;
+                flex: 1;
+                
+                .title-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 16rpx;
+                }
+                
+                .collapse-title {
+                    font-size: 30rpx;
+                    font-weight: 600;
+                    color: #333;
+                }
+                
+                .module-status {
+                    .status-tag {
+                        font-size: 22rpx;
+                        padding: 4rpx 16rpx;
+                        border-radius: 20rpx;
+                        
+                        &.status-completed {
+                            background: #E8F5E9;
+                            color: #4CAF50;
+                        }
+                        
+                        &.status-progress {
+                            background: #FFF3E0;
+                            color: #FF9800;
+                        }
+                        
+                        &.status-pending {
+                            background: #ECEFF1;
+                            color: #90A4AE;
+                        }
+                    }
+                }
+                
+                .current-sub-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 8rpx;
+                    
+                    .current-sub-label {
+                        font-size: 22rpx;
+                        color: #999;
+                    }
+                    
+                    .current-sub-name {
+                        font-size: 22rpx;
+                        color: #FF9800;
+                        background: #FFF8E1;
+                        padding: 2rpx 12rpx;
+                        border-radius: 12rpx;
+                        max-width: 260rpx;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                }
+            }
+            
+            .collapse-right {
+                display: flex;
+                align-items: center;
+                gap: 12rpx;
+                
+                .progress-text {
+                    font-size: 24rpx;
+                    color: #666;
+                    font-weight: 500;
+                }
+                
+                .arrow {
+                    font-size: 20rpx;
+                    color: #999;
+                    transition: transform 0.3s;
+                    
+                    &.arrow-up {
+                        transform: rotate(180deg);
+                    }
+                }
+            }
+        }
+        
+        .collapse-content {
+            padding: 0 32rpx 24rpx;
+            
+            .section-desc {
+                display: block;
+                font-size: 24rpx;
+                color: #888;
+                padding: 16rpx 0;
+                line-height: 1.5;
+            }
+            
+            .sub-section-list {
+                .sub-section-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 24rpx 20rpx;
+                    margin-top: 16rpx;
+                    background: #F8F9FA;
+                    border-radius: 12rpx;
+                    transition: all 0.2s;
+                    
+                    &:active {
+                        background: #ECEFF1;
+                    }
+                    
+                    // 已完成状态
+                    &.sub-completed {
+                        background: #F1F8E9;
+                        
+                        .sub-section-name {
+                            color: #689F38;
+                        }
+                        
+                        .pending-icon {
+                            background: #4CAF50 !important;
+                            color: #fff !important;
+                        }
+                    }
+                    
+                    // 进行中状态
+                    &.sub-progress {
+                        background: #FFF8E1;
+                        border: 1px solid #FFE082;
+                        
+                        .sub-section-name {
+                            color: #F57C00;
+                        }
+                        
+                        .pending-icon {
+                            background: #FF9800 !important;
+                            color: #fff !important;
+                        }
+                    }
+                    
+                    // 未开始状态
+                    &.sub-pending {
+                        background: #F8F9FA;
+                    }
+                    
+                    .sub-section-left {
+                        display: flex;
+                        align-items: center;
+                        gap: 16rpx;
+                        
+                        .sub-section-status {
+                            width: 48rpx;
+                            height: 48rpx;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            
+                            .check-icon {
+                                background: #4CAF50;
+                                color: #fff;
+                                width: 48rpx;
+                                height: 48rpx;
+                                border-radius: 50%;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 28rpx;
+                            }
+                            
+                            .pending-icon {
+                                background: #E0E0E0;
+                                color: #666;
+                                width: 48rpx;
+                                height: 48rpx;
+                                border-radius: 50%;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 24rpx;
+                            }
+                        }
+                        
+                        .sub-section-name {
+                            font-size: 28rpx;
+                            color: #333;
+                        }
+                    }
+                    
+                    .sub-section-right {
+                        display: flex;
+                        align-items: center;
+                        gap: 8rpx;
+                        
+                        .sub-progress {
+                            font-size: 24rpx;
+                            color: #FF9800;
+                            font-weight: 500;
+                            
+                            &.completed {
+                                color: #4CAF50;
+                            }
+                        }
+                        
+                        .question-count {
+                            font-size: 24rpx;
+                            color: #999;
+                        }
+                        
+                        .arrow-right {
+                            font-size: 32rpx;
+                            color: #CCC;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     .user-profile {

@@ -13,7 +13,7 @@ exports.main = async (event) => {
 	const assessmentQuestionDbName = 'wtdb-business-assessment-q';
 	const sectionIdList = []; // 存储section_id的数组
 	const output = [];
-	if (!assessmentId || !age || age === undefined || age === null || age === '') {
+	if (!assessmentId || age === undefined || age === null || age === '') {
 		return {
 			code: 400,
 			message: '缺少必需参数，请传入assessmentId和age参数'

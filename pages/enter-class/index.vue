@@ -42,10 +42,10 @@
       </unicloud-db>
     </view>
     <view class="enter-class-option">
-      <view class="option" @click="onClickButton(0)">
+      <!-- <view class="option" @click="onClickButton(0)">
         <view class="title">{{ $t("enterClassMethod.create") }}</view>
         <image class="image" src="../../static/enter-class/create.svg" />
-      </view>
+      </view> -->
       <view class="option" @click="onClickButton(1)">
         <view class="title"> {{ $t("enterClassMethod.apply") }}</view>
         <image class="image" src="../../static/enter-class/apply.svg" />
@@ -179,7 +179,24 @@
           const isValid = token && userInfo?._id && tokenExpired > Date.now();
 
           if (!isValid) {
-            this.navigateToLogin();
+            uni.showModal({
+              title: "提示",
+              content: "登录才可以进入班级",
+              showConfirm: true,
+              confirmText: "去登录",
+              showCancel: true,
+              cancelText: "稍后再说",
+              success: ({ confirm, cancel }) => {
+                if (confirm) {
+                  this.navigateToLogin();
+                } else if (cancel) {
+                  uni.showToast({
+                    title: "您已取消登录",
+                    icon: "none",
+                  });
+                }
+              },
+            });
             return false;
           }
           return true;

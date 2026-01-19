@@ -15,6 +15,7 @@ export default {
 		config: {},
 		$i18n: {},
 		$t: {},
+		newlyCreatedStudentIds: [], // 刚刚创建的学生ID列表
 	},
 	onLaunch: function () {
 		console.log('App Launch')

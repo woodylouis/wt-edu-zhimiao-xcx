@@ -5,6 +5,10 @@
         "_id": {
             "description": "记录ID"
         },
+        "recordId": {
+            "bsonType": "string",
+            "description": "评估记录唯一标识"
+        },
         "assessment_id": {
             "bsonType": "string",
             "description": "关联的评估量表ID"
@@ -12,6 +16,122 @@
         "child_id": {
             "bsonType": "string",
             "description": "被评估儿童ID"
+        },
+        "childId": {
+            "bsonType": "string",
+            "description": "被评估儿童ID"
+        },
+        "childName": {
+            "bsonType": "string",
+            "description": "儿童姓名"
+        },
+        "assessorId": {
+            "bsonType": "string",
+            "description": "评估师ID"
+        },
+        "modulesStatus": {
+            "bsonType": "array",
+            "description": "模块完成状态列表",
+            "items": {
+                "bsonType": "object",
+                "properties": {
+                    "sectionId": {
+                        "bsonType": "string",
+                        "description": "模块ID"
+                    },
+                    "sectionName": {
+                        "bsonType": "string",
+                        "description": "模块名称"
+                    },
+                    "status": {
+                        "bsonType": "int",
+                        "description": "状态: 0-未开始/进行中, 1-已完成"
+                    },
+                    "sectionRecordId": {
+                        "bsonType": "string",
+                        "description": "模块记录ID"
+                    },
+                    "completedSubSections": {
+                        "bsonType": "int",
+                        "description": "已完成的子模块数量",
+                        "defaultValue": 0
+                    },
+                    "totalSubSections": {
+                        "bsonType": "int",
+                        "description": "子模块总数"
+                    },
+                    "lastSubSectionIndex": {
+                        "bsonType": "int",
+                        "description": "上次做到的子模块索引",
+                        "defaultValue": 0
+                    },
+                    "lastSubSectionId": {
+                        "bsonType": "string",
+                        "description": "最后访问的子模块ID"
+                    },
+                    "lastSubSectionName": {
+                        "bsonType": "string",
+                        "description": "最后访问的子模块名称"
+                    },
+                    "hasStarted": {
+                        "bsonType": "bool",
+                        "description": "是否已开始",
+                        "defaultValue": false
+                    },
+                    "subSectionsProgress": {
+                        "bsonType": "array",
+                        "description": "每个子模块的进度",
+                        "items": {
+                            "bsonType": "object",
+                            "properties": {
+                                "subSectionId": {
+                                    "bsonType": "string",
+                                    "description": "子模块ID"
+                                },
+                                "subSectionName": {
+                                    "bsonType": "string",
+                                    "description": "子模块名称"
+                                },
+                                "completedQuestions": {
+                                    "bsonType": "int",
+                                    "description": "已完成题目数",
+                                    "defaultValue": 0
+                                },
+                                "totalQuestions": {
+                                    "bsonType": "int",
+                                    "description": "总题目数"
+                                },
+                                "isCompleted": {
+                                    "bsonType": "bool",
+                                    "description": "是否已完成",
+                                    "defaultValue": false
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "createTime": {
+            "bsonType": "timestamp",
+            "description": "创建时间"
+        },
+        "lastSaveTime": {
+            "bsonType": "timestamp",
+            "description": "上次保存时间"
+        },
+        "lastCompletedTime": {
+            "bsonType": "timestamp",
+            "description": "上次完成评估的时间"
+        },
+        "lastSectionId": {
+            "bsonType": "string",
+            "description": "上次做到的模块ID"
+        },
+        "isCompleted": {
+            "bsonType": "bool",
+            "description": "是否已完成全部评估",
+            "defaultValue": false
         }
     }
 }

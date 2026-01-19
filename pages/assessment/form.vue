@@ -385,6 +385,10 @@
           assessorId: assessmentMeta.assessorId,
           childId: assessmentMeta.childId,
           sectionId: assessmentMeta.sectionId,
+          // 传递当前子模块信息
+          currentSubSectionId: currentAbllsSectionAlphabet,
+          currentSubSectionName: currentAbllsSectionName,
+          currentSubSectionIndex: stepCurrentIndex.value,
           data: all,
         },
       })

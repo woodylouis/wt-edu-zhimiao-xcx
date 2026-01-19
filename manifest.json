@@ -60,7 +60,15 @@
         "uniStatistics": {
             "enable": true
         },
-        "__usePrivacyCheck__": true
+        "__usePrivacyCheck__": true,
+        "requiredPrivateInfos": [
+            "getFuzzyLocation"
+        ],
+        "permission": {
+            "scope.userFuzzyLocation": {
+                "desc": "用于计算您与学校的距离"
+            }
+        }
     },
     "mp-alipay": {
         "usingComponents": true

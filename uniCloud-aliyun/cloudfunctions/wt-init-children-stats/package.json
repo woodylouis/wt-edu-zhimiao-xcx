@@ -1,0 +1,5 @@
+{
+    "name": "wt-init-children-stats",
+    "version": "1.0.0",
+    "description": "初始化儿童统计缓存表 - 兼容历史数据"
+}

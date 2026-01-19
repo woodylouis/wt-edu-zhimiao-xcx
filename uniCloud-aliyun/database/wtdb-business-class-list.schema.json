@@ -1,9 +1,20 @@
 // 文档教程: https://uniapp.dcloud.net.cn/uniCloud/schema
 {
   "bsonType": "object",
-  "required": ["nickname", "created_by", "code"], // 新增必填字段
+  "required": [
+    "nickname",
+    "created_by",
+    "code"
+  ], // 新增必填字段
   "properties": {
-    "_id": { "description": "班级ID" },
+    "_id": {
+      "description": "班级ID"
+    },
+    "school_id": {
+      "bsonType": "string",
+      "title": "学校编号",
+      "description": "关联的学校唯一编号"
+    },
     "code": {
       "bsonType": "string",
       "title": "班级码",
@@ -11,27 +22,49 @@
       "description": "唯一班级码（6位数字）",
       "unique": true // 强制全局唯一
     },
-	"section": { "bsonType": "string", "title": "学段" },
-	"grade": { "bsonType": "string", "title": "年级" },
-	"class": { "bsonType": "string", "title": "班级" },
-    "nickname": { "bsonType": "string", "title": "班级昵称" },
-    "description": { "bsonType": "string", "title": "班级描述" },
-	"teacherName": { "bsonType": "string", "title": "创建者老师名字" },
-    "created_by": { 
-      "bsonType": "string", 
-      "foreignKey": "uni-id-users._id",
-      "title": "创建者ID" 
+    "section": {
+      "bsonType": "string",
+      "title": "学段"
     },
-    "create_time": { 
-      "bsonType": "timestamp", 
-      "defaultValue": { "$env": "now" },
-      "title": "创建时间" 
+    "grade": {
+      "bsonType": "string",
+      "title": "年级"
+    },
+    "class": {
+      "bsonType": "string",
+      "title": "班级"
+    },
+    "nickname": {
+      "bsonType": "string",
+      "title": "班级昵称"
+    },
+    "description": {
+      "bsonType": "string",
+      "title": "班级描述"
+    },
+    "teacherName": {
+      "bsonType": "string",
+      "title": "创建者老师名字"
+    },
+    "created_by": {
+      "bsonType": "string",
+      "foreignKey": "uni-id-users._id",
+      "title": "创建者ID"
+    },
+    "create_time": {
+      "bsonType": "timestamp",
+      "defaultValue": {
+        "$env": "now"
+      },
+      "title": "创建时间"
     }
   },
   "indexes": [
     {
       "name": "code_1", // 唯一索引（已通过unique:true自动创建）
-      "key": { "code": 1 }
+      "key": {
+        "code": 1
+      }
     }
   ]
 }

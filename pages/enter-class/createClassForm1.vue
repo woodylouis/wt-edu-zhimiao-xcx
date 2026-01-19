@@ -64,6 +64,7 @@ export default {
             selectedSection: "",
             selectedGrade: "",
             selectedClass: "",
+            loading: false,
         };
     },
     onShow() {
@@ -101,6 +102,7 @@ export default {
             uni.setStorageSync('classFormData', newData);
         },
         handleConfirm() {
+            if (this.loading) return;
             console.log("确认按钮被点击");
             if (!this.selectedSection || !this.selectedGrade || !this.selectedClass) {
                 uni.showToast({
@@ -110,6 +112,7 @@ export default {
                 return;
             }
 
+            this.loading = true;
             const currentCache = uni.getStorageSync('classFormData') || {};  // 新增获取当前缓存
             const result = {
                 ...currentCache,  // 合并已有缓存
@@ -120,7 +123,10 @@ export default {
 
             uni.setStorageSync('classFormData', result);  // 替换原有设置方式
             uni.navigateTo({
-                url: "/pages/enter-class/createClassForm2"
+                url: "/pages/enter-class/createClassForm2",
+                complete: () => {
+                    this.loading = false;
+                }
             });
         },
         // 新增自定义返回处理

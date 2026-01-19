@@ -4,6 +4,7 @@ const dbName = 'wtdb-business-assess-history';
 const dbName2 = 'wtdb-business-assess-record';
 const dbName3 = 'wtdb-report-tasks'; // 任务状态表
 const dbName4 = 'wtdb-business-assess-report'; // 报告表
+const dbName5 = 'wtdb-business-children-stats'; // 儿童统计缓存表
 const db = uniCloud.database();
 const collection = db.collection(dbName);
 
@@ -394,6 +395,14 @@ async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
 			`评估记录状态更新成功，共更新${updatedModulesStatus.length}个模块状态`);
 
 		await updateTaskStatus(taskId, 'processing', 100, '报告保存和状态更新完成');
+
+		// 3. 更新儿童统计缓存表（重要：优化性能）
+		try {
+			await updateChildStats(reportData.childId, reportData.classId, reportData.reportId, Date.now());
+			await updateTaskStatus(taskId, 'processing', 100, '儿童统计缓存更新完成');
+		} catch (statsError) {
+			console.error('更新儿童统计失败（不影响报告生成）:', statsError);
+		}
 
 		console.log(`报告保存和状态更新成功 - reportId: ${reportData.reportId}, recordId: ${recordId}`);
 
@@ -1093,3 +1102,50 @@ async function cleanupExpiredTasks(daysOld = 30) {
 // exports.getTaskStatus = getTaskStatus;
 // exports.manualRetryTask = manualRetryTask;
 // exports.cleanupExpiredTasks = cleanupExpiredTasks;
+
+/**
+ * 更新儿童统计缓存表
+ * 在报告生成成功后调用，用于优化列表页面加载性能
+ */
+async function updateChildStats(childId, classId, reportId, completionTime) {
+	const statsCollection = db.collection(dbName5);
+	const reportCollection = db.collection(dbName4);
+
+	try {
+		// 1. 查询该儿童的报告总数
+		const countRes = await reportCollection
+			.where({ childId: childId })
+			.count();
+		const reportCount = countRes.total;
+
+		// 2. 检查统计记录是否存在
+		const existingStats = await statsCollection
+			.where({ childId: childId })
+			.get();
+
+		const statsData = {
+			childId,
+			classId,
+			reportCount,
+			latestReportTime: completionTime,
+			latestReportId: reportId,
+			updateTime: Date.now()
+		};
+
+		if (existingStats.data.length > 0) {
+			// 更新现有记录
+			await statsCollection
+				.where({ childId: childId })
+				.update(statsData);
+		} else {
+			// 创建新记录
+			await statsCollection.add(statsData);
+		}
+
+		console.log(`儿童统计更新成功 - childId: ${childId}, reportCount: ${reportCount}`);
+
+	} catch (error) {
+		console.error('更新儿童统计失败:', error);
+		throw error;
+	}
+}

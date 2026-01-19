@@ -257,16 +257,135 @@ onMounted(() => {
     // }
 });
 
-const handleAssessmentClick = (item) => {
+const handleAssessmentClick = async (item) => {
     console.log('点击了评估项:', item);
     let classId = currentClass.value?._id ? currentClass.value?._id : currentClass.value?.id;
     if (!classId) {
         uni.showToast({ title: '请先选择班级', icon: 'none' });
         return;
     }
+    
+    // 检查用户是否在学校范围内
+    const locationCheckResult = await checkUserLocation();
+    if (!locationCheckResult.canProceed) {
+        return;
+    }
+    
     uni.navigateTo({
         url: `/pages/assessment/chooseChild?classId=${classId}&className=${classDisplay.value}&assessmentId=${item.id}&assessmentTitle=${item.title}`
     });
+};
+
+// 检查用户位置是否在学校范围内
+const checkUserLocation = () => {
+    // ========== 开发配置 ==========
+    // 开启后使用模拟位置数据，用于提交小程序审核
+    // 审核通过后设置为 false 使用真实位置
+    const USE_MOCK_LOCATION = false;
+    // 模拟位置（广东中山市兴文路）
+    const MOCK_LOCATION = {
+        latitude: 22.504876,
+        longitude: 113.408551
+    };
+    // ========== 开发配置 END ==========
+    
+    return new Promise((resolve) => {
+        // 获取当前班级对应的学校ID
+        const schoolId = currentClass.value?.school_id;
+        
+        // 如果班级没有关联学校，直接允许
+        if (!schoolId) {
+            console.log('班级未关联学校，跳过位置检查');
+            resolve({ canProceed: true });
+            return;
+        }
+        
+        // 使用模拟位置（用于提交审核）
+        if (USE_MOCK_LOCATION) {
+            console.log('使用模拟位置数据:', MOCK_LOCATION);
+            performLocationCheck(MOCK_LOCATION.latitude, MOCK_LOCATION.longitude, schoolId, resolve);
+            return;
+        }
+        
+        uni.showLoading({ title: '正在检查位置...' });
+        
+        // 使用 getFuzzyLocation 获取模糊位置（隐私合规）
+        uni.getFuzzyLocation({
+            type: 'wgs84',
+            success: (res) => {
+                console.log('获取位置成功:', res);
+                performLocationCheck(res.latitude, res.longitude, schoolId, resolve);
+            },
+            fail: (err) => {
+                uni.hideLoading();
+                console.error('获取位置失败:', err);
+                
+                // 用户拒绝授权或获取失败
+                if (err.errMsg.includes('auth deny') || err.errMsg.includes('authorize')) {
+                    uni.showModal({
+                        title: '需要位置权限',
+                        content: '进行测试需要获取您的位置信息，以确认您在学校范围内。请授权后重试。',
+                        showCancel: true,
+                        cancelText: '暂不授权',
+                        confirmText: '去授权',
+                        confirmColor: '#6EDD8A',
+                        success: (res) => {
+                            if (res.confirm) {
+                                uni.openSetting();
+                            }
+                        }
+                    });
+                    resolve({ canProceed: false });
+                } else {
+                    // 其他错误，不阻止用户
+                    resolve({ canProceed: true });
+                }
+            }
+        });
+    });
+};
+
+// 执行位置检查的云函数调用
+const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
+    uni.showLoading({ title: '正在检查位置...' });
+    
+    try {
+        const checkRes = await uniCloud.callFunction({
+            name: 'wtdb-check-school-location',
+            data: {
+                latitude,
+                longitude,
+                schoolId,
+                radius: 1500 // 1500米范围
+            }
+        });
+        
+        uni.hideLoading();
+        
+        if (checkRes.result.code === 200) {
+            const { inRange, distance, schoolName } = checkRes.result.data;
+            
+            if (inRange) {
+                resolve({ canProceed: true });
+            } else {
+                uni.showModal({
+                    title: '位置提醒',
+                    content: `您当前不在「${schoolName}」范围内（距离约${distance}米），请到学校后再进行测试。`,
+                    showCancel: false,
+                    confirmText: '我知道了',
+                    confirmColor: '#6EDD8A'
+                });
+                resolve({ canProceed: false });
+            }
+        } else {
+            console.error('位置检查失败:', checkRes.result.message);
+            resolve({ canProceed: true });
+        }
+    } catch (e) {
+        uni.hideLoading();
+        console.error('云函数调用失败:', e);
+        resolve({ canProceed: true });
+    }
 };
 
 </script>

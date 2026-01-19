@@ -34,6 +34,16 @@
       "title": "出生日期",
       "description": "存储时间戳用于计算年龄"
     },
+    "age": {
+      "bsonType": "string",
+      "title": "年龄字符串",
+      "description": "例如：4岁2个月"
+    },
+    "ageInt": {
+      "bsonType": "int",
+      "title": "年龄整数",
+      "description": "用于评估标准匹配"
+    },
     "formatBirthdate": {
       "bsonType": "string",
       "title": "格式化出生日期",

@@ -7,29 +7,74 @@
         :needBar="false"
       />
       <view class="user-profile">
-        <!-- 左侧内容容器 -->
 
+        <!-- 左侧内容容器 -->
         <view class="profile-left" @click="onClickProfile">
-          <image class="avatar-image" :src="avatarUrl" />
+          <view class="avatar-wrapper">
+            <image class="avatar-image" :src="avatarUrl" mode="aspectFill" />
+            <view class="avatar-badge">
+              <text>✨</text>
+            </view>
+          </view>
           <view class="info">
-            <view class="name">{{ displayName }}</view>
-            <view class="class"
-              >{{ classDisplay }}
-              <view class="invite" @click.stop="onClickInvite"
-                >邀请加入本班</view
-              >
+            <text class="name">{{ displayName }}</text>
+            <view class="class-row">
+              <view class="class-tag">
+                <text class="tag-text">{{ classDisplay }}</text>
+              </view>
+              <view class="invite-btn" @click.stop="onClickInvite">
+                <text class="btn-text">邀请</text>
+              </view>
             </view>
             <view class="school">{{ schoolDisplay }}</view>
           </view>
         </view>
 
         <!-- 右侧切换按钮 -->
-        <view class="switch-class" @click="onClickSwitch">
-          <image class="switch-class-image" :src="switchIconUrl"></image>
+        <view class="switch-btn" @click="onClickSwitch">
+          <image class="switch-icon" :src="switchIconUrl" mode="aspectFit" />
         </view>
       </view>
     </u-sticky>
+    
+    <!-- 搜索栏 -->
+    <view class="search-bar">
+      <view class="search-input-wrapper">
+        <text class="search-icon">🔍</text>
+        <input 
+          class="search-input" 
+          type="text" 
+          v-model="searchKeyword" 
+          placeholder="搜索学生姓名..." 
+          placeholder-class="search-placeholder"
+          @input="onSearchInput"
+          @confirm="onSearchConfirm"
+        />
+        <text v-if="searchKeyword" class="clear-icon" @click="clearSearch">✖</text>
+      </view>
+    </view>
+    
+    <!-- 学生总数 -->
+    <view class="list-header">
+      <view class="student-count">
+        <text class="count-label">共</text>
+        <text class="count-num">{{ totalStudents }}</text>
+        <text class="count-label">名学生</text>
+      </view>
+    </view>
+    
     <view class="student-list">
+      <!-- 空状态：显眼的创建学生入口 -->
+      <view v-if="!loading && filteredStudentList.length === 0" class="empty-state">
+        <view class="empty-icon">👶</view>
+        <text class="empty-title">还没有学生哦~</text>
+        <text class="empty-desc">点击下方按钮添加第一个学生</text>
+        <button class="create-student-btn" @click="handleHelp">
+          <text class="btn-icon">➕</text>
+          <text>创建学生</text>
+        </button>
+      </view>
+      
       <view v-if="loading" class="u-demo-block">
         <view class="u-demo-block__content">
           <u-skeleton
@@ -50,43 +95,47 @@
         </view>
       </view>
       <StudentList
-        v-if="!loading"
-        :studentList="studentList"
+        v-if="!loading && filteredStudentList.length > 0"
+        :studentList="filteredStudentList"
         @handleStudentClick="handleStudentClick"
+        @handleAssessClick="handleAssessClick"
       />
-      <text class="help-link" @click="handleHelp">找不到？点击创建</text>
-    </view>
-
-    <view v-if="loadingMore">
-      <view class="u-page__loading-item">
-        <u-loading-icon mode="circle" timingFunction="linear"></u-loading-icon>
+      
+      <!-- 底部创建学生入口 -->
+      <view v-if="!loading && filteredStudentList.length > 0" class="bottom-create">
+        <text class="help-link" @click="handleHelp">找不到？点击创建新学生</text>
       </view>
     </view>
 
-    <view style="right: 30rpx; bottom: 120rpx; z-index: 9999">
-      <view style="z-index: 9999">
-        <QcSuspendBtn
-          :mainBtn="btnConfig.suspen.mainBtn"
-          :childSize="btnConfig.suspen.childSize"
-          :childBtns="btnConfig.suspen.childBtns"
-          :openType="btnConfig.suspen.openType"
-          :padding="btnConfig.suspen.padding"
-          @childClick="btnConfig.childClick"
-        >
-        </QcSuspendBtn>
-      </view>
-    </view>
+    <!-- 悬浮球：可拖拽并自动吸附到屏幕左/右侧 -->
+    <QcSuspendBtn
+      :mainBtn="btnConfig.suspen.mainBtn"
+      :childSize="btnConfig.suspen.childSize"
+      :childBtns="btnConfig.suspen.childBtns"
+      :openType="btnConfig.suspen.openType"
+      :padding="10"
+      @childClick="btnConfig.childClick"
+    />
+    
+    <!-- 评估列表弹窗 -->
+    <AssessModal 
+      :visible="showAssessModal" 
+      :student="selectedStudent"
+      @close="showAssessModal = false"
+      @confirm="onAssessConfirm"
+    />
   </view>
 </template>
 
 <script setup>
   import customNav from "@/components/customNav";
-  import { ref, onMounted, computed, reactive, watch } from "vue";
-  import { onShow, onLoad, onUnload, onReachBottom } from "@dcloudio/uni-app";
+  import { ref, onMounted, computed, reactive } from "vue";
+  import { onShow, onLoad, onUnload } from "@dcloudio/uni-app";
   import { CURRENT_STUDENT } from "@/lib/types/local_storage.js";
 
   import QcSuspendBtn from "@/components/qc-suspendBtn/qc-suspendBtn.vue";
-  import StudentList from "./components/student-list";
+  import StudentList from "./components/student-list.vue";
+  import AssessModal from "./components/assess-modal.vue";
   import btnConfig from "@/common/suspen-btn/config.js";
 
   const navCustomStyle =
@@ -95,13 +144,58 @@
     "https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png"
   );
   const switchIconUrl = "../../../static/general/switch.png";
-  const page = ref(1);
-  const pageSize = ref(14);
-  const loading = ref(true); // 新增加载状态
-  const loadingMore = ref(false); // 新增加载更多状态
-  const noMoreData = ref(false); // 新增无更多数据标志
+  const loading = ref(true);
+  const totalStudents = ref(0); // 学生总数
+  const lastLoadedClassId = ref(''); // 记录上次加载的班级ID
 
   const studentList = ref([]);
+  const searchKeyword = ref('');
+  
+  // 评估弹窗相关
+  const showAssessModal = ref(false);
+  const selectedStudent = ref({});
+    
+  // 计算属性：过滤后的学生列表
+  const filteredStudentList = computed(() => {
+    let list = studentList.value;
+
+    // 搜索过滤
+    if (searchKeyword.value.trim()) {
+      const keyword = searchKeyword.value.trim().toLowerCase();
+      list = list.filter(
+        (student) =>
+          student.name && student.name.toLowerCase().includes(keyword)
+      );
+    }
+
+    // 刚刚创建的学生优先显示
+    const app = getApp();
+    const newIds =
+      (app && app.globalData && app.globalData.newlyCreatedStudentIds) || [];
+
+    if (newIds.length > 0) {
+      // 标记新创建的学生并排序
+      list = list.map((student) => ({
+        ...student,
+        isNew: newIds.includes(student._id),
+      }));
+
+      list.sort((a, b) => {
+        if (a.isNew && !b.isNew) return -1;
+        if (!a.isNew && b.isNew) return 1;
+        return 0;
+      });
+    }
+
+    return list;
+  });
+    
+  // 搜索相关方法
+  const onSearchInput = () => {};
+  const onSearchConfirm = () => {};
+  const clearSearch = () => {
+    searchKeyword.value = '';
+  };
   // 新增用户信息获取
   const userInfo = ref(uni.getStorageSync("uni-id-pages-userInfo") || {});
   const currentClass = ref(uni.getStorageSync("currentClass") || {});
@@ -150,29 +244,49 @@
     }
   };
 
-  const handleStudentClick = async (student) => {
+      const handleStudentClick = async (student) => {
+    console.log("查看报告 - 学生:", student);
     uni.showLoading({
       title: "请稍后",
       mask: true,
     });
-    console.log("点击学生:", student); // 调试用，确保学生信息正确传递
-    // 检查学生是否有报告
-    const hasReport = await checkStudentReport(student._id);
+    
+    try {
+      // 检查学生是否有报告
+      const hasReport = await checkStudentReport(student._id);
 
-    if (!hasReport) {
-      uni.showToast({
-        title: "该学生暂无评估报告",
-        icon: "none",
+      if (!hasReport) {
+        uni.hideLoading();
+        uni.showToast({
+          title: "该学生暂无评估报告",
+          icon: "none",
+        });
+        return;
+      }
+
+      uni.setStorageSync(CURRENT_STUDENT, {
+        ...student,
       });
-      return;
+      uni.hideLoading();
+      uni.navigateTo({
+        url: `/pages/assessment/report-v2?isHistory=true`,
+      });
+    } catch (e) {
+      uni.hideLoading();
+      console.error("查看报告失败:", e);
     }
-
-    uni.setStorageSync(CURRENT_STUDENT, {
-      ...student,
-    });
-    uni.navigateTo({
-      url: `/pages/assessment/report-v2?isHistory=true`,
-    });
+  };
+  
+      // 开始评估入口 - 显示评估列表弹窗
+  const handleAssessClick = (student) => {
+    console.log("开始评估 - 学生:", student);
+    selectedStudent.value = student;
+    showAssessModal.value = true;
+  };
+  
+  // 评估确认回调
+  const onAssessConfirm = (data) => {
+    console.log("评估确认:", data);
   };
 
   const onClickInvite = () => {
@@ -263,73 +377,29 @@
       });
   };
 
-  const loadStudentsWithData = async (classId, pageNum, pageSizeNum) => {
+    const loadStudentsWithData = async (classId) => {
     try {
-      // 检查是否有缓存数据
-      const cacheKey = `current_class_students`;
-      const cachedData = uni.getStorageSync(cacheKey);
-
-      // 检查缓存是否有效：存在缓存数据且缓存中的学生属于当前班级
-      const isCacheValid =
-        cachedData &&
-        cachedData.some(
-          (student) => student.class_id === currentClass.value._id
-        );
-
-      // 如果是第一页且缓存有效，则使用缓存
-      if (pageNum === 1 && isCacheValid) {
-        studentList.value = cachedData;
-        loading.value = false;
-        return;
-      }
-
-      loading.value = pageNum === 1;
-      loadingMore.value = pageNum > 1;
+      loading.value = true;
 
       const res = await uniCloud.callFunction({
         name: "wt-fetch-report-history",
         data: {
-          classId,
-          page: pageNum,
-          pageSize: pageSizeNum,
+          classId
         },
       });
 
       if (res.result.code === 0) {
-        if (pageNum === 1) {
-          studentList.value = res.result.data.list;
-          // 缓存第一页数据
-          // uni.setStorageSync(cacheKey, res.result.data.list);
-        } else {
-          studentList.value = [...studentList.value, ...res.result.data.list];
-        }
-
-        noMoreData.value = res.result.data.list.length < pageSizeNum;
-      }
-      const pagination = ref({ page: 1, pageSize: 10, total: 0 });
-      const res1 = await uniCloud.callFunction({
-        name: "wt-fetch-assessment-list",
-        data: {
-          page: pagination.value.page,
-          pageSize: pagination.value.pageSize,
-        },
-      });
-
-      if (res1.result.code === 0) {
-        // 更新缓存（包含时间戳）
-        const CACHE_KEY = "teacher_assessment_list";
-        uni.setStorageSync(CACHE_KEY, {
-          list: res1.result.data.list,
-          total: res1.result.data.total,
-          timestamp: Date.now(),
-        });
-        console.log("teacher_assessment_list:", uni.getStorageSync(CACHE_KEY));
+        studentList.value = res.result.data.list;
+        // 更新学生总数
+        totalStudents.value = res.result.data.total || studentList.value.length;
+        // 记录当前加载的班级ID
+        lastLoadedClassId.value = classId;
       }
     } catch (e) {
       console.error("加载失败:", e);
+      uni.showToast({ title: "加载失败", icon: "none" });
     } finally {
       loading.value = false;
-      loadingMore.value = false;
     }
   };
 
@@ -339,30 +409,7 @@
     uni.removeStorageSync(cacheKey);
   };
 
-  onShow(() => {
-    // 新增用户信息更新逻辑
-    userInfo.value = uni.getStorageSync("uni-id-pages-userInfo") || {};
-    currentClass.value = uni.getStorageSync("currentClass") || {};
-    checkLoginStatus();
-  });
-
-  onReachBottom(() => {
-    console.log("onReachBottom");
-    if (loadingMore.value) return;
-
-    if (noMoreData.value) {
-      uni.showToast({
-        title: "没有更多数据了~",
-        icon: "none",
-        duration: 1500,
-      });
-      return;
-    }
-
-    page.value += 1;
-    loadStudentsWithData(currentClass.value._id, page.value, pageSize.value);
-  });
-
+  // 检查是否有班级
   const checkIfAnyClass = async () => {
     try {
       const classRes = await uniCloud.callFunction({
@@ -375,39 +422,54 @@
         });
         return false;
       }
+      return true;
     } catch (e) {
       console.error("班级查询失败:", e);
+      return true;
     }
   };
 
-  onLoad((options) => {
-    console.log("onLoad options:", options);
-    if (!checkIfAnyClass()) {
-      return;
+  onShow(() => {
+    // 更新用户信息
+    userInfo.value = uni.getStorageSync("uni-id-pages-userInfo") || {};
+    const newClass = uni.getStorageSync("currentClass") || {};
+    
+    // 检查班级是否变化，如果变化则重新加载数据
+    if (newClass._id && newClass._id !== lastLoadedClassId.value) {
+      currentClass.value = newClass;
+      studentList.value = [];
+      // 重新加载全部数据
+      loadStudentsWithData(newClass._id);
+    } else {
+      currentClass.value = newClass;
     }
-    // 读取从switchClass页面传递的selectedClass参数
+    
+    checkLoginStatus();
+  });
+
+  onLoad(async (options) => {
+    // 检查是否有班级
+    const hasClass = await checkIfAnyClass();
+    if (!hasClass) return;
+
+    // 读取传递的参数
     if (options.userNickname) {
-      try {
-        // 给displayName
-        userNickname.value = options.userNickname;
-      } catch (e) {
-        console.error("解析selectedClass参数失败:", e);
-      }
+      userNickname.value = options.userNickname;
     }
     if (options.role) {
       role.value = options.role;
     }
 
-    // 保持原有的currentClass逻辑不变
+    // 获取用户和班级信息
     userInfo.value = uni.getStorageSync("uni-id-pages-userInfo") || {};
     currentClass.value = uni.getStorageSync("currentClass") || {};
 
-    loadStudentsWithData(currentClass.value._id, page.value, pageSize.value);
-    uni.$on("reachBottom", onReachBottom);
+    // 加载学生数据
+    loadStudentsWithData(currentClass.value._id);
   });
 
   onUnload(() => {
-    uni.$off("reachBottom", onReachBottom);
+    // 页面卸载时的清理工作
   });
 
   const checkLoginStatus = () => {
@@ -440,77 +502,157 @@
 
 <style lang="scss" scoped>
   .dashboard {
+    min-height: 100vh;
+    background: linear-gradient(180deg, 
+      #F5FDF8 0%,      // 与头部左侧衔接
+      #F1FCF5 5%,      // 与头部中间衔接
+      #FFF9F0 15%,     // 过渡到暖色
+      #FFFCF8 30%,     // 柔和的暖色过渡
+      #FEFEFE 50%      // 内容区域背景
+    );
+    
     .user-profile {
-      min-height: 160rpx;
+      height: calc(100vh / 12);
+      min-height: 100rpx;
       background: linear-gradient(to right, #f5fdf8, #f1fcf5, #f9fcef);
       display: flex;
       justify-content: space-between;
-      padding: 20rpx 40rpx;
-      box-shadow: inset 0 -20rpx 30rpx rgba(255, 255, 255, 0.8);
+      align-items: center;
+      padding: 0 32rpx;
+      position: relative;
+      overflow: hidden;
+      
+      // 装饰圆点
+      .deco-dots {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        
+        .dot {
+          position: absolute;
+          border-radius: 50%;
+          opacity: 0.5;
+        }
+        
+        .dot-1 {
+          width: 80rpx;
+          height: 80rpx;
+          background: linear-gradient(135deg, #FFD54F 0%, #FFB74D 100%);
+          top: -20rpx;
+          right: 120rpx;
+        }
+        
+        .dot-2 {
+          width: 50rpx;
+          height: 50rpx;
+          background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%);
+          bottom: 20rpx;
+          right: 200rpx;
+        }
+        
+        .dot-3 {
+          width: 30rpx;
+          height: 30rpx;
+          background: linear-gradient(135deg, #64B5F6 0%, #42A5F5 100%);
+          top: 30rpx;
+          left: 280rpx;
+        }
+      }
 
       .profile-left {
         display: flex;
-        gap: 24rpx;
+        gap: 20rpx;
         align-items: center;
-        flex: 1;
+        z-index: 2;
       }
-
-      .avatar-image {
-        width: 120rpx;
-        height: 120rpx;
-      }
-
-      .switch-class {
-        display: flex;
-        height: 60%;
-        align-items: center;
-
-        .switch-class-image {
-          width: 90rpx;
-          height: 90rpx;
+      
+      .avatar-wrapper {
+        position: relative;
+        flex-shrink: 0;
+        
+        .avatar-image {
+          width: 100rpx;
+          height: 100rpx;
+          border-radius: 50%;
+          border: 4rpx solid #fff;
+          box-shadow: 0 2rpx 12rpx rgba(255, 138, 101, 0.25);
+        }
+        
+        .avatar-badge {
+          position: absolute;
+          bottom: -2rpx;
+          right: -6rpx;
+          width: 32rpx;
+          height: 32rpx;
+          background: #fff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.1);
+          
+          text {
+            font-size: 18rpx;
+          }
         }
       }
 
       .info {
         display: flex;
         flex-direction: column;
-        gap: 8rpx;
-        flex: 1;
-        min-width: 0;
+        gap: 6rpx;
 
         .name {
-          color: #00214d;
-          font-family: "PingFang SC";
-          font-size: 32rpx;
-          font-style: normal;
-          font-weight: 600;
-          line-height: 1.2;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
+          color: #3D3D3D;
+          font-size: 34rpx;
+          font-weight: 700;
+          line-height: 1.3;
         }
 
-        .class {
+        .class-row {
           display: flex;
-          gap: 8rpx;
-          color: #3d464a;
-          font-family: "PingFang SC";
-          font-size: 28rpx;
-          font-style: normal;
-          font-weight: 400;
-          line-height: 20px;
           align-items: center;
-          font-weight: 500;
-
-          .invite {
-            background: #dbe9ff;
-            color: #2a64e9;
-            padding: 4px 4px;
-            border-radius: 4px;
-            font-family: "PingFang SC";
-            font-size: 14px;
-            font-style: normal;
-            line-height: 20px;
-            margin-left: 8px;
+          gap: 12rpx;
+          
+          .class-tag {
+            height: 40rpx;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #FFFFFF;
+            padding: 0 16rpx;
+            border-radius: 20rpx;
+            box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
+            
+            .tag-text {
+              font-size: 22rpx;
+              color: #666;
+              line-height: 40rpx;
+            }
+          }
+          
+          .invite-btn {
+            height: 40rpx;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%);
+            padding: 0 20rpx;
+            border-radius: 20rpx;
+            box-shadow: 0 2rpx 6rpx rgba(102, 187, 106, 0.25);
+            transition: all 0.2s ease;
+            
+            &:active {
+              transform: scale(0.95);
+            }
+            
+            .btn-text {
+              font-size: 22rpx;
+              color: #FFFFFF;
+              font-weight: 600;
+              line-height: 40rpx;
+            }
           }
         }
 
@@ -522,21 +664,175 @@
           font-weight: 400;
         }
       }
+      
+      .switch-btn {
+        width: 68rpx;
+        height: 68rpx;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2rpx 12rpx rgba(255, 138, 101, 0.2);
+        z-index: 2;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+        
+        &:active {
+          transform: scale(0.92);
+        }
+        
+        .switch-icon {
+          width: 38rpx;
+          height: 38rpx;
+        }
+      }
+    }
+    
+    // 列表头部：学生总数和下拉提示
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8rpx 40rpx 16rpx;
+      
+      .student-count {
+        display: flex;
+        align-items: center;
+        
+        .count-label {
+          font-size: 26rpx;
+          color: #888;
+        }
+        
+        .count-num {
+          font-size: 32rpx;
+          font-weight: 700;
+          color: #66BB6A;
+          margin: 0 6rpx;
+        }
+      }
+      
+      .pull-hint {
+        font-size: 22rpx;
+        color: #aaa;
+        display: flex;
+        align-items: center;
+        animation: bounce 1.5s infinite;
+        
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(6rpx); }
+        }
+      }
+    }
+    
+    // 空状态样式
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 100rpx 40rpx;
+      
+      .empty-icon {
+        font-size: 120rpx;
+        margin-bottom: 24rpx;
+      }
+      
+      .empty-title {
+        font-size: 34rpx;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 12rpx;
+      }
+      
+      .empty-desc {
+        font-size: 26rpx;
+        color: #888;
+        margin-bottom: 40rpx;
+      }
+      
+      .create-student-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12rpx;
+        width: 360rpx;
+        height: 88rpx;
+        background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%);
+        border-radius: 44rpx;
+        color: #fff;
+        font-size: 32rpx;
+        font-weight: 600;
+        box-shadow: 0 8rpx 24rpx rgba(102, 187, 106, 0.35);
+        border: none;
+        margin: 0;
+        padding: 0;
+        
+        &::after {
+          border: none;
+        }
+        
+        .btn-icon {
+          font-size: 28rpx;
+        }
+      }
+    }
+    
+    // 底部创建入口
+    .bottom-create {
+      padding: 32rpx 0 48rpx;
+      text-align: center;
+      
+      .help-link {
+        font-size: 28rpx;
+        color: #888;
+        text-decoration: underline;
+      }
+    }
+    
+    // 搜索栏样式
+    .search-bar {
+      padding: 16rpx 32rpx;
+      background: transparent;
+      
+      .search-input-wrapper {
+        display: flex;
+        align-items: center;
+        background: #FFFFFF;
+        border-radius: 40rpx;
+        padding: 0 24rpx;
+        height: 72rpx;
+        box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+        
+        .search-icon {
+          font-size: 28rpx;
+          margin-right: 12rpx;
+        }
+        
+        .search-input {
+          flex: 1;
+          font-size: 28rpx;
+          color: #333;
+          height: 72rpx;
+        }
+        
+        .search-placeholder {
+          color: #999;
+          font-size: 28rpx;
+        }
+        
+        .clear-icon {
+          font-size: 24rpx;
+          color: #999;
+          padding: 8rpx;
+        }
+      }
     }
 
     .student-list {
-      // margin-top: 40rpx;
       padding: 5rpx 40rpx;
-
-      .help-link {
-        color: rgba(111, 115, 116, 1);
-        font-size: 28rpx;
-        text-decoration: underline;
-        text-align: center;
-        margin-top: 32rpx;
-        display: block;
-        width: 100%;
-      }
     }
 
     .assessment-option {
