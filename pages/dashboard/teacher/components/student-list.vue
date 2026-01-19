@@ -35,13 +35,11 @@ const handleStudentClick = (student) => {
 .container {
     .student-list {
         display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        // padding: 20rpx;
+        flex-direction: column;
+        gap: 16rpx;
 
         .student-item {
-            width: 48%;
-            margin-bottom: 28rpx;
+            width: 100%;
         }
     }
 }

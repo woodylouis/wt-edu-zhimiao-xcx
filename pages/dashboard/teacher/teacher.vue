@@ -364,6 +364,15 @@
 
 <style lang="scss" scoped>
   .dashboard {
+    min-height: 100vh;
+    background: linear-gradient(180deg, 
+      #F5FDF8 0%,      // 与头部左侧衔接
+      #F1FCF5 5%,      // 与头部中间衔接
+      #FFF9F0 15%,     // 过渡到暖色
+      #FFFCF8 30%,     // 柔和的暖色过渡
+      #FEFEFE 50%      // 内容区域背景
+    );
+    
     .user-profile {
       height: calc(100vh / 12);
       min-height: 100rpx;
