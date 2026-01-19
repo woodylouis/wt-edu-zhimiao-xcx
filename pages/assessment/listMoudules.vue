@@ -233,16 +233,23 @@ const isSubSectionCompleted = (sectionId, subSectionId) => {
 };
 
 // 获取子模块进度文字
-const getSubSectionProgress = (sectionId, subSectionId) => {
+const getSubSectionProgress = (sectionId, subSectionId, questionCount) => {
     const status = modulesStatusMap.value[sectionId];
-    if (!status || !status.subSectionsProgress) return '';
+    if (!status || !status.subSectionsProgress) {
+        // 没有进度数据，返空（使用默认的题目总数）
+        return '';
+    }
     
     const subProgress = status.subSectionsProgress.find(p => p.subSectionId === subSectionId);
-    if (!subProgress) return '';
+    if (!subProgress) {
+        // 该子模块还没有开始做
+        return '';
+    }
     
     const { completedQuestions, totalQuestions, isCompleted } = subProgress;
     if (isCompleted) return '已完成';
-    if (completedQuestions > 0) return `${completedQuestions}/${totalQuestions}`;
+    // 显示进度，即使 completedQuestions 为 0 也显示
+    if (totalQuestions > 0) return `${completedQuestions}/${totalQuestions}`;
     return '';
 };
 

@@ -104,12 +104,13 @@ const updateRecordSaveTime = async (recordId, assessorId, sectionId, data, now, 
 
 		// 构建每个子模块的进度信息
 		const subSectionsProgress = assessmentRecords.map(record => {
-			const answers = record.answers || [];
-			const completedQuestions = answers.filter(a => a && a.text).length;
-			const totalQuestions = record.totalQuestions || answers.length;
+			// 注意字段名称：questions 而不是 answers，alphabet 而不是 abllsSectionAlphabet
+			const questions = record.questions || [];
+			const completedQuestions = questions.filter(q => q.options && q.options.some(opt => opt.selected)).length;
+			const totalQuestions = record.totalQuestions || questions.length;
 			return {
-				subSectionId: record.abllsSectionAlphabet,
-				subSectionName: record.sectionName,
+				subSectionId: record.alphabet, // 字段名是 alphabet
+				subSectionName: record.sectioName || record.sectionName, // 注意拼写错误 sectioName
 				completedQuestions: completedQuestions,
 				totalQuestions: totalQuestions,
 				isCompleted: record.allQuestionsCompleted || false
