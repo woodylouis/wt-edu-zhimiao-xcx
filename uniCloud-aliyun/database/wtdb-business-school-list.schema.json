@@ -1,0 +1,96 @@
+// 文档教程: https://uniapp.dcloud.net.cn/uniCloud/schema
+{
+  "bsonType": "object",
+  "required": ["name"], // 移除creator_user_id，只保留name为必填
+  "permission": {
+    "read": true,
+    "create": "'create-school' in auth.permission",
+    "update": "'edit-school' in auth.permission",
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "学校ID" },
+    "school_id": {
+      "bsonType": "string",
+      "title": "学校编号",
+      "description": "学校唯一编号",
+      "unique": true
+    },
+    "name": {
+      "bsonType": "string",
+      "title": "学校名称",
+      "description": "学校全称"
+    },
+    "address": {
+      "bsonType": "string",
+      "title": "学校地址",
+      "description": "学校详细地址"
+    },
+    "cover": {
+      "bsonType": "string",
+      "title": "封面图片",
+      "description": "学校封面图片URL",
+      "format": "url"
+    },
+    "images": {
+      "bsonType": "array",
+      "title": "图片集合",
+      "description": "学校相关图片URL集合",
+      "items": {
+        "bsonType": "string",
+        "format": "url"
+      }
+    },
+    "latitude": {
+      "bsonType": "double",
+      "title": "纬度",
+      "description": "学校所在位置的纬度坐标",
+      "minimum": -90,
+      "maximum": 90
+    },
+    "longitude": {
+      "bsonType": "double",
+      "title": "经度",
+      "description": "学校所在位置的经度坐标",
+      "minimum": -180,
+      "maximum": 180
+    },
+    "director_user_id": {
+      "bsonType": "string",
+      "foreignKey": "uni-id-users._id",
+      "title": "负责人用户ID",
+      "description": "学校负责人对应的用户ID"
+    },
+    "creator_user_id": {
+      "bsonType": "string",
+      "foreignKey": "uni-id-users._id",
+      "title": "创建者用户ID",
+      "description": "创建学校的用户ID"
+    },
+    "create_time": {
+      "bsonType": "timestamp",
+      "defaultValue": { "$env": "now" },
+      "title": "创建时间"
+    },
+    "update_time": {
+      "bsonType": "timestamp",
+      "defaultValue": { "$env": "now" },
+      "forceDefaultValue": { "$env": "now" },
+      "title": "更新时间"
+    }
+  },
+  "indexes": [
+    {
+      "name": "school_id_1",
+      "key": { "school_id": 1 }
+    },
+    {
+      "name": "name_1",
+      "key": { "name": 1 }
+    },
+    {
+      "name": "location_2d",
+      "key": { "longitude": 1, "latitude": 1 }
+    }
+  ]
+}

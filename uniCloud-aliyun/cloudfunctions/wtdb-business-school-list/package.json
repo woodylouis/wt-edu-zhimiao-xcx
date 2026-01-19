@@ -1,0 +1,7 @@
+{
+  "name": "wtdb-business-school-list",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}
