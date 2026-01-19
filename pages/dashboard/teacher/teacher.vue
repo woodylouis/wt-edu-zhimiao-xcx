@@ -34,7 +34,25 @@
           <image class="switch-icon" :src="switchIconUrl" mode="aspectFit" />
         </view>
       </view>
-    </u-sticky>
+        </u-sticky>
+    
+    <!-- 搜索栏 -->
+    <view class="search-bar">
+      <view class="search-input-wrapper">
+        <text class="search-icon">🔍</text>
+        <input 
+          class="search-input" 
+          type="text" 
+          v-model="searchKeyword" 
+          placeholder="搜索学生姓名..." 
+          placeholder-class="search-placeholder"
+          @input="onSearchInput"
+          @confirm="onSearchConfirm"
+        />
+        <text v-if="searchKeyword" class="clear-icon" @click="clearSearch">✖</text>
+      </view>
+    </view>
+    
     <view class="student-list">
       <view v-if="loading" class="u-demo-block">
         <view class="u-demo-block__content">
@@ -55,10 +73,11 @@
           ></u-skeleton>
         </view>
       </view>
-      <StudentList
+            <StudentList
         v-if="!loading"
-        :studentList="studentList"
+        :studentList="filteredStudentList"
         @handleStudentClick="handleStudentClick"
+        @handleAssessClick="handleAssessClick"
       />
       <text class="help-link" @click="handleHelp">找不到？点击创建</text>
     </view>
@@ -103,7 +122,32 @@
   const loadingMore = ref(false); // 新增加载更多状态
   const noMoreData = ref(false); // 新增无更多数据标志
 
-  const studentList = ref([]);
+    const studentList = ref([]);
+    const searchKeyword = ref('');
+    
+    // 计算属性：过滤后的学生列表
+    const filteredStudentList = computed(() => {
+      if (!searchKeyword.value.trim()) {
+        return studentList.value;
+      }
+      const keyword = searchKeyword.value.trim().toLowerCase();
+      return studentList.value.filter(student => 
+        student.name && student.name.toLowerCase().includes(keyword)
+      );
+    });
+    
+    // 搜索相关方法
+    const onSearchInput = () => {
+      // 实时搜索，无需额外处理
+    };
+    
+    const onSearchConfirm = () => {
+      // 确认搜索
+    };
+    
+    const clearSearch = () => {
+      searchKeyword.value = '';
+    };
   // 新增用户信息获取
   const userInfo = ref(uni.getStorageSync("uni-id-pages-userInfo") || {});
   const currentClass = ref(uni.getStorageSync("currentClass") || {});
@@ -152,28 +196,48 @@
     }
   };
 
-  const handleStudentClick = async (student) => {
+      const handleStudentClick = async (student) => {
+    console.log("查看报告 - 学生:", student);
     uni.showLoading({
       title: "请稍后",
       mask: true,
     });
-    console.log("点击学生:", student); // 调试用，确保学生信息正确传递
-    // 检查学生是否有报告
-    const hasReport = await checkStudentReport(student._id);
+    
+    try {
+      // 检查学生是否有报告
+      const hasReport = await checkStudentReport(student._id);
 
-    if (!hasReport) {
-      uni.showToast({
-        title: "该学生暂无评估报告",
-        icon: "none",
+      if (!hasReport) {
+        uni.hideLoading();
+        uni.showToast({
+          title: "该学生暂无评估报告",
+          icon: "none",
+        });
+        return;
+      }
+
+      uni.setStorageSync(CURRENT_STUDENT, {
+        ...student,
       });
-      return;
+      uni.hideLoading();
+      uni.navigateTo({
+        url: `/pages/assessment/report-v2?isHistory=true`,
+      });
+    } catch (e) {
+      uni.hideLoading();
+      console.error("查看报告失败:", e);
     }
-
+  };
+  
+    // 开始评估入口
+  const handleAssessClick = (student) => {
+    console.log("开始评估 - 学生:", student);
     uni.setStorageSync(CURRENT_STUDENT, {
       ...student,
     });
+    // 跳转到评估列表页面
     uni.navigateTo({
-      url: `/pages/assessment/report-v2?isHistory=true`,
+      url: `/pages/assessment/list`,
     });
   };
 
@@ -539,6 +603,45 @@
         .switch-icon {
           width: 38rpx;
           height: 38rpx;
+        }
+      }
+    }
+    
+    // 搜索栏样式
+    .search-bar {
+      padding: 16rpx 32rpx;
+      background: transparent;
+      
+      .search-input-wrapper {
+        display: flex;
+        align-items: center;
+        background: #FFFFFF;
+        border-radius: 40rpx;
+        padding: 0 24rpx;
+        height: 72rpx;
+        box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+        
+        .search-icon {
+          font-size: 28rpx;
+          margin-right: 12rpx;
+        }
+        
+        .search-input {
+          flex: 1;
+          font-size: 28rpx;
+          color: #333;
+          height: 72rpx;
+        }
+        
+        .search-placeholder {
+          color: #999;
+          font-size: 28rpx;
+        }
+        
+        .clear-icon {
+          font-size: 24rpx;
+          color: #999;
+          padding: 8rpx;
         }
       }
     }

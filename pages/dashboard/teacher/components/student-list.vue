@@ -1,9 +1,12 @@
 <template>
     <view class="container">
         <view v-if="studentList.length > 0" class="student-list">
-            <view v-for="(student, index) in studentList" :key="index" class="student-item"
-                @click="handleStudentClick(student)">
-                <StudentCard :student="student" />
+            <view v-for="(student, index) in studentList" :key="student._id || index" class="student-item">
+                <StudentCard 
+                    :student="student" 
+                    @reportClick="onReportClick(student)"
+                    @assessClick="onAssessClick(student)"
+                />
             </view>
         </view>
         <view v-else>
@@ -13,22 +16,28 @@
 </template>
 
 <script setup>
-import StudentCard from './student-card'
-const $emits = defineEmits(['handleStudentClick'])
+import StudentCard from './student-card.vue'
+
 const props = defineProps({
     studentList: {
         type: Array,
-        default: () => [
-
-        ]
+        default: () => []
     }
 })
 
-const handleStudentClick = (student) => {
-    const plainStudent = JSON.parse(JSON.stringify(student));
-    $emits('handleStudentClick', plainStudent); // 修改这里，使用emit而不是$emits
+const emit = defineEmits(['handleStudentClick', 'handleAssessClick'])
+
+// 查看报告
+const onReportClick = (student) => {
+    console.log('student-list: 查看报告', student.name);
+    emit('handleStudentClick', student);
 }
 
+// 开始评估
+const onAssessClick = (student) => {
+    console.log('student-list: 开始评估', student.name);
+    emit('handleAssessClick', student);
+}
 </script>
 
 <style lang="scss" scoped>
