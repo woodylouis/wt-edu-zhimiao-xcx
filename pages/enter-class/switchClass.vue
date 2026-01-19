@@ -417,7 +417,7 @@ export default {
                     this.calculateSchoolDistances()
                     console.log('用户位置获取成功', res)
                 },
-                fail: () => { this.userLocation = null; console.log('用户位置获取失败') }
+                fail: (err) => { this.userLocation = null; console.log('用户位置获取失败', err) }
             })
         },
         

@@ -281,7 +281,7 @@ const checkUserLocation = () => {
     // ========== 开发配置 ==========
     // 开启后使用模拟位置数据，用于提交小程序审核
     // 审核通过后设置为 false 使用真实位置
-    const USE_MOCK_LOCATION = true;
+    const USE_MOCK_LOCATION = false;
     // 模拟位置（广东中山市兴文路）
     const MOCK_LOCATION = {
         latitude: 22.504876,
