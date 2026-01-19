@@ -12,7 +12,12 @@
         
         <!-- 信息区域 -->
         <view class="info-area">
-            <text class="student-name">{{ student.name }}</text>
+            <view class="name-row">
+                <text class="student-name">{{ student.name }}</text>
+                <view v-if="student.isNew" class="new-tag">
+                    <text class="new-tag-text">刚刚创建</text>
+                </view>
+            </view>
             <view class="meta-row">
                 <view class="date-tag">
                     <text class="date-icon">📅</text>
@@ -123,15 +128,40 @@ const handleAssessClick = () => {
     min-width: 0;
 }
 
+.name-row {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    margin-bottom: 10rpx;
+}
+
 .student-name {
-    display: block;
     font-size: 30rpx;
     font-weight: 700;
     color: #3D3D3D;
-    margin-bottom: 10rpx;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 200rpx;
+}
+
+.new-tag {
+    background: rgba(255, 112, 67, 0.1);
+    border: 1rpx solid rgba(255, 112, 67, 0.3);
+    padding: 2rpx 12rpx;
+    border-radius: 8rpx;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32rpx;
+}
+
+.new-tag-text {
+    font-size: 18rpx;
+    color: #FF7043;
+    font-weight: 600;
+    line-height: 1;
 }
 
 .meta-row {

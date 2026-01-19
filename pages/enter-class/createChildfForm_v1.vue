@@ -130,6 +130,7 @@
     data() {
       return {
         show: false, // 移动到顶层
+        loading: false, // 提交状态锁
         showRelationship: false, // 重命名为关系选择器状态
         showGenderPicker: false, // 新增性别选择器状态
         showDatetimePicker: false,
@@ -253,18 +254,37 @@
       },
       // 模态框确认按钮点击事件
       async handleConfirm() {
+        if (this.loading) return;
+        this.loading = true;
+        uni.showLoading({
+          title: "提交中...",
+          mask: true,
+        });
+
         this.formData.class_id = currentClass._id;
         if (this.formData.gender === "男孩") {
           this.formData.avatar = DEFAULT_AVATAR_BOY;
         } else {
           this.formData.avatar = DEFAULT_AVATAR_GIRL;
         }
-        const childrenRes = await uniCloud.callFunction({
-          name: "wtdb-business-children-edit",
-          data: { submitChildrenData: this.formData },
-        });
+        try {
+          const childrenRes = await uniCloud.callFunction({
+            name: "wtdb-business-children-edit",
+            data: { submitChildrenData: this.formData },
+          });
 
         if (childrenRes.result.code === 200) {
+          // 记录新创建的学生ID，优先在教师端显示
+          const app = getApp();
+          if (app && app.globalData) {
+            if (!app.globalData.newlyCreatedStudentIds) {
+              app.globalData.newlyCreatedStudentIds = [];
+            }
+            app.globalData.newlyCreatedStudentIds.push(
+              childrenRes.result.data.child_id
+            );
+          }
+
           const birthDate = new Date(this.formData.birthdate);
           const today = new Date();
           let years = today.getFullYear() - birthDate.getFullYear();
@@ -309,7 +329,16 @@
             icon: "none",
           });
         }
-      },
+      } catch (error) {
+        uni.showToast({
+          title: `系统错误，请重试`,
+          icon: "none",
+        });
+      } finally {
+        this.loading = false;
+        uni.hideLoading();
+      }
+    },
       async handleSubmit() {
         try {
           const valid = await this.$refs.uForm.validate();

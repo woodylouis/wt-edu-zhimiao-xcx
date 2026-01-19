@@ -156,13 +156,37 @@
     
   // 计算属性：过滤后的学生列表
   const filteredStudentList = computed(() => {
-    if (!searchKeyword.value.trim()) {
-      return studentList.value;
+    let list = studentList.value;
+
+    // 搜索过滤
+    if (searchKeyword.value.trim()) {
+      const keyword = searchKeyword.value.trim().toLowerCase();
+      list = list.filter(
+        (student) =>
+          student.name && student.name.toLowerCase().includes(keyword)
+      );
     }
-    const keyword = searchKeyword.value.trim().toLowerCase();
-    return studentList.value.filter(student => 
-      student.name && student.name.toLowerCase().includes(keyword)
-    );
+
+    // 刚刚创建的学生优先显示
+    const app = getApp();
+    const newIds =
+      (app && app.globalData && app.globalData.newlyCreatedStudentIds) || [];
+
+    if (newIds.length > 0) {
+      // 标记新创建的学生并排序
+      list = list.map((student) => ({
+        ...student,
+        isNew: newIds.includes(student._id),
+      }));
+
+      list.sort((a, b) => {
+        if (a.isNew && !b.isNew) return -1;
+        if (!a.isNew && b.isNew) return 1;
+        return 0;
+      });
+    }
+
+    return list;
   });
     
   // 搜索相关方法

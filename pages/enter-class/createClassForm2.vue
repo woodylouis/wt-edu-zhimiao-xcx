@@ -102,6 +102,7 @@
     data() {
       return {
         show: false, // 移动到顶层
+        loading: false,
         formData: {
           className: "",
           nickname: "",
@@ -185,7 +186,9 @@
       }, // 注意这里需要逗号分隔
 
       async handleConfirm() {
-        uni.showLoading({ title: "提交中..." });
+        if (this.loading) return;
+        this.loading = true;
+        uni.showLoading({ title: "提交中...", mask: true });
         try {
           const cacheData = uni.getStorageSync("classFormData") || {};
           // 新增用户信息获取
@@ -237,6 +240,7 @@
             icon: "none",
           });
         } finally {
+          this.loading = false;
           uni.hideLoading();
         }
       }, // 注意这里需要逗号分隔
