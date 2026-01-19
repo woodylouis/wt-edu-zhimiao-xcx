@@ -1,7 +1,13 @@
 <template>
     <view class="growth-assessment">
         <u-sticky>
-            <custom-nav :needBack="true" :needBar="false" :xcxName="'切换'" :backHandler="handleNavBack" />
+            <custom-nav 
+                :needBack="true" 
+                :needBar="false" 
+                :xcxName="'切换'" 
+                :backHandler="handleNavBack"
+                navCustomStyle="background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);"
+            />
         </u-sticky>
         <view class="form-container">
             <view class="form-header">
@@ -470,11 +476,17 @@ export default {
 <style lang="scss" scoped>
 .growth-assessment {
     min-height: 100vh;
-    background: linear-gradient(180deg, #e8f5e9 0%, #f5f5f5 30%);
+    // 从头部颜色平滑过渡到内容区域
+    background: linear-gradient(180deg, 
+        #F5FDF8 0%,      // 与头部左侧衰接
+        #F1FCF5 8%,      // 与头部中间衰接
+        #e8f5e9 20%,     // 过渡色
+        #f5f5f5 45%      // 内容区域背景色
+    );
 }
 
 .form-container {
-    padding: 32rpx;
+    padding: 0 32rpx 32rpx 32rpx;
     padding-bottom: 180rpx;
 }
 

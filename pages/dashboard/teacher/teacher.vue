@@ -7,24 +7,31 @@
         :needBar="false"
       />
       <view class="user-profile">
-        <!-- 左侧内容容器 -->
 
+        <!-- 左侧内容容器 -->
         <view class="profile-left" @click="onClickProfile">
-          <image class="avatar-image" :src="avatarUrl" />
+          <view class="avatar-wrapper">
+            <image class="avatar-image" :src="avatarUrl" mode="aspectFill" />
+            <view class="avatar-badge">
+              <text>✨</text>
+            </view>
+          </view>
           <view class="info">
-            <view class="name">{{ displayName }}</view>
-            <view class="class"
-              >{{ classDisplay }}
-              <view class="invite" @click.stop="onClickInvite"
-                >邀请加入本班</view
-              >
+            <text class="name">{{ displayName }}</text>
+            <view class="class-row">
+              <view class="class-tag">
+                <text class="tag-text">{{ classDisplay }}</text>
+              </view>
+              <view class="invite-btn" @click.stop="onClickInvite">
+                <text class="btn-text">邀请</text>
+              </view>
             </view>
           </view>
         </view>
 
         <!-- 右侧切换按钮 -->
-        <view class="switch-class" @click="onClickSwitch">
-          <image class="switch-class-image" :src="switchIconUrl"></image>
+        <view class="switch-btn" @click="onClickSwitch">
+          <image class="switch-icon" :src="switchIconUrl" mode="aspectFit" />
         </view>
       </view>
     </u-sticky>
@@ -358,72 +365,171 @@
 <style lang="scss" scoped>
   .dashboard {
     .user-profile {
-      height: calc(100vh / 8);
+      height: calc(100vh / 12);
+      min-height: 100rpx;
       background: linear-gradient(to right, #f5fdf8, #f1fcf5, #f9fcef);
       display: flex;
       justify-content: space-between;
-      padding: 0 40rpx;
-      box-shadow: inset 0 -20rpx 30rpx rgba(255, 255, 255, 0.8);
+      align-items: center;
+      padding: 0 32rpx;
+      position: relative;
+      overflow: hidden;
+      
+      // 装饰圆点
+      .deco-dots {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        
+        .dot {
+          position: absolute;
+          border-radius: 50%;
+          opacity: 0.5;
+        }
+        
+        .dot-1 {
+          width: 80rpx;
+          height: 80rpx;
+          background: linear-gradient(135deg, #FFD54F 0%, #FFB74D 100%);
+          top: -20rpx;
+          right: 120rpx;
+        }
+        
+        .dot-2 {
+          width: 50rpx;
+          height: 50rpx;
+          background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%);
+          bottom: 20rpx;
+          right: 200rpx;
+        }
+        
+        .dot-3 {
+          width: 30rpx;
+          height: 30rpx;
+          background: linear-gradient(135deg, #64B5F6 0%, #42A5F5 100%);
+          top: 30rpx;
+          left: 280rpx;
+        }
+      }
 
       .profile-left {
         display: flex;
-        gap: 24rpx;
-        height: 60%;
+        gap: 20rpx;
         align-items: center;
+        z-index: 2;
       }
-
-      .avatar-image {
-        width: 120rpx;
-        height: 120rpx;
-      }
-
-      .switch-class {
-        display: flex;
-        height: 60%;
-        align-items: center;
-
-        .switch-class-image {
-          width: 90rpx;
-          height: 90rpx;
+      
+      .avatar-wrapper {
+        position: relative;
+        flex-shrink: 0;
+        
+        .avatar-image {
+          width: 100rpx;
+          height: 100rpx;
+          border-radius: 50%;
+          border: 4rpx solid #fff;
+          box-shadow: 0 2rpx 12rpx rgba(255, 138, 101, 0.25);
+        }
+        
+        .avatar-badge {
+          position: absolute;
+          bottom: -2rpx;
+          right: -6rpx;
+          width: 32rpx;
+          height: 32rpx;
+          background: #fff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.1);
+          
+          text {
+            font-size: 18rpx;
+          }
         }
       }
 
       .info {
         display: flex;
         flex-direction: column;
-        gap: 8rpx;
+        gap: 6rpx;
 
         .name {
-          color: #00214d;
-          font-family: "PingFang SC";
-          font-size: 18px;
-          font-style: normal;
-          font-weight: 600;
-          line-height: 24px;
+          color: #3D3D3D;
+          font-size: 34rpx;
+          font-weight: 700;
+          line-height: 1.3;
         }
 
-        .class {
+        .class-row {
           display: flex;
-          gap: 8rpx;
-          color: #3d464a;
-          font-family: "PingFang SC";
-          font-size: 14px;
-          font-style: normal;
-          font-weight: 400;
-          line-height: 20px;
           align-items: center;
-
-          .invite {
-            background: #dbe9ff;
-            color: #2a64e9;
-            padding: 4px 4px;
-            border-radius: 4px;
-            font-family: "PingFang SC";
-            font-size: 14px;
-            font-style: normal;
-            line-height: 20px;
-            margin-left: 8px;
+          gap: 12rpx;
+          
+          .class-tag {
+            height: 40rpx;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #FFFFFF;
+            padding: 0 16rpx;
+            border-radius: 20rpx;
+            box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
+            
+            .tag-text {
+              font-size: 22rpx;
+              color: #666;
+              line-height: 40rpx;
+            }
           }
+          
+          .invite-btn {
+            height: 40rpx;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%);
+            padding: 0 20rpx;
+            border-radius: 20rpx;
+            box-shadow: 0 2rpx 6rpx rgba(102, 187, 106, 0.25);
+            transition: all 0.2s ease;
+            
+            &:active {
+              transform: scale(0.95);
+            }
+            
+            .btn-text {
+              font-size: 22rpx;
+              color: #FFFFFF;
+              font-weight: 600;
+              line-height: 40rpx;
+            }
+          }
+        }
+      }
+      
+      .switch-btn {
+        width: 68rpx;
+        height: 68rpx;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2rpx 12rpx rgba(255, 138, 101, 0.2);
+        z-index: 2;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+        
+        &:active {
+          transform: scale(0.92);
+        }
+        
+        .switch-icon {
+          width: 38rpx;
+          height: 38rpx;
         }
       }
     }
