@@ -192,6 +192,72 @@
         "aiResponse": {
             "bsonType": "string",
             "description": "(新增，可选) 完整AI生成报告"
+        },
+        "pdfUrl": {
+            "bsonType": "string",
+            "description": "PDF文件云存储URL"
+        },
+        "pdfStatus": {
+            "bsonType": "string",
+            "enum": [
+                "pending",
+                "generating",
+                "completed",
+                "failed"
+            ],
+            "description": "PDF生成状态"
+        },
+        "pdfGeneratedTime": {
+            "bsonType": "timestamp",
+            "description": "PDF生成时间"
+        },
+        "reportId": {
+            "bsonType": "string",
+            "description": "报告唯一ID"
+        },
+        "reportVersion": {
+            "bsonType": "string",
+            "description": "报告版本"
+        },
+        "recordId": {
+            "bsonType": "string",
+            "description": "关联的评估记录ID"
+        },
+        "assessorId": {
+            "bsonType": "string",
+            "description": "评估师ID"
+        },
+        "assessorName": {
+            "bsonType": "string",
+            "description": "评估师名称"
+        },
+        "avatar": {
+            "bsonType": "string",
+            "description": "学生头像"
+        },
+        "ageInt": {
+            "bsonType": "int",
+            "description": "学生年龄整数"
+        },
+        "assessmentTitle": {
+            "bsonType": "string",
+            "description": "评估量表标题"
+        },
+        "sectionSummaryList": {
+            "bsonType": "array",
+            "description": "各模块评估摘要列表"
+        },
+        "reportSummary": {
+            "bsonType": "string",
+            "description": "报告总结"
+        },
+        "createTime": {
+            "bsonType": "timestamp",
+            "description": "创建时间"
+        },
+        "updateTime": {
+            "bsonType": "timestamp",
+            "description": "更新时间"
         }
     }
 }

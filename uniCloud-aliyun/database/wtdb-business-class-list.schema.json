@@ -6,6 +6,12 @@
     "created_by",
     "code"
   ], // 新增必填字段
+  "permission": {
+    "read": true,
+    "create": "'create-class' in auth.permission",
+    "update": "'edit-class' in auth.permission",
+    "delete": false
+  },
   "properties": {
     "_id": {
       "description": "班级ID"
