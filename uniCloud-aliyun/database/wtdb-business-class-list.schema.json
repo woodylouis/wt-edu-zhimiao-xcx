@@ -48,7 +48,15 @@
       "bsonType": "string",
       "title": "班级描述"
     },
+    "remark": {
+      "bsonType": "string",
+      "title": "备注"
+    },
     "teacherName": {
+      "bsonType": "string",
+      "title": "创建者老师名字"
+    },
+    "class_creator_teacher": {
       "bsonType": "string",
       "title": "创建者老师名字"
     },
