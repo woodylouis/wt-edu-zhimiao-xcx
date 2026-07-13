@@ -31,15 +31,21 @@
                         src="https://cdn.builder.io/api/v1/image/assets/022245c9a8b14954aad66a5dc04d83ff/f2e436be44ad54ad40e29997f78afdd3ac0678de?placeholderIfAbsent=true"
                         class="loading-image" mode="aspectFit" />
                     <text class="loading-message">
-                        正在生成智能分析报告...
+                        {{ statusTitle }}
                     </text>
+                    <view class="progress-box" v-if="progress > 0">
+                        <view class="progress-track">
+                            <view class="progress-fill" :style="{ width: progress + '%' }"></view>
+                        </view>
+                        <text class="progress-label">{{ progress }}%</text>
+                    </view>
                     <!-- 分割线 -->
                     <view class="separator"></view>
                     <view class="tips">
                         <img src="https://cdn.builder.io/api/v1/image/assets/022245c9a8b14954aad66a5dc04d83ff/e6fd64bcab073741b3e800de42955c66c3e1302f?placeholderIfAbsent=true"
                             class="analysis-icon" alt="AI Analysis" />
                         <p class="analysis-text">
-                            <span class="analysis-text-normal">AI正在分析中，</span>约需5~7分钟
+                            <span class="analysis-text-normal">{{ statusDesc }}</span>
                         </p>
                     </view>
                 </view>
@@ -49,6 +55,13 @@
                     <text class="info-text">
                         您也可以先看看其它页面，稍后再回来查看报告
                     </text>
+                </view>
+                <view class="backToHome" v-if="canViewReport" @click="viewReport">
+                    <u-button :custom-style="{
+                        ...primaryButtonStyle
+                    }">
+                        查看报告
+                    </u-button>
                 </view>
                 <view class="backToHome" @click="backToHome">
                     <u-button :custom-style="{
@@ -69,14 +82,14 @@ import { ref, onUnmounted } from "vue";
 import customNav from '@/components/customNav';
 import { ASSESS_STUDENT, CURRENT_ASSESSMENT_MODULE_STATUS } from '@/lib/types/local_storage.js';
 
-const assessStudent = uni.getStorageSync(ASSESS_STUDENT);
-let displayName = assessStudent.childName;
-let classDisplay = assessStudent.className;
-let avatarUrl = assessStudent.avatar;
-let childAge = assessStudent.childAge;
-let assessmentTitle = assessStudent.assessmentTitle;
-const currentAssessmentModuleStatus = uni.getStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS);
-let assessmentCreateTime = new Date(currentAssessmentModuleStatus.createTime).toLocaleDateString('zh-CN', {
+const assessStudent = uni.getStorageSync(ASSESS_STUDENT) || {};
+let displayName = assessStudent.childName || '';
+let classDisplay = assessStudent.className || '';
+let avatarUrl = assessStudent.avatar || '';
+let childAge = assessStudent.childAge || '';
+let assessmentTitle = assessStudent.assessmentTitle || '儿童成长评估';
+const currentAssessmentModuleStatus = uni.getStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS) || {};
+let assessmentCreateTime = new Date(currentAssessmentModuleStatus.createTime || Date.now()).toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
@@ -87,9 +100,31 @@ let currentDate = new Date().toLocaleDateString('zh-CN', {
     day: '2-digit'
 }).replace(/\//g, '年').replace(/\//g, '月') + '日';
 
+const taskId = ref('');
+const recordId = ref('');
+const childId = ref(assessStudent.childId || '');
+const reportId = ref('');
+const progress = ref(0);
+const canViewReport = ref(false);
+const statusTitle = ref('正在生成智能分析报告...');
+const statusDesc = ref('DeepSeek正在分析中，约需5~7分钟');
+let pollTimer = null;
+
 let buttonStyle = {
     backgroundColor: "#FFFFFF",
     color: "#00214D",
+    border: "1px solid #00214D",
+    borderRadius: "48rpx",
+    fontSize: "32rpx",
+    padding: "26rpx 0",
+    height: "50px",
+    marginTop: "40rpx",
+    width: "260rpx"
+}
+
+let primaryButtonStyle = {
+    backgroundColor: "#00214D",
+    color: "#FFFFFF",
     border: "1px solid #00214D",
     borderRadius: "48rpx",
     fontSize: "32rpx",
@@ -111,14 +146,104 @@ const backToHome = () => {
     uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
 }
 
+const statusMessageMap = {
+    pending: '任务已提交，等待DeepSeek分析',
+    processing: 'DeepSeek正在分析各评估模块',
+    waiting_merge: '正在生成报告总结',
+    pending_save: '正在保存智能分析报告',
+    completed: '报告已生成',
+    failed: '报告生成失败'
+}
+
+const updateStatusText = (data = {}) => {
+    const status = data.status || 'pending';
+    progress.value = Math.max(0, Math.min(100, Number(data.progress) || 0));
+
+    if (status === 'completed') {
+        progress.value = 100;
+        reportId.value = data.reportId || reportId.value;
+        canViewReport.value = true;
+        statusTitle.value = '报告已生成';
+        statusDesc.value = 'DeepSeek分析完成，可以查看报告';
+        stopPolling();
+        return;
+    }
+
+    if (status === 'failed') {
+        canViewReport.value = false;
+        statusTitle.value = '报告生成失败';
+        statusDesc.value = data.failReason || 'DeepSeek分析失败，请稍后在后台重试';
+        stopPolling();
+        return;
+    }
+
+    canViewReport.value = false;
+    statusTitle.value = statusMessageMap[status] || '正在生成智能分析报告...';
+    statusDesc.value = 'DeepSeek正在分析中，约需5~7分钟';
+}
+
+const pollReportTaskStatus = async () => {
+    if (!taskId.value && !recordId.value && !childId.value) return;
+
+    try {
+        const res = await uniCloud.callFunction({
+            name: 'wt-get-report-task-status',
+            data: {
+                taskId: taskId.value,
+                recordId: recordId.value,
+                childId: childId.value,
+                uniIdToken: uni.getStorageSync('uni_id_token')
+            }
+        });
+
+        if (res.result.code === 200) {
+            updateStatusText(res.result.data || {});
+        }
+    } catch (error) {
+        console.error('获取报告任务状态失败:', error);
+    }
+}
+
+const startPolling = () => {
+    stopPolling();
+    pollReportTaskStatus();
+    pollTimer = setInterval(pollReportTaskStatus, 8000);
+}
+
+const stopPolling = () => {
+    if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+    }
+}
+
+const viewReport = () => {
+    const currentStudent = uni.getStorageSync('current_student') || {};
+    uni.setStorageSync('current_student', {
+        ...currentStudent,
+        _id: childId.value || currentStudent._id || assessStudent.childId,
+        name: currentStudent.name || assessStudent.childName,
+        avatar: currentStudent.avatar || assessStudent.avatar,
+        class_id: currentStudent.class_id || assessStudent.classId,
+        birthdate: currentStudent.birthdate || assessStudent.birthdate,
+        gender: currentStudent.gender || assessStudent.gender,
+        lastAssessmentDate: currentStudent.lastAssessmentDate || currentDate,
+        age: currentStudent.age || assessStudent.childAge
+    });
+    uni.redirectTo({ url: '/pages/assessment/report-v2?isHistory=true' });
+}
+
 
 
 onLoad(async function (options) {
-
+    taskId.value = options.taskId || '';
+    recordId.value = options.recordId || currentAssessmentModuleStatus?.recordId || '';
+    childId.value = options.childId || assessStudent.childId || '';
+    startPolling();
 });
 
 onUnmounted(() => {
-
+    stopPolling();
 
 });
 
@@ -230,6 +355,34 @@ onUnmounted(() => {
                     font-weight: 600;
                     line-height: 1.2;
                     margin-top: 52rpx;
+                }
+
+                .progress-box {
+                    width: 70%;
+                    display: flex;
+                    align-items: center;
+                    gap: 16rpx;
+                    margin-top: 24rpx;
+
+                    .progress-track {
+                        flex: 1;
+                        height: 12rpx;
+                        background: #E9E9E9;
+                        border-radius: 999rpx;
+                        overflow: hidden;
+                    }
+
+                    .progress-fill {
+                        height: 100%;
+                        background: #6EDD8A;
+                        border-radius: 999rpx;
+                        transition: width 0.2s ease;
+                    }
+
+                    .progress-label {
+                        color: #3D464A;
+                        font-size: 24rpx;
+                    }
                 }
 
                 .separator {

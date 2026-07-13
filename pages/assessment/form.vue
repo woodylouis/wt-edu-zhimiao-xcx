@@ -296,7 +296,12 @@
       if (confirmToGenerateReport) {
         changeStatus();
       }
-      uni.redirectTo({ url: "/pages/assessment/afterAssess" });
+      const params = [
+        result?.taskId ? `taskId=${encodeURIComponent(result.taskId)}` : '',
+        `recordId=${encodeURIComponent(assessmentMeta.recordId)}`,
+        `childId=${encodeURIComponent(assessmentMeta.childId)}`
+      ].filter(Boolean).join('&');
+      uni.redirectTo({ url: `/pages/assessment/afterAssess?${params}` });
     } catch (error) {
       console.error("提交评测失败:", error);
       uni.showToast({
@@ -400,6 +405,7 @@
           currentSubSectionId: currentAbllsSectionAlphabet,
           currentSubSectionName: currentAbllsSectionName,
           currentSubSectionIndex: stepCurrentIndex.value,
+          uniIdToken: uni.getStorageSync("uni_id_token"),
           data: all,
         },
       })
@@ -466,6 +472,7 @@
           assessorId,
           childId,
           confirmToGenerateReport,
+          uniIdToken: uni.getStorageSync("uni_id_token"),
         },
         timeout: 30000,
       });
@@ -517,7 +524,9 @@
               ? "本评测还有模块未完成。如果继续，则只生成已完成的部分，其余将作废或忽略。"
               : "";
         }
+        return res.result.data;
       }
+      return res.result.data;
     } catch (error) {
       console.error("生成报告失败:", error);
       uni.hideLoading(); // 错误时隐藏loading

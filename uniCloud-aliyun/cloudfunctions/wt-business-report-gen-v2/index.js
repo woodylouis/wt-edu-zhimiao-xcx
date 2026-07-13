@@ -25,7 +25,8 @@ exports.main = async (event, context) => {
 	try {
 		const uniIdInstance = uniID.createInstance({ context });
 		const { uid } = await uniIdInstance.checkToken(event.uniIdToken);
-		const { recordId, assessmentId, assessorId, childId, confirmToGenerateReport } = event;
+		const { recordId, assessmentId, childId, confirmToGenerateReport } = event;
+		const assessorId = uid;
 
 		// 参数校验
 		if (!recordId || !assessmentId || !assessorId || !childId) {
@@ -98,6 +99,11 @@ exports.main = async (event, context) => {
 					originalParams: {
 						completedSectionList,
 						query
+					},
+					metadata: {
+						provider: 'deepseek-official',
+						model: deepseek.DEFAULT_MODEL,
+						source: 'mini-program-submit'
 					}
 				});
 
@@ -108,9 +114,11 @@ exports.main = async (event, context) => {
 					data: {
 						...result,
 						taskId,
+						provider: 'deepseek-official',
+						model: deepseek.DEFAULT_MODEL,
 						message: '报告生成任务已启动，请稍后查询结果'
 					},
-					message: '任务已提交，正在后台生成报告'
+					message: '任务已提交，正在使用DeepSeek后台生成报告'
 				};
 			} else {
 				return {
