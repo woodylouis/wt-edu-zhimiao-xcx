@@ -61,6 +61,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { shouldBypassAssessmentLocationCheck } from '@/common/debug.js'
 
 const props = defineProps({
     visible: {
@@ -188,6 +189,12 @@ const checkLocationPermission = () => {
     return new Promise((resolve) => {
         const currentClass = uni.getStorageSync('currentClass') || {}
         const schoolId = currentClass?.school_id
+
+        if (shouldBypassAssessmentLocationCheck()) {
+            console.log('调试模式，跳过学校位置检查')
+            resolve({ canProceed: true, debugBypass: true })
+            return
+        }
         
         // 如果班级没有关联学校，直接允许
         if (!schoolId) {

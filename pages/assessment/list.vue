@@ -47,6 +47,7 @@ import { ref, onMounted, computed, reactive } from "vue";
 import { onShow, onLoad } from '@dcloudio/uni-app'
 import QcSuspendBtn from '@/components/qc-suspendBtn/qc-suspendBtn.vue'
 import btnConfig from '@/common/suspen-btn/config.js'
+import { shouldBypassAssessmentLocationCheck } from '@/common/debug.js'
 const CACHE_KEY = 'teacher_assessment_list';
 const CACHE_EXPIRY = 3600 * 1000; // 1小时有效期
 const assessmentList = ref([]);
@@ -292,6 +293,12 @@ const checkUserLocation = () => {
     return new Promise((resolve) => {
         // 获取当前班级对应的学校ID
         const schoolId = currentClass.value?.school_id;
+
+        if (shouldBypassAssessmentLocationCheck()) {
+            console.log('调试模式，跳过学校位置检查');
+            resolve({ canProceed: true, debugBypass: true });
+            return;
+        }
         
         // 如果班级没有关联学校，直接允许
         if (!schoolId) {
