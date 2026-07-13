@@ -1,0 +1,19 @@
+{
+	"name": "wt-report-task-orchestrator",
+	"dependencies": {},
+	"cloudfunction-config": {
+		"concurrency": 1,
+		"memorySize": 512,
+		"timeout": 600,
+		"triggers": [
+			{
+				"name": "wt-report-task-orchestrator",
+				"type": "timer",
+				"config": "0 * * * * * *"
+			}
+		]
+	},
+	"extensions": {
+		"uni-cloud-jql": {}
+	}
+}

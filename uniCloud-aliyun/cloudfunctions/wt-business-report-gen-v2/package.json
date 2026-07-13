@@ -2,10 +2,15 @@
   "name": "wt-assess-report-gen",
   "dependencies": {
     "uni-id-common": "file:../../../uni_modules/uni-id-common/uniCloud/cloudfunctions/common/uni-id-common",
-    "wt-business-ai-report-generate": "file:../common/wt-business-ai-report-generate"
+    "wt-business-ai-report-generate": "file:../common/wt-business-ai-report-generate",
+    "deepseek-client": "file:../common/deepseek-client"
+  },
+  "cloudfunction-config": {
+    "concurrency": 1,
+    "memorySize": 512,
+    "timeout": 120
   },
   "extensions": {
-    "uni-cloud-jql": {},
-    "uni-cloud-ai": {}
+    "uni-cloud-jql": {}
   }
 }

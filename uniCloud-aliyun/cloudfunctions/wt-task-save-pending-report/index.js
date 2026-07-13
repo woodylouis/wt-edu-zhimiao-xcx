@@ -14,8 +14,11 @@ async function log(tag, data = null, { taskId = '', recordId = '', level = 'info
 	} catch (_) { }
 }
 
-exports.main = async () => {
-	const tasks = await dbPending.where({ status: 'pending' }).limit(3).get()
+exports.main = async (event = {}) => {
+	const taskWhere = event.taskId
+		? { taskId: event.taskId, status: 'pending' }
+		: { status: 'pending' }
+	const tasks = await dbPending.where(taskWhere).limit(3).get()
 
 	for (const task of tasks.data) {
 		const { taskId, recordId, reportData, _id } = task
@@ -44,6 +47,9 @@ exports.main = async () => {
 			await dbTask.where({ taskId }).update({
 				status: 'completed',
 				progress: 100,
+				completedSections: reportData.sectionSummaryList?.length || 0,
+				report: reportData,
+				endTime: Date.now(),
 				updateTime: Date.now()
 			})
 
@@ -55,6 +61,12 @@ exports.main = async () => {
 				status: 'failed',
 				failReason: err.message,
 				failTime: Date.now()
+			})
+			await dbTask.where({ taskId }).update({
+				status: 'failed',
+				failReason: err.message,
+				errorMessage: err.message,
+				updateTime: Date.now()
 			})
 			await log('save-pending-error', { error: err.message }, { taskId, recordId, level: 'error' })
 		}

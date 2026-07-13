@@ -1,8 +1,14 @@
 {
   "name": "wt-section-analysis-worker",
-  "dependencies": {},
+  "dependencies": {
+    "deepseek-client": "file:../common/deepseek-client"
+  },
+  "cloudfunction-config": {
+    "concurrency": 1,
+    "memorySize": 512,
+    "timeout": 300
+  },
   "extensions": {
-    "uni-cloud-jql": {},
-    "uni-cloud-ai": {}
+    "uni-cloud-jql": {}
   }
 }

@@ -1,6 +1,11 @@
 {
   "name": "wt-section-task-dispatcher",
   "dependencies": {},
+  "cloudfunction-config": {
+    "concurrency": 1,
+    "memorySize": 256,
+    "timeout": 60
+  },
   "extensions": {
     "uni-cloud-jql": {}
   }

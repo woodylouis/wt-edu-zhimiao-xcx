@@ -1,6 +1,13 @@
 {
   "name": "wt-section-merge-to-report",
-  "dependencies": {},
+  "dependencies": {
+    "deepseek-client": "file:../common/deepseek-client"
+  },
+  "cloudfunction-config": {
+    "concurrency": 1,
+    "memorySize": 512,
+    "timeout": 120
+  },
   "extensions": {
     "uni-cloud-jql": {}
   }

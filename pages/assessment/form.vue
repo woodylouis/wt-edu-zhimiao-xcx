@@ -283,14 +283,28 @@
     console.log(pages);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     const checkModuleStatus = true;
     const confirmToGenerateReport = true;
-    prepareAllRecords(checkModuleStatus, confirmToGenerateReport);
-    uni.redirectTo({ url: "/pages/assessment/afterAssess" });
-    // TO-DO: 更改状态
-    if (confirmToGenerateReport) {
-      changeStatus();
+    uni.showLoading({ title: "提交评测中...", mask: true });
+    try {
+      const result = await prepareAllRecords(
+        checkModuleStatus,
+        confirmToGenerateReport
+      );
+      if (result?.skipped) return;
+      if (confirmToGenerateReport) {
+        changeStatus();
+      }
+      uni.redirectTo({ url: "/pages/assessment/afterAssess" });
+    } catch (error) {
+      console.error("提交评测失败:", error);
+      uni.showToast({
+        title: error.message || "提交失败",
+        icon: "none",
+      });
+    } finally {
+      uni.hideLoading();
     }
   };
 
@@ -365,7 +379,7 @@
     ) {
       console.log("allAbllsSectionsRecordForm为空，不上传");
       uni.redirectTo({ url: "/pages/assessment/listMoudules" });
-      return;
+      return Promise.resolve({ skipped: true });
     }
     const all = {
       ...assessmentMeta,
@@ -373,7 +387,7 @@
     };
     console.log("all:", all);
     // 调用云函数上传评估记录
-    uniCloud
+    return uniCloud
       .callFunction({
         name: "wtdb-upload-assess-history",
         data: {
@@ -394,14 +408,14 @@
 
         if (checkModuleStatus && !isToGenerateReport) {
           uni.showLoading({ title: "分析完成状态...", mask: true });
-          generateReport(
+          return generateReport(
             assessmentMeta.recordId,
             assessmentMeta.assessmentId,
             assessmentMeta.assessorId,
             assessmentMeta.childId
           );
         } else if (checkModuleStatus && isToGenerateReport) {
-          generateReport(
+          return generateReport(
             assessmentMeta.recordId,
             assessmentMeta.assessmentId,
             assessmentMeta.assessorId,
@@ -430,6 +444,7 @@
       })
       .catch((err) => {
         console.error("评估记录上传失败:", err);
+        throw err;
       });
   };
 
@@ -452,10 +467,14 @@
           childId,
           confirmToGenerateReport,
         },
-        timeout: 30000, // 10秒超时
+        timeout: 30000,
       });
       console.log("res:", res.result.data);
       console.log("res code:", res.result.code);
+
+      if (res.result.code !== 200) {
+        throw new Error(res.result.message || "报告任务创建失败");
+      }
 
       if (res.result.code == 200 && res.result.data) {
         inProgressSection.value = res.result.data.inProgress;
@@ -464,42 +483,45 @@
         console.log("inProgressSection:", inProgressSection.value);
         console.log("notStartedSection:", notStartedSection.value);
         console.log("completedSection:", completedSection.value);
-        tips.value = `以下是本次评测完成情况：`;
-        confirmInfo.value = [
-          {
-            label: "已完成的模块：",
-            name:
-              completedSection.value
-                .map(
-                  (u) =>
-                    u.sectionName +
-                    (u.sectionName === currentSection ? "(当前)" : "")
-                )
-                .join("\n") || "无",
-          },
-          {
-            label: "正在进行模块：",
-            name:
-              inProgressSection.value.map((u) => u.sectionName).join("\n") ||
-              "无",
-          },
-          {
-            label: "未开始的模块：",
-            name:
-              notStartedSection.value.map((u) => u.sectionName).join("\n") ||
-              "无",
-          },
-        ];
-        show.value = true;
-        tips2.value =
-          notStartedSection.value.length > 0 ||
-          inProgressSection.value.length > 0
-            ? "本评测还有模块未完成。如果继续，则只生成已完成的部分，其余将作废或忽略。"
-            : "";
+        if (!confirmToGenerateReport) {
+          tips.value = `以下是本次评测完成情况：`;
+          confirmInfo.value = [
+            {
+              label: "已完成的模块：",
+              name:
+                completedSection.value
+                  .map(
+                    (u) =>
+                      u.sectionName +
+                      (u.sectionName === currentSection ? "(当前)" : "")
+                  )
+                  .join("\n") || "无",
+            },
+            {
+              label: "正在进行模块：",
+              name:
+                inProgressSection.value.map((u) => u.sectionName).join("\n") ||
+                "无",
+            },
+            {
+              label: "未开始的模块：",
+              name:
+                notStartedSection.value.map((u) => u.sectionName).join("\n") ||
+                "无",
+            },
+          ];
+          show.value = true;
+          tips2.value =
+            notStartedSection.value.length > 0 ||
+            inProgressSection.value.length > 0
+              ? "本评测还有模块未完成。如果继续，则只生成已完成的部分，其余将作废或忽略。"
+              : "";
+        }
       }
     } catch (error) {
       console.error("生成报告失败:", error);
       uni.hideLoading(); // 错误时隐藏loading
+      throw error;
     } finally {
       uni.hideLoading(); // 无论成功失败都隐藏loading
     }

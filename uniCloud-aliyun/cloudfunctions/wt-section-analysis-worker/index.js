@@ -1,7 +1,9 @@
 'use strict'
 const db = uniCloud.database()
 const taskCollection = db.collection('wtdb-section-analysis-tasks')
+const reportTaskCollection = db.collection('wtdb-report-tasks')
 const logCollection = db.collection('wtdb-debug-logs')
+const deepseek = require('deepseek-client')
 
 const MAX_RETRY = 3 // 减少重试次数，避免云函数超时
 const TIMEOUT_MS = 30000 // 减少AI调用超时时间到30秒
@@ -64,73 +66,105 @@ function generateSectionFallbackAnalysis(sectionName, skills, childName) {
 	return `${childName}在${sectionName}领域有${skills.length}项技能需改进，重点关注${skillNames}等内容。建议结合兴趣点、使用结构化教学法和正向激励策略，逐步提升这些技能的表现水平。`
 }
 
+function getSelectedOption(question) {
+	return (question.options || []).find(opt => opt.selected) || null
+}
+
+function getExpectedOutcome(question, ageInt) {
+	const ageStd = question.age_standards?.find(as => as.age === ageInt)
+	const match = question.options?.find(opt => opt.score === ageStd?.expected_score)
+	return match?.name || ''
+}
+
+function buildSkillItem(question, ageInt) {
+	const selectedOption = getSelectedOption(question)
+	return {
+		...question,
+		taskName: question.task_name || question.taskName || '未命名技能',
+		taskObject: question.task_object || question.taskObject || '',
+		taskContent: question.content || question.taskContent || '',
+		actualOutcome: selectedOption?.name || '',
+		actualScore: question.score || 0,
+		expectedOutcome: getExpectedOutcome(question, ageInt),
+		expectedScore: question.expected_score || question.expectedScore || 0,
+		description: question.description || ''
+	}
+}
+
+async function updateReportTaskProgress(taskId) {
+	try {
+		const [analysisRes, taskRes] = await Promise.all([
+			taskCollection.where({ taskId }).field({ status: true }).get(),
+			reportTaskCollection.where({ taskId }).field({ totalSections: true, logs: true }).limit(1).get()
+		])
+
+		const analysisList = analysisRes.data || []
+		const doneCount = analysisList.filter(item => item.status === 'done').length
+		const failedCount = analysisList.filter(item => item.status === 'failed').length
+		const totalSections = Number(taskRes.data?.[0]?.totalSections) || analysisList.length || 0
+		const progress = totalSections ? Math.min(90, Math.round((doneCount / totalSections) * 90)) : 0
+
+		const updateData = {
+			completedSections: doneCount,
+			progress,
+			updateTime: Date.now()
+		}
+
+		if (failedCount > 0) {
+			updateData.failReason = `${failedCount} 个模块分析失败`
+		}
+
+		await reportTaskCollection.where({ taskId }).update(updateData)
+	} catch (error) {
+		await log('update-report-task-progress-failed', { error: error.message }, { taskId, level: 'warn' })
+	}
+}
+
 async function generateSectionAnalysisWithRetry(sectionData, childName, childAge, taskId, docId) {
 	let attempt = 0
 	let lastError = null
-	const models = [
-		{
-			name: 'deepseek',
-			config: {
-				provider: 'deepseek',
-				model: 'deepseek-chat',
-				tokensToGenerate: 300, // 减少token数量，加快响应
-				apiKey: 'sk-e736907dad8a49ffa8e614916b32440f'
-			}
-		},
-	]
 
 	while (attempt < MAX_RETRY) {
 		attempt++
-		for (const model of models) {
-			try {
-				await log('ai-attempt', { model: model.name, attempt }, { taskId })
+		try {
+			const prompt = buildSectionAnalysisPrompt(sectionData, childName, childAge)
+			await log('ai-attempt', {
+				provider: 'deepseek-official',
+				model: deepseek.DEFAULT_MODEL,
+				attempt,
+				promptLength: prompt.length,
+				sectionName: sectionData.sectionName
+			}, { taskId })
 
-				const llm = uniCloud.ai.getLLMManager({ provider: model.config.provider, apiKey: model.config.apiKey })
-				const prompt = buildSectionAnalysisPrompt(sectionData, childName, childAge)
+			const reply = await deepseek.chatText({
+				messages: [
+					{ role: 'system', content: getSectionSystemPrompt() },
+					{ role: 'user', content: prompt }
+				],
+				maxTokens: 400,
+				timeout: TIMEOUT_MS
+			})
 
-				// 添加AI分析开始日志
-				await log('ai-analysis-start', {
-					model: model.name,
-					promptLength: prompt.length,
-					sectionName: sectionData.sectionName
+			if (reply && reply.length > 30) {
+				await log('ai-analysis-success', {
+					provider: 'deepseek-official',
+					model: deepseek.DEFAULT_MODEL,
+					replyLength: reply.length
 				}, { taskId })
+				return reply
+			}
 
-				const response = await Promise.race([
-					llm.chatCompletion({
-						model: model.config.model,
-						messages: [
-							{ role: 'system', content: getSectionSystemPrompt() },
-							{ role: 'user', content: prompt }
-						],
-						tokensToGenerate: model.config.tokensToGenerate
-					}),
-					new Promise((_, reject) =>
-						setTimeout(() => reject(new Error('AI请求超时')), TIMEOUT_MS)
-					)
-				])
+			throw new Error('DeepSeek 返回无效内容')
+		} catch (err) {
+			lastError = err
+			await log('ai-failed', {
+				provider: 'deepseek-official',
+				error: err.message,
+				attempt
+			}, { taskId, level: 'error' })
 
-				if (response && response.reply && response.reply.length > 30) {
-					// 添加AI分析成功日志
-					await log('ai-analysis-success', {
-						model: model.name,
-						replyLength: response.reply.length
-					}, { taskId })
-					return response.reply
-				} else {
-					throw new Error(`${model.name} 返回无效内容`)
-				}
-			} catch (err) {
-				lastError = err
-				await log('ai-failed', {
-					model: model.name,
-					error: err.message,
-					attempt: attempt
-				}, { taskId, level: 'error' })
-
-				// 添加延时，避免频繁重试
-				if (attempt < MAX_RETRY) {
-					await new Promise(resolve => setTimeout(resolve, 1000))
-				}
+			if (attempt < MAX_RETRY) {
+				await new Promise(resolve => setTimeout(resolve, 1000))
 			}
 		}
 
@@ -141,9 +175,12 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
 	throw lastError
 }
 
-exports.main = async () => {
+exports.main = async (event = {}) => {
 	const startTime = Date.now()
-	const tasks = await taskCollection.where({ status: 'pending' }).limit(2).get() // 减少并发处理数量
+	const taskWhere = event.taskId
+		? { taskId: event.taskId, status: 'pending' }
+		: { status: 'pending' }
+	const tasks = await taskCollection.where(taskWhere).limit(2).get() // 减少并发处理数量
 	console.log('Fetched tasks:', tasks)
 
 	for (const task of tasks.data) {
@@ -170,15 +207,7 @@ exports.main = async () => {
 			for (const record of assessmentRecords) {
 				for (const question of record.questions || []) {
 					if (!question.isStandard) {
-						skillBelowStandard.push({
-							taskName: question.task_name || '未命名技能',
-							actualOutcome: question.options?.find(opt => opt.selected)?.name || '',
-							expectedOutcome: (() => {
-								const ageStd = question.age_standards?.find(as => as.age === ageInt)
-								const match = question.options?.find(opt => opt.score === ageStd?.expected_score)
-								return match?.name || ''
-							})()
-						})
+						skillBelowStandard.push(buildSkillItem(question, ageInt))
 					}
 				}
 			}
@@ -194,10 +223,8 @@ exports.main = async () => {
 					analysis = await generateSectionAnalysisWithRetry(sectionData, childName, ageInt, taskId, docId)
 					console.log("analysis", analysis)
 				} catch (aiError) {
-					// AI分析失败时使用降级方案
-					console.error('AI分析失败，使用降级方案:', aiError)
-					analysis = generateSectionFallbackAnalysis(sectionName, skillBelowStandard, childName)
-					await log('ai-fallback-used', { error: aiError.message }, { taskId, level: 'warn' })
+					console.error('AI分析失败:', aiError)
+					throw aiError
 				}
 			}
 
@@ -207,6 +234,7 @@ exports.main = async () => {
 				analysis,
 				updateTime: Date.now()
 			})
+			await updateReportTaskProgress(taskId)
 			await log('section-analysis-success', { sectionId, analysis: analysis.substring(0, 100) + '...' }, { taskId, recordId })
 
 		} catch (err) {
@@ -219,6 +247,7 @@ exports.main = async () => {
 					failReason: err.message,
 					updateTime: Date.now()
 				})
+				await updateReportTaskProgress(taskId)
 			} catch (updateError) {
 				console.error('更新失败状态时出错:', updateError)
 			}

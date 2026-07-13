@@ -7,6 +7,19 @@ const dbName4 = 'wtdb-business-assess-report'; // 报告表
 const dbName5 = 'wtdb-business-children-stats'; // 儿童统计缓存表
 const db = uniCloud.database();
 const collection = db.collection(dbName);
+const deepseek = require('deepseek-client');
+
+async function kickReportTask(taskId) {
+	try {
+		await uniCloud.callFunction({
+			name: 'wt-report-task-orchestrator',
+			data: { taskId, kickOnly: true }
+		});
+	} catch (error) {
+		console.error('启动报告后台任务失败:', error);
+		await updateTaskStatus(taskId, 'pending', 0, `后台任务等待定时器调度: ${error.message}`);
+	}
+}
 
 exports.main = async (event, context) => {
 	try {
@@ -74,6 +87,9 @@ exports.main = async (event, context) => {
 					progress: 0,
 					childId,
 					childName: completedSectionList[0]?.childName,
+					recordId,
+					assessmentId,
+					assessorId,
 					totalSections: completedSectionList.length,
 					completedSections: 0,
 					createTime: Date.now(),
@@ -85,8 +101,7 @@ exports.main = async (event, context) => {
 					}
 				});
 
-				// 异步执行报告生成
-				// generateReportAsync(taskId, completedSectionList, query);
+				await kickReportTask(taskId);
 
 				return {
 					code: 200,
@@ -481,62 +496,24 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
  * 核心Section级别AI分析功能
  */
 async function generateSectionAnalysisCore(sectionData, childName, childAge, taskId, attempt) {
-	const llmProviders = [
-		{
-			name: 'deepseek',
-			config: {
-				provider: 'deepseek',
-				apiKey: 'sk-e736907dad8a49ffa8e614916b32440f',
-				model: 'deepseek-chat',
-				tokensToGenerate: 400 // 减少token数量，因为只需要简短分析
+	await updateTaskStatus(taskId, 'processing', null,
+		`使用DeepSeek官方API进行AI分析 (第${attempt}次尝试)...`);
+
+	const analysisPrompt = buildSectionAnalysisPrompt(sectionData, childName, childAge);
+	return deepseek.chatText({
+		messages: [
+			{
+				role: 'system',
+				content: getSectionSystemPrompt()
+			},
+			{
+				role: 'user',
+				content: analysisPrompt
 			}
-		}
-	];
-
-	// 尝试不同的AI提供商
-	for (const provider of llmProviders) {
-		try {
-			await updateTaskStatus(taskId, 'processing', null,
-				`使用${provider.name}进行AI分析 (第${attempt}次尝试)...`);
-
-			const llmManager = uniCloud.ai.getLLMManager({
-				provider: provider.config.provider,
-				apiKey: provider.config.apiKey
-			});
-
-			// 构建简化的分析提示词
-			const analysisPrompt = buildSectionAnalysisPrompt(sectionData, childName, childAge);
-
-			// 调用AI模型
-			const res = await llmManager.chatCompletion({
-				model: provider.config.model,
-				messages: [
-					{
-						role: 'system',
-						content: getSectionSystemPrompt()
-					},
-					{
-						role: 'user',
-						content: analysisPrompt
-					}
-				],
-				tokensToGenerate: provider.config.tokensToGenerate
-			});
-
-			if (!res || !res.reply) {
-				throw new Error(`${provider.name} 返回空结果`);
-			}
-
-			return res.reply;
-
-		} catch (providerError) {
-			console.error(`${provider.name} 调用失败:`, providerError);
-			// 继续尝试下一个提供商
-			continue;
-		}
-	}
-
-	throw new Error('所有AI服务提供商调用都失败');
+		],
+		maxTokens: 400,
+		timeout: 60000
+	});
 }
 
 /**
@@ -703,58 +680,24 @@ async function generateReportSummaryWithRetry(reportData, taskId, maxRetries = 3
  * 核心报告级别总结分析功能
  */
 async function generateReportSummaryCore(reportData, taskId, attempt) {
-	const llmProviders = [
-		{
-			name: 'deepseek',
-			config: {
-				provider: 'deepseek',
-				apiKey: 'sk-e736907dad8a49ffa8e614916b32440f',
-				model: 'deepseek-chat',
-				tokensToGenerate: 300
+	await updateTaskStatus(taskId, 'processing', null,
+		`使用DeepSeek官方API进行报告总结分析 (第${attempt}次尝试)...`);
+
+	const analysisPrompt = buildReportSummaryPrompt(reportData);
+	return deepseek.chatText({
+		messages: [
+			{
+				role: 'system',
+				content: getReportSummarySystemPrompt()
+			},
+			{
+				role: 'user',
+				content: analysisPrompt
 			}
-		}
-	];
-
-	for (const provider of llmProviders) {
-		try {
-			await updateTaskStatus(taskId, 'processing', null,
-				`使用${provider.name}进行报告总结分析 (第${attempt}次尝试)...`);
-
-			const llmManager = uniCloud.ai.getLLMManager({
-				provider: provider.config.provider,
-				apiKey: provider.config.apiKey
-			});
-
-			const analysisPrompt = buildReportSummaryPrompt(reportData);
-
-			const res = await llmManager.chatCompletion({
-				model: provider.config.model,
-				messages: [
-					{
-						role: 'system',
-						content: getReportSummarySystemPrompt()
-					},
-					{
-						role: 'user',
-						content: analysisPrompt
-					}
-				],
-				tokensToGenerate: provider.config.tokensToGenerate
-			});
-
-			if (!res || !res.reply) {
-				throw new Error(`${provider.name} 返回空结果`);
-			}
-
-			return res.reply;
-
-		} catch (providerError) {
-			console.error(`${provider.name} 调用失败:`, providerError);
-			continue;
-		}
-	}
-
-	throw new Error('所有AI服务提供商调用都失败');
+		],
+		maxTokens: 500,
+		timeout: 45000
+	});
 }
 
 /**

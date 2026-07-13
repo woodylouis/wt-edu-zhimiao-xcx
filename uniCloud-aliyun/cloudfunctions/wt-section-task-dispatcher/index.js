@@ -12,9 +12,12 @@ async function log(tag, data = null, { taskId = '', level = 'info' } = {}) {
 	} catch (_) { }
 }
 
-exports.main = async () => {
+exports.main = async (event = {}) => {
 	console.log("开始执行任务调度器")
-	const tasks = await dbTask.where({ status: 'processing' }).limit(10).get()
+	const taskWhere = event.taskId
+		? { taskId: event.taskId, status: 'processing' }
+		: { status: 'processing' }
+	const tasks = await dbTask.where(taskWhere).limit(10).get()
 
 	for (const task of tasks.data) {
 		console.log("开始执行任务调度器", task)
@@ -84,6 +87,7 @@ exports.main = async () => {
 			await dbTask.where({ taskId }).update({
 				status: 'waiting_merge',
 				totalSections: completedSections.length,
+				progress: 0,
 				updateTime: Date.now()
 			})
 			await log('dispatcher-task-mark-waiting-merge', {
