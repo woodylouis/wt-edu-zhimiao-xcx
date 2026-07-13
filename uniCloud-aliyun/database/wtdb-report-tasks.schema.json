@@ -36,6 +36,14 @@
 					"text": "处理中"
 				},
 				{
+					"value": "waiting_merge",
+					"text": "等待合并"
+				},
+				{
+					"value": "pending_save",
+					"text": "等待保存"
+				},
+				{
 					"value": "completed",
 					"text": "已完成"
 				},
@@ -138,10 +146,21 @@
 			"description": "任务失败时的错误描述",
 			"trim": "both"
 		},
+		"failReason": {
+			"bsonType": "string",
+			"title": "失败原因",
+			"description": "任务失败时的错误描述",
+			"trim": "both"
+		},
 		"report": {
 			"bsonType": "object",
 			"title": "生成报告",
 			"description": "任务完成后生成的完整报告数据"
+		},
+		"originalParams": {
+			"bsonType": "object",
+			"title": "原始参数",
+			"description": "创建任务时保存的原始参数，用于分派和重试"
 		},
 		"metadata": {
 			"bsonType": "object",

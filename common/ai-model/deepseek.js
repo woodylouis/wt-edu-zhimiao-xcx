@@ -21,7 +21,7 @@ async function requestDeepseek(messages) {
             'Authorization': AUTH_TOKEN
         },
         data: {
-            model: 'deepseek-v3-250324',
+            model: 'doubao-seed-2-0-lite-260215',
             messages
         }
     });
