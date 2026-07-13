@@ -4,12 +4,37 @@ const https = require('https')
 
 const DEFAULT_BASE_URL = 'https://api.deepseek.com'
 const DEFAULT_MODEL = 'deepseek-v4-pro'
+const CONFIG_COLLECTION = 'wtdb-system-config'
+const API_KEY_CONFIG_KEY = 'DEEPSEEK_API_KEY'
 
-function getApiKey() {
-	return process.env.DEEPSEEK_API_KEY ||
+function getEnvApiKey() {
+	return (process.env.DEEPSEEK_API_KEY ||
 		process.env.DEEPSEEK_KEY ||
 		process.env.DEEPSEEK_TOKEN ||
-		''
+		'').trim()
+}
+
+async function getApiKeyFromDb() {
+	if (typeof uniCloud === 'undefined') return ''
+
+	try {
+		const db = uniCloud.database()
+		const res = await db.collection(CONFIG_COLLECTION)
+			.where({ configKey: API_KEY_CONFIG_KEY })
+			.field({ value: true })
+			.limit(1)
+			.get()
+
+		const value = res.data && res.data[0] && res.data[0].value
+		return typeof value === 'string' ? value.trim() : ''
+	} catch (error) {
+		console.warn('读取DeepSeek API Key配置失败，尝试使用环境变量:', error.message)
+		return ''
+	}
+}
+
+async function getApiKey() {
+	return await getApiKeyFromDb() || getEnvApiKey()
 }
 
 function normalizeBaseUrl(baseUrl) {
@@ -69,7 +94,7 @@ function requestWithHttps(url, payload, headers, timeout) {
 }
 
 async function requestDeepSeek(payload, { timeout = 60000, baseURL } = {}) {
-	const apiKey = getApiKey()
+	const apiKey = await getApiKey()
 	if (!apiKey) {
 		throw new Error('未配置 DEEPSEEK_API_KEY，无法调用 DeepSeek 官方 API')
 	}
