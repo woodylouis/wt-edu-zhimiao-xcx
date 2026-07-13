@@ -135,9 +135,10 @@ exports.main = async (event = {}) => {
 	const tasks = await dbTask.where(taskWhere).limit(3).get()
 	for (const task of tasks.data) {
 		console.log('有待处理任务数量', task)
-		const { taskId, originalParams = {}, assessmentId } = task
+		const { taskId, originalParams = {}, assessmentId, metadata = {} } = task
 		const recordId = originalParams.query?.recordId || ''
 		const assessorId = originalParams.query?.assessorId || ''
+		const reanalysis = metadata.reanalysis || {}
 		try {
 			await log('merge-start', {}, { taskId, recordId })
 
@@ -228,7 +229,7 @@ exports.main = async (event = {}) => {
 
 			const reportData = {
 				reportVersion: 'v2',
-				reportId: `report_${recordId}_${Date.now()}`,
+				reportId: reanalysis.targetReportId || `report_${recordId}_${Date.now()}`,
 				recordId,
 				assessmentId,
 				assessorId,

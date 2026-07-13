@@ -27,10 +27,21 @@ exports.main = async (event = {}) => {
 		try {
 			await log('save-pending-start', {}, { taskId, recordId })
 
-			const existing = await dbReport.where({ reportId: reportData.reportId }).get()
+			const existing = await dbReport.where({ reportId: reportData.reportId }).limit(1).get()
 			if (!existing.data.length) {
 				await dbReport.add(reportData)
 				await log('report-inserted', {}, { taskId, recordId })
+			} else {
+				const existingReport = existing.data[0]
+				await dbReport.doc(existingReport._id).update({
+					...reportData,
+					createTime: existingReport.createTime || reportData.createTime,
+					pdfUrl: '',
+					pdfStatus: 'pending',
+					pdfGeneratedTime: 0,
+					updateTime: Date.now()
+				})
+				await log('report-updated-by-reanalysis', { reportId: reportData.reportId }, { taskId, recordId })
 			}
 
 			const recordRes = await dbRecord.where({ recordId }).get()
