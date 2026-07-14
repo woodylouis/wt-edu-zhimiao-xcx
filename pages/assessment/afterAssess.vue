@@ -107,7 +107,7 @@ const reportId = ref('');
 const progress = ref(0);
 const canViewReport = ref(false);
 const statusTitle = ref('正在生成智能分析报告...');
-const statusDesc = ref('DeepSeek正在分析中，约需5~7分钟');
+const statusDesc = ref('AI正在分析中，约需5~7分钟');
 let pollTimer = null;
 
 let buttonStyle = {
@@ -147,8 +147,8 @@ const backToHome = () => {
 }
 
 const statusMessageMap = {
-    pending: '任务已提交，等待DeepSeek分析',
-    processing: 'DeepSeek正在分析各评估模块',
+    pending: '任务已提交，等待AI分析',
+    processing: 'AI正在分析各评估模块',
     waiting_merge: '正在生成报告总结',
     pending_save: '正在保存智能分析报告',
     completed: '报告已生成',
@@ -164,7 +164,7 @@ const updateStatusText = (data = {}) => {
         reportId.value = data.reportId || reportId.value;
         canViewReport.value = true;
         statusTitle.value = '报告已生成';
-        statusDesc.value = 'DeepSeek分析完成，可以查看报告';
+        statusDesc.value = 'AI分析完成，可以查看报告';
         stopPolling();
         return;
     }
@@ -172,14 +172,14 @@ const updateStatusText = (data = {}) => {
     if (status === 'failed') {
         canViewReport.value = false;
         statusTitle.value = '报告生成失败';
-        statusDesc.value = data.failReason || 'DeepSeek分析失败，请稍后在后台重试';
+        statusDesc.value = data.failReason || 'AI分析失败，请稍后在后台重试';
         stopPolling();
         return;
     }
 
     canViewReport.value = false;
     statusTitle.value = statusMessageMap[status] || '正在生成智能分析报告...';
-    statusDesc.value = 'DeepSeek正在分析中，约需5~7分钟';
+    statusDesc.value = 'AI正在分析中，约需5~7分钟';
 }
 
 const pollReportTaskStatus = async () => {
