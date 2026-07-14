@@ -322,7 +322,7 @@
   const echarts = require("./static/echarts.min");
   import { onLoad, onShareAppMessage } from "@dcloudio/uni-app";
   import { ref, onUnmounted, onMounted, computed, watch, nextTick } from "vue";
-  import common from "@/common/common.js";
+  import common from "./common.js";
   import customNav from "@/components/customNav";
   import capabilityLevel from "./components/capability-level-v2";
   import popup from "./components/popup";

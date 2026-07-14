@@ -128,7 +128,7 @@
 <script>
 let currentWebview;
 import config from '@/uni_modules/uni-id-pages/config.js'
-import mixin from '@/uni_modules/uni-id-pages/common/login-page.mixin.js';
+import mixin from '@/uni_modules/uni-id-pages/pages/common/login-page.mixin.js';
 
 export default {
 	mixins: [mixin],

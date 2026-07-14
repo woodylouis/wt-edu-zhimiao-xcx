@@ -1,4 +1,4 @@
-import passwordMod from '@/uni_modules/uni-id-pages/common/password.js'
+import passwordMod from '@/uni_modules/uni-id-pages/pages/common/password.js'
 export default {
 	"username": {
 		"rules": [{

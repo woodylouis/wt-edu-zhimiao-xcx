@@ -40,8 +40,8 @@
 </template>
 
 <script>
-	import mixin from '@/uni_modules/uni-id-pages/common/login-page.mixin.js';
-	import passwordMod from '@/uni_modules/uni-id-pages/common/password.js'
+	import mixin from '@/uni_modules/uni-id-pages/pages/common/login-page.mixin.js';
+	import passwordMod from '@/uni_modules/uni-id-pages/pages/common/password.js'
 	const uniIdCo = uniCloud.importObject("uni-id-co",{
 		errorOptions:{
 			type:'toast'
