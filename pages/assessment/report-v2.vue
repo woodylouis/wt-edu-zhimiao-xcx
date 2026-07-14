@@ -1,5 +1,9 @@
 <template>
-  <view class="assessment">
+  <view class="assessment report-page">
+    <view class="report-orb report-orb--coral"></view>
+    <view class="report-orb report-orb--purple"></view>
+    <view class="report-spark report-spark--one">✦</view>
+    <view class="report-spark report-spark--two">+</view>
     <custom-nav
       :xcxName="'儿童成长评估'"
       :navCustomStyle="navCustomStyle"
@@ -11,35 +15,46 @@
       <view class="user-profile">
         <!-- 左侧内容容器 -->
         <view class="profile-left">
-          <image class="avatar-image" :src="avatarUrl" />
+          <view class="avatar-frame">
+            <image class="avatar-image" :src="avatarUrl" />
+            <view class="avatar-star">★</view>
+          </view>
           <view class="info">
+            <view class="report-kicker">GROWTH REPORT</view>
             <view class="name">{{ displayName }}的评估报告</view>
-            <view class="class">
-              <view style="display: flex">
-                <view style="margin-right: 40rpx"
-                  ><span style="font-weight: bold">班级：</span
-                  >{{ classDisplay }}</view
-                >
-                <view
-                  ><span style="font-weight: bold">年龄：</span
-                  >{{ childAge }}</view
-                >
+            <view class="class report-meta">
+              <view class="meta-chip meta-chip--class">
+                <text class="meta-label">班级</text>
+                <text class="meta-value">{{ classDisplay }}</text>
               </view>
-
-              <view
-                ><span style="font-weight: bold">报告日期：</span
-                >{{ dateString }}</view
-              >
+              <view class="meta-chip meta-chip--age">
+                <text class="meta-label">年龄</text>
+                <text class="meta-value">{{ childAge }}</text>
+              </view>
+              <view class="meta-chip meta-chip--date">
+                <text class="meta-label">报告日期</text>
+                <text class="meta-value">{{ dateString }}</text>
+              </view>
             </view>
           </view>
         </view>
         <view class="profile-right" @click="handleClickHistory">
-          <image class="report-list-image" :src="listIconUrl" />
+          <view class="history-icon-wrap">
+            <image class="report-list-image" :src="listIconUrl" />
+          </view>
+          <text class="history-title">历史报告</text>
+          <text class="history-hint">点击切换</text>
         </view>
       </view>
       <div class="assessment-container">
         <div class="assessment-card">
-          <h1 class="assessment-title">ABLLS-R评估能力分布图</h1>
+          <view class="chart-heading">
+            <view>
+              <view class="chart-kicker">ABILITY MAP</view>
+              <h1 class="assessment-title">ABLLS-R评估能力分布图</h1>
+            </view>
+            <view class="chart-badge">成长雷达</view>
+          </view>
           <section class="chart-area">
             <l-echart ref="radarChartRef"></l-echart>
           </section>
@@ -75,9 +90,19 @@
             :title="section.sectionName"
             :name="`section_${index}`"
           >
+            <template #title>
+              <view class="collapse-title-row">
+                <view class="collapse-index">{{ index + 1 }}</view>
+                <view class="collapse-title-copy">
+                  <text class="collapse-title-text">{{ section.sectionName }}</text>
+                  <text class="collapse-title-hint">点击查看表现与成长建议</text>
+                </view>
+              </view>
+            </template>
             <view class="collapse-content">
               <view class="sectionScore">
-                得分：{{
+                <text class="score-label">本领域得分</text>
+                <text class="score-value">{{
                   `${section.abllsSectionSummaryList.reduce(
                     (sum, item) => sum + (item.actualTotalScore || 0),
                     0
@@ -85,7 +110,7 @@
                     (sum, item) => sum + (item.expectedTotalScore || 0),
                     0
                   )}`
-                }}
+                }}</text>
               </view>
               <view
                 class="abllsSection"
@@ -144,7 +169,7 @@
               "
             >
               <view class="skill-header">
-                <view style="display: flex; margin-bottom: 16rpx">
+                <view class="skill-heading-row">
                   <text class="skill-icon">⚠️</text>
                   <text class="skill-title">需要关注的技能</text>
                 </view>
@@ -285,6 +310,11 @@
       :content="reportSummary"
       @update:show="(val) => (showReportSummaryPopup = val)"
     />
+    <DopamineLoading
+      :show="loadingVisible"
+      text="正在打开成长报告"
+      subtext="小芽正在整理能力图和成长建议"
+    />
   </view>
 </template>
 
@@ -297,6 +327,7 @@
   import capabilityLevel from "./components/capability-level-v2";
   import popup from "./components/popup";
   import analysisModal from "@/components/analysis-modal/analysis-modal.vue";
+  import DopamineLoading from "@/components/dopamine-loading/index.vue";
   import { getRadarOption } from "./charts";
   import { ALPHABET_AGE_MAP } from "@/lib/types/local_storage.js";
   let displayName = ref("可爱宝宝"); //
@@ -314,8 +345,9 @@
   const reportSummary = ref("");
   const showReportSummaryPopup = ref(false);
   const showHistory = ref(false);
+  const loadingVisible = ref(false);
   const navCustomStyle =
-    "background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)";
+    "background: linear-gradient(135deg, #FFF2B8 0%, #FFD778 48%, #FFB8AC 100%);height: calc(100vh / 8)";
   // 在setup中添加卸载生命周期
   const assessmentId = ref("");
   const analysisTextAI = ref("");
@@ -446,7 +478,7 @@
     reportId = "",
     recordId = "",
   } = {}) => {
-    // 显示加载提示
+    loadingVisible.value = true;
 
     try {
       // 1. 查询学生报告数据
@@ -483,8 +515,7 @@
         };
       });
     } finally {
-      // 无论成功失败都关闭加载提示
-      uni.hideLoading();
+      loadingVisible.value = false;
     }
   };
 
@@ -518,10 +549,6 @@
     if (options.isHistory == "true") {
       const student = uni.getStorageSync("current_student") || {};
       const currentClass = uni.getStorageSync("currentClass") || {};
-      uni.showLoading({
-        title: "加载中...",
-        mask: true,
-      });
 
       historyReports.value = await fetchChildReportHistory({
         childId: options.childId || student._id || "",
@@ -542,10 +569,6 @@
       }
     } else if (options.isShare === "true") {
       console.log("isShare", options);
-      uni.showLoading({
-        title: "加载中...",
-        mask: true,
-      });
 
       historyReports.value = await fetchChildReportHistory({
         childId: options.studentId,
@@ -1443,4 +1466,672 @@
     font-size: 10px;
     // margin-right: -5px;
   }
+</style>
+
+<style lang="scss" scoped>
+.assessment.report-page {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: #31284f;
+  background: #fff8df;
+}
+
+.report-page .content {
+  position: relative;
+  z-index: 1;
+  height: auto;
+  min-height: calc(100vh - 100vh / 8);
+  padding-bottom: 90rpx;
+  background:
+    radial-gradient(circle at 7% 24%, rgba(255, 212, 71, 0.28) 0 84rpx, transparent 86rpx),
+    radial-gradient(circle at 96% 58%, rgba(165, 139, 255, 0.18) 0 126rpx, transparent 128rpx),
+    linear-gradient(180deg, #fff7d9 0%, #fff4ed 43%, #f4efff 100%);
+}
+
+.report-orb {
+  position: fixed;
+  z-index: 0;
+  pointer-events: none;
+  border: 4rpx solid #392f59;
+}
+
+.report-orb--coral {
+  top: 32%;
+  left: -48rpx;
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 50%;
+  background: #ff8f82;
+  box-shadow: 10rpx 10rpx 0 #ffd447;
+}
+
+.report-orb--purple {
+  right: -42rpx;
+  bottom: 18%;
+  width: 90rpx;
+  height: 136rpx;
+  border-radius: 48rpx;
+  background: #a58bff;
+  transform: rotate(-13deg);
+}
+
+.report-spark {
+  position: fixed;
+  z-index: 0;
+  pointer-events: none;
+  color: #ff765f;
+  font-weight: 900;
+}
+
+.report-spark--one {
+  top: 48%;
+  left: 18rpx;
+  font-size: 48rpx;
+  transform: rotate(15deg);
+}
+
+.report-spark--two {
+  top: 70%;
+  right: 18rpx;
+  color: #7c63e8;
+  font-size: 54rpx;
+  transform: rotate(-16deg);
+}
+
+.report-page .content .user-profile {
+  position: relative;
+  overflow: hidden;
+  margin: 0 26rpx 18rpx;
+  padding: 24rpx;
+  border: 4rpx solid #392f59;
+  border-radius: 34rpx;
+  background: linear-gradient(135deg, #fff 0%, #fff1ac 100%);
+  box-shadow: 9rpx 9rpx 0 #ff8f82;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 126rpx;
+    bottom: -44rpx;
+    width: 116rpx;
+    height: 116rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 50%;
+    background: #79dfc2;
+    opacity: 0.7;
+  }
+}
+
+.report-page .content .user-profile .profile-left {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  gap: 20rpx;
+}
+
+.avatar-frame {
+  position: relative;
+  flex-shrink: 0;
+  width: 104rpx;
+  height: 104rpx;
+  border: 4rpx solid #392f59;
+  border-radius: 50%;
+  background: #a58bff;
+  box-shadow: 5rpx 5rpx 0 #ff8f82;
+}
+
+.report-page .content .user-profile .avatar-image {
+  width: 100%;
+  height: 100%;
+  border: 5rpx solid #fff;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.avatar-star {
+  position: absolute;
+  right: -9rpx;
+  bottom: -7rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38rpx;
+  height: 38rpx;
+  color: #392f59;
+  border: 3rpx solid #392f59;
+  border-radius: 50%;
+  background: #79dfc2;
+  font-size: 19rpx;
+}
+
+.report-page .content .user-profile .info {
+  min-width: 0;
+  gap: 6rpx;
+}
+
+.report-kicker,
+.chart-kicker {
+  align-self: flex-start;
+  padding: 5rpx 11rpx;
+  color: #392f59;
+  border: 2rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #ffd447;
+  font-size: 16rpx;
+  font-weight: 900;
+  letter-spacing: 1rpx;
+  line-height: 1;
+}
+
+.report-page .content .user-profile .info .name {
+  overflow: hidden;
+  color: #31284f;
+  font-size: 31rpx;
+  font-weight: 900;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-page .content .user-profile .info .class.report-meta {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-wrap: wrap;
+  color: #615878;
+  font-size: 20rpx;
+  line-height: 1.2;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34rpx;
+  padding: 3rpx 10rpx;
+  border: 2rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.meta-chip--age {
+  background: #c9f4e6;
+}
+
+.meta-chip--date {
+  background: #eee9ff;
+}
+
+.meta-label {
+  margin-right: 5rpx;
+  color: #7a728d;
+  font-size: 17rpx;
+  font-weight: 700;
+}
+
+.meta-value {
+  color: #392f59;
+  font-size: 18rpx;
+  font-weight: 900;
+}
+
+.report-page .content .user-profile .profile-right {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 124rpx;
+  height: 132rpx;
+  margin-left: 16rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 26rpx;
+  background: #a58bff;
+  box-shadow: 5rpx 5rpx 0 #ffd447;
+
+  &:active {
+    transform: translate(3rpx, 3rpx);
+    box-shadow: 2rpx 2rpx 0 #ffd447;
+  }
+}
+
+.history-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46rpx;
+  height: 46rpx;
+  margin-bottom: 5rpx;
+  border: 2rpx solid #392f59;
+  border-radius: 15rpx;
+  background: #fff;
+}
+
+.report-page .content .user-profile .profile-right .report-list-image {
+  width: 30rpx;
+  height: 30rpx;
+}
+
+.history-title {
+  color: #fff;
+  font-size: 21rpx;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.history-hint {
+  margin-top: 5rpx;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 16rpx;
+  font-weight: 700;
+}
+
+.report-page .content .assessment-container {
+  padding: 26rpx 28rpx 22rpx;
+}
+
+.report-page .content .assessment-container .assessment-card {
+  width: 100%;
+  height: 760rpx;
+  overflow: hidden;
+  border: 4rpx solid #392f59;
+  border-radius: 36rpx;
+  background: #fffdf6;
+  box-shadow: 10rpx 10rpx 0 #ffd447;
+  box-sizing: border-box;
+}
+
+.chart-heading {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 116rpx;
+  padding: 22rpx 24rpx;
+  border-bottom: 3rpx dashed rgba(57, 47, 89, 0.22);
+  background: linear-gradient(135deg, #fff 0%, #fff5cb 100%);
+  box-sizing: border-box;
+}
+
+.chart-kicker {
+  display: inline-flex;
+  margin-bottom: 7rpx;
+  background: #79dfc2;
+}
+
+.report-page .content .assessment-container .assessment-card .assessment-title {
+  position: static;
+  width: auto;
+  height: auto;
+  color: #31284f;
+  font-size: 27rpx;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.chart-badge {
+  flex-shrink: 0;
+  padding: 9rpx 14rpx;
+  color: #fff;
+  border: 3rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #7c63e8;
+  box-shadow: 3rpx 3rpx 0 #ff8f82;
+  font-size: 19rpx;
+  font-weight: 900;
+}
+
+.report-page .content .assessment-container .assessment-card .chart-area {
+  top: 116rpx;
+  width: 100%;
+  height: 508rpx;
+  background: transparent;
+}
+
+.report-page .content .assessment-container .assessment-card .recommendation-section {
+  top: auto;
+  bottom: 0;
+  width: 100%;
+  height: 136rpx;
+  padding: 18rpx 20rpx;
+  color: #392f59;
+  border-top: 3rpx solid #392f59;
+  border-radius: 0;
+  background: linear-gradient(135deg, #eee9ff 0%, #d8f7eb 100%);
+  box-shadow: none;
+}
+
+.report-page .content .assessment-container .assessment-card .recommendation-section .recommendation-marker {
+  width: 12rpx;
+  height: 82rpx;
+  border: 2rpx solid #392f59;
+  background: #ff8f82;
+}
+
+.report-page .content .assessment-container .assessment-card .recommendation-section .recommendation-label {
+  color: #7c63e8;
+  font-size: 20rpx;
+  font-weight: 900;
+}
+
+.report-page .content .assessment-container .assessment-card .recommendation-section .recommendation-text {
+  color: #392f59;
+  font-size: 22rpx;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.report-page .content .assessment-container .assessment-card .recommendation-section .recommendation-action {
+  min-width: 72rpx;
+  height: 44rpx;
+  color: #fff;
+  border: 2rpx solid #392f59;
+  background: #7c63e8;
+  box-shadow: 3rpx 3rpx 0 #ffd447;
+  font-weight: 900;
+  line-height: 44rpx;
+}
+
+.report-page .content .collapse {
+  overflow: hidden;
+  margin: 28rpx;
+  border: 4rpx solid #392f59;
+  border-radius: 32rpx;
+  background: #fffdf7;
+  box-shadow: 8rpx 8rpx 0 #a58bff;
+}
+
+.report-page .content .collapse :deep(.u-cell) {
+  background: linear-gradient(135deg, #fff 0%, #fff1ac 100%);
+}
+
+.report-page .content .collapse :deep(.u-cell__body) {
+  min-height: 110rpx;
+  padding: 18rpx 22rpx;
+}
+
+.report-page .content .collapse :deep(.u-cell__right-icon-wrap) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 48rpx;
+  margin-left: 14rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 3rpx 3rpx 0 #79dfc2;
+}
+
+.report-page .content .collapse :deep(.u-collapse-item__content__text) {
+  padding: 22rpx;
+  color: #392f59;
+  font-size: 25rpx;
+  line-height: 1.5;
+}
+
+.collapse-title-row {
+  display: flex;
+  align-items: center;
+}
+
+.collapse-index {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 54rpx;
+  height: 54rpx;
+  margin-right: 16rpx;
+  color: #fff;
+  border: 3rpx solid #392f59;
+  border-radius: 18rpx;
+  background: #7c63e8;
+  box-shadow: 3rpx 3rpx 0 #ff8f82;
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.collapse-title-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.collapse-title-text {
+  overflow: hidden;
+  color: #31284f;
+  font-size: 29rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collapse-title-hint {
+  margin-top: 6rpx;
+  color: #746d88;
+  font-size: 19rpx;
+  font-weight: 650;
+}
+
+.report-page .content .collapse .collapse-content .sectionScore {
+  display: inline-flex;
+  align-items: baseline;
+  margin-bottom: 28rpx;
+  padding: 10rpx 16rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #c9f4e6;
+  box-shadow: 4rpx 4rpx 0 #ffd447;
+}
+
+.score-label {
+  margin-right: 10rpx;
+  color: #615878;
+  font-size: 21rpx;
+  font-weight: 750;
+}
+
+.score-value {
+  color: #7c63e8;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.report-page .content .collapse .collapse-content .abllsSection .abllsItem {
+  align-items: center;
+  margin-bottom: 22rpx;
+  padding: 16rpx;
+  border: 2rpx solid #392f59;
+  border-radius: 20rpx;
+  background: #fff;
+}
+
+.report-page .content .collapse .collapse-content .abllsSection .abllsItem .abllsItemTitle {
+  width: 29%;
+  padding-right: 12rpx;
+  color: #392f59;
+  font-size: 22rpx;
+  font-weight: 800;
+  box-sizing: border-box;
+}
+
+.report-page .content .collapse .collapse-content .abllsSection .abllsItem .abllsItemScore {
+  width: 71%;
+}
+
+.report-page .content .collapse .collapse-content .sectionAnalysis {
+  margin: 30rpx 0 36rpx;
+  padding: 22rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #d8f7eb 0%, #fff5cb 100%);
+  box-shadow: 6rpx 6rpx 0 #a58bff;
+}
+
+.report-page .content .collapse .collapse-content .sectionAnalysis::before {
+  height: 0;
+}
+
+.report-page .content .collapse .collapse-content .sectionAnalysis span {
+  padding: 16rpx 18rpx;
+  color: #392f59;
+  border: 2rpx dashed rgba(57, 47, 89, 0.42);
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: none;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.report-page .content .collapse .collapse-skillBelowStandard {
+  margin: 24rpx 0 38rpx;
+  padding: 28rpx 22rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 26rpx;
+  background: linear-gradient(135deg, #fff0ed 0%, #ffdcd7 100%);
+  box-shadow: 6rpx 6rpx 0 #ff8f82;
+}
+
+.skill-heading-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14rpx;
+}
+
+.report-page .content .collapse .collapse-skillBelowStandard .skill-header {
+  margin-bottom: 26rpx;
+  padding-bottom: 18rpx;
+  border-bottom: 2rpx dashed #392f59;
+}
+
+.report-page .content .collapse .collapse-skillBelowStandard .skill-header .skill-title {
+  color: #b33e4a;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.report-page .content .collapse .collapse-skillBelowStandard .skill-header .skill-title-desc {
+  color: #6d6077;
+  font-size: 24rpx;
+  font-weight: 650;
+}
+
+.report-page .content .collapse .collapse-skillBelowStandard .section-divider .section-name {
+  color: #392f59;
+  border: 2rpx solid #392f59;
+  background: #fff;
+  box-shadow: 4rpx 4rpx 0 #ffd447;
+  font-weight: 850;
+}
+
+.report-page .content .collapse .collapse-skillBelowStandard .skill-item {
+  border: 2rpx solid #392f59;
+  border-radius: 20rpx;
+  background: #fff;
+  box-shadow: 4rpx 4rpx 0 rgba(57, 47, 89, 0.14);
+}
+
+.report-page .content .collapse .collapse-skillBelowStandard .skill-badge {
+  color: #fff;
+  border: 2rpx solid #392f59;
+  background: #ff765f;
+  box-shadow: 3rpx 3rpx 0 #ffd447;
+}
+
+.report-page .content .collapse .collapse-skillBelowStandard .skill-content .skill-name {
+  color: #392f59;
+  font-weight: 900;
+}
+
+.report-page .content .collapse .collapse-skillBelowStandard .skill-content .skill-description {
+  color: #6d6077;
+}
+
+.report-page .content .collapse .collapse-skillImprovementPlan {
+  margin-bottom: 22rpx;
+  padding: 34rpx 26rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #fff1ac 0%, #ffdca3 100%);
+  box-shadow: 7rpx 7rpx 0 #79dfc2;
+}
+
+.report-page .content .collapse .collapse-skillImprovementPlan .improvement-header {
+  margin-bottom: 32rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 2rpx dashed #392f59;
+}
+
+.report-page .content .collapse .collapse-skillImprovementPlan .improvement-header .improvement-title {
+  color: #392f59;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.report-page .content .collapse .collapse-skillImprovementPlan .step-number:not(.sub-step):not(.final-step) {
+  color: #fff;
+  border: 2rpx solid #392f59;
+  background: #7c63e8;
+  box-shadow: 4rpx 4rpx 0 #ff8f82;
+}
+
+.report-page .content .collapse .collapse-skillImprovementPlan .step-number.sub-step {
+  color: #392f59;
+  border: 2rpx solid #392f59;
+  background: #fff;
+  box-shadow: 3rpx 3rpx 0 #79dfc2;
+}
+
+.report-page .content .collapse .collapse-skillImprovementPlan .step-content {
+  border: 2rpx solid #392f59;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 4rpx 4rpx 0 rgba(57, 47, 89, 0.15);
+}
+
+.report-page .content .collapse .collapse-skillImprovementPlan .step-content.section-header {
+  border-left: 6rpx solid #7c63e8;
+  background: #eee9ff;
+}
+
+.report-page .content .collapse .collapse-skillImprovementPlan .step-content.section-header .step-title,
+.report-page .content .collapse .collapse-skillImprovementPlan .step-content.task-content .step-title {
+  color: #392f59;
+  font-weight: 900;
+}
+
+.report-page .content .collapse .collapse-skillImprovementPlan .step-content.task-content .step-description {
+  color: #615878;
+  background: #fffaf0;
+}
+
+.report-page .content .collapse .collapse-skillImprovementPlan .step-line::after {
+  background: repeating-linear-gradient(
+    180deg,
+    #7c63e8 0%,
+    #7c63e8 10%,
+    transparent 10%,
+    transparent 20%
+  );
+}
+
+.report-page .u-percentage-slot {
+  padding: 3rpx 9rpx;
+  color: #fff;
+  border: 2rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #7c63e8;
+  font-size: 18rpx;
+  font-weight: 850;
+}
 </style>

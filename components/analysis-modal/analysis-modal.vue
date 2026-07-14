@@ -1,6 +1,8 @@
 <template>
   <view v-if="show" class="analysis-modal-overlay" @tap="close">
     <view class="analysis-modal-card" @tap.stop>
+      <view class="analysis-spark analysis-spark--one">+</view>
+      <view class="analysis-spark analysis-spark--two">✦</view>
       <view class="analysis-modal-header">
         <view class="analysis-title-group">
           <text class="analysis-title">{{ title }}</text>
@@ -316,5 +318,184 @@ const summaryNeedsScroll = computed(() =>
   font-weight: 500;
   color: #00214d;
   line-height: 40rpx;
+}
+</style>
+
+<style lang="scss" scoped>
+.analysis-modal-overlay {
+  padding: 38rpx;
+  background: rgba(57, 47, 89, 0.64);
+  backdrop-filter: blur(8rpx);
+}
+
+.analysis-modal-card {
+  position: relative;
+  width: 630rpx;
+  max-height: 84vh;
+  border: 4rpx solid #392f59;
+  border-radius: 38rpx;
+  background: #fffaf0;
+  box-shadow: 12rpx 14rpx 0 #ffd447;
+}
+
+.analysis-spark {
+  position: absolute;
+  z-index: 3;
+  color: #ffd447;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.analysis-spark--one {
+  top: 14rpx;
+  right: 112rpx;
+  font-size: 48rpx;
+  transform: rotate(16deg);
+}
+
+.analysis-spark--two {
+  top: 84rpx;
+  right: 168rpx;
+  color: #ffb6ad;
+  font-size: 28rpx;
+}
+
+.analysis-modal-header {
+  min-height: 142rpx;
+  padding: 30rpx 28rpx 26rpx 34rpx;
+  border-bottom: 3rpx solid #392f59;
+  background: linear-gradient(135deg, #7c63e8 0%, #a58bff 100%);
+}
+
+.analysis-title-group {
+  position: relative;
+  z-index: 4;
+}
+
+.analysis-title {
+  color: #fff;
+  font-size: 33rpx;
+  font-weight: 900;
+}
+
+.analysis-subtitle {
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 22rpx;
+  font-weight: 650;
+}
+
+.analysis-close-btn {
+  position: relative;
+  z-index: 4;
+  width: 56rpx;
+  height: 56rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 18rpx;
+  background: #fff;
+  box-shadow: 3rpx 3rpx 0 #ffd447;
+}
+
+.analysis-close-text {
+  color: #392f59;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.analysis-modal-body {
+  padding: 28rpx 28rpx 0;
+}
+
+.analysis-lead-card {
+  padding: 22rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #d8f7eb 0%, #fff1ac 100%);
+  box-shadow: 5rpx 5rpx 0 #ff8f82;
+}
+
+.analysis-lead-label {
+  display: inline-flex;
+  margin-bottom: 10rpx;
+  padding: 5rpx 11rpx;
+  color: #392f59;
+  border: 2rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #fff;
+  font-size: 20rpx;
+  font-weight: 900;
+}
+
+.analysis-lead-text {
+  color: #31284f;
+  font-size: 27rpx;
+  font-weight: 850;
+  line-height: 1.55;
+}
+
+.analysis-detail-title {
+  display: inline-flex;
+  margin-top: 30rpx;
+  margin-bottom: 14rpx;
+  padding: 7rpx 14rpx;
+  color: #fff;
+  border: 2rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #7c63e8;
+  font-size: 23rpx;
+  font-weight: 900;
+}
+
+.analysis-detail-item {
+  gap: 14rpx;
+  margin-bottom: 12rpx;
+  padding: 17rpx;
+  border: 2rpx solid #392f59;
+  border-radius: 20rpx;
+  background: #fff;
+}
+
+.analysis-detail-item:first-child {
+  padding-top: 17rpx;
+  border-top: 2rpx solid #392f59;
+}
+
+.analysis-detail-index {
+  width: 42rpx;
+  height: 42rpx;
+  color: #fff;
+  border: 2rpx solid #392f59;
+  background: #ff8f82;
+  font-size: 21rpx;
+  font-weight: 900;
+  line-height: 42rpx;
+}
+
+.analysis-detail-text {
+  color: #4e4666;
+  font-size: 25rpx;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.analysis-buttons-container {
+  margin-top: 28rpx;
+  margin-bottom: 32rpx;
+}
+
+.analysis-btn {
+  width: 270rpx;
+  height: 82rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 24rpx;
+  box-shadow: 5rpx 5rpx 0 #ffd447;
+}
+
+.analysis-btn-primary {
+  background: #7c63e8;
+}
+
+.analysis-btn-text {
+  color: #fff;
+  font-weight: 900;
 }
 </style>

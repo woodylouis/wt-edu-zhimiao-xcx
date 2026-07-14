@@ -61,7 +61,28 @@ export const getRadarOption = (sectionSummaryList) => {
     return {
         radar: {
             indicator: indicators,
-            splitNumber: 2,
+            splitNumber: 3,
+            shape: 'polygon',
+            axisName: {
+                color: '#392F59',
+                fontSize: 11,
+                fontWeight: 700
+            },
+            axisLine: {
+                lineStyle: {
+                    color: 'rgba(57, 47, 89, 0.28)'
+                }
+            },
+            splitLine: {
+                lineStyle: {
+                    color: ['rgba(57, 47, 89, 0.16)']
+                }
+            },
+            splitArea: {
+                areaStyle: {
+                    color: ['rgba(255, 241, 172, 0.26)', 'rgba(238, 233, 255, 0.5)']
+                }
+            }
         },
         series: [
             {
@@ -73,11 +94,14 @@ export const getRadarOption = (sectionSummaryList) => {
                         name: '期待值',
                         lineStyle: {
                             type: 'dashed',
-                            color: '#F09781'
+                            color: '#FF765F',
+                            width: 2
                         },
                         itemStyle: {
                             normal: {
-                                color: '#EE6666'
+                                color: '#FF765F',
+                                borderColor: '#392F59',
+                                borderWidth: 1
                             }
                         },
                         label: {
@@ -93,18 +117,24 @@ export const getRadarOption = (sectionSummaryList) => {
                         areaStyle: {
                             color: new echarts.graphic.RadialGradient(0.1, 0.6, 1, [
                                 {
-                                    color: 'rgba(179, 231, 185, 0.4)',
+                                    color: 'rgba(121, 223, 194, 0.48)',
                                     offset: 0
                                 },
                                 {
-                                    color: 'rgba(179, 231, 185, 0.9)',
+                                    color: 'rgba(165, 139, 255, 0.72)',
                                     offset: 1
                                 }
                             ])
                         },
+                        lineStyle: {
+                            color: '#7C63E8',
+                            width: 3
+                        },
                         itemStyle: {
                             normal: {
-                                color: '#B3E7B9'
+                                color: '#FFD447',
+                                borderColor: '#392F59',
+                                borderWidth: 1
                             }
                         },
                     }
