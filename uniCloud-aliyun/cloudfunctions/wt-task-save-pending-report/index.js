@@ -47,11 +47,11 @@ exports.main = async (event = {}) => {
 			await log('save-pending-start', {}, { taskId, recordId })
 
 			const existing = await dbReport.where({ reportId: reportData.reportId }).limit(1).get()
-			if (!existing.data.length) {
+			const existingReport = existing.data[0] || null
+			if (!existingReport) {
 				await dbReport.add(reportData)
 				await log('report-inserted', {}, { taskId, recordId })
 			} else {
-				const existingReport = existing.data[0]
 				await dbReport.doc(existingReport._id).update({
 					...reportData,
 					createTime: existingReport.createTime || reportData.createTime,
@@ -66,9 +66,18 @@ exports.main = async (event = {}) => {
 			const recordRes = await dbRecord.where({ recordId }).get()
 			if (!recordRes.data.length) throw new Error(`未找到评估记录 ${recordId}`)
 
-			const updatedModules = (recordRes.data[0].modulesStatus || []).map(m => ({ ...m, status: 1 }))
+			const record = recordRes.data[0]
+			const updatedModules = (record.modulesStatus || []).map(m => ({ ...m, status: 1 }))
+			const completedTime = record.lastCompletedTime ||
+				existingReport?.completionTime ||
+				existingReport?.createTime ||
+				reportData.completionTime ||
+				reportData.createTime ||
+				Date.now()
 			await dbRecord.where({ recordId }).update({
 				modulesStatus: updatedModules,
+				isCompleted: true,
+				lastCompletedTime: completedTime,
 				reportStatus: 'completed',
 				reportId: reportData.reportId,
 				updateTime: Date.now()

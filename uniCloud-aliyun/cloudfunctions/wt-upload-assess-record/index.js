@@ -30,13 +30,14 @@ exports.main = async (event, context) => {
 		const existingRecord = await collection.where({ childId, assessorId: uid }).get();
 		console.log('existingRecord:', existingRecord)
 
-		// 查询该学生最近一次完成的评估时间
-		const completedRecord = await collection
-			.where({ childId, assessorId: uid, isCompleted: true })
-			.orderBy('lastCompletedTime', 'desc')
-			.limit(1)
-			.get();
-		const lastCompletedTime = completedRecord.data?.[0]?.lastCompletedTime || null;
+		// 从同一批评估记录中获取最近完成时间。兼容旧数据中的
+		// reportStatus=completed，以及缺少 lastCompletedTime 的记录。
+		const latestCompletedRecord = (existingRecord.data || [])
+			.filter(record => record.isCompleted === true || record.reportStatus === 'completed')
+			.sort((a, b) => getCompletedTime(b) - getCompletedTime(a))[0];
+		const lastCompletedTime = latestCompletedRecord
+			? getCompletedTime(latestCompletedRecord)
+			: null;
 
 		if (existingRecord.data && existingRecord.data.length > 0) {
 			// 在 existingRecord.data 中找到第一条有未完成模块的记录
@@ -128,6 +129,10 @@ exports.main = async (event, context) => {
 			message: '操作失败: ' + e.message
 		};
 	}
+};
+
+const getCompletedTime = (record = {}) => {
+	return record.lastCompletedTime || record.lastSaveTime || record.updateTime || record.createTime || 0;
 };
 
 const createNewAssessmentRecord = async (childId, data, assessorId) => {
