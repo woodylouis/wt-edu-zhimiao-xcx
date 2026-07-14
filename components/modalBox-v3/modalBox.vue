@@ -14,9 +14,12 @@
             <view class="info-tips"> {{ tips2 }} </view>
         </div>
 
-        <view class="buttons-container">
+        <view class="buttons-container" :class="{ 'has-extra-button': extraText }">
             <view class="btn btn-cancel" @tap="onCancel">
                 <text class="btn-text">{{ cancelText }}</text>
+            </view>
+            <view v-if="extraText" class="btn btn-extra" @tap="onExtra">
+                <text class="btn-text">{{ extraText }}</text>
             </view>
             <view class="btn btn-create" @tap="onCreate">
                 <text class="btn-text">{{ confirmText }}</text>
@@ -64,6 +67,10 @@ export default {
             type: String,
             default: "确认无误",
         },
+        extraText: {
+            type: String,
+            default: "",
+        },
         createClass: {
             type: Boolean,
             default: false,
@@ -93,6 +100,9 @@ export default {
         },
         onCreate() {
             this.$emit("create", this.selected);
+        },
+        onExtra() {
+            this.$emit("extra");
         },
     },
 };
@@ -224,13 +234,22 @@ export default {
     margin-bottom: 40rpx;
 }
 
+.buttons-container.has-extra-button {
+    flex-direction: column;
+}
+
 .btn {
     height: 80rpx;
     width: 236rpx;
+    box-sizing: border-box;
     border-radius: 60rpx;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.has-extra-button .btn {
+    width: 100%;
 }
 
 .btn-cancel {
@@ -239,6 +258,11 @@ export default {
 
 .btn-create {
     background: #6edd8a;
+}
+
+.btn-extra {
+    border: 2rpx solid #459c5c;
+    background: #f2fbf5;
 }
 
 .btn-text {

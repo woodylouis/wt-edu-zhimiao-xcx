@@ -112,6 +112,7 @@ const isFirstTime = ref(false); // 是否第一次评估
 const lastSaveTime = ref(null); // 上次保存时间
 const lastCompletedTime = ref(null); // 上次完成时间
 const modulesStatusMap = ref({}); // 模块状态映射
+const isReviewingCompleted = ref(false); // 是否正在检查已完成的评估
 
 const abllsSections = []
 
@@ -125,6 +126,7 @@ const confirmInfo = ref([
 
 // 计算属性：状态栏样式类
 const statusBannerClass = computed(() => {
+    if (isReviewingCompleted.value) return 'completed-banner';
     if (isContinue.value) return 'continue-banner';
     if (isFirstTime.value) return 'first-banner';
     return 'new-banner';
@@ -132,6 +134,7 @@ const statusBannerClass = computed(() => {
 
 // 计算属性：状态图标
 const statusIcon = computed(() => {
+    if (isReviewingCompleted.value) return '✓';
     if (isContinue.value) return '⏰';
     if (isFirstTime.value) return '🌟';
     return '✨';
@@ -139,6 +142,7 @@ const statusIcon = computed(() => {
 
 // 计算属性：状态标题
 const statusTitle = computed(() => {
+    if (isReviewingCompleted.value) return '评估已完成';
     if (isContinue.value) return '继续评估';
     if (isFirstTime.value) return '第一次评估';
     return '开始新评估';
@@ -146,6 +150,9 @@ const statusTitle = computed(() => {
 
 // 计算属性：状态描述
 const statusDesc = computed(() => {
+    if (isReviewingCompleted.value) {
+        return '可检查各模块和子模块的完成情况';
+    }
     if (isContinue.value && lastSaveTime.value) {
         return `上次保存: ${formatTime(lastSaveTime.value)}，请继续完成评估`;
     }
@@ -312,7 +319,7 @@ const navigateToLogin = () => {
     });
 }
 
-const loadAssessmentSections = async (assessmentId, age) => {
+const loadAssessmentSections = async (assessmentId, age, useCachedRecord = false) => {
     console.log('loadAssessmentSections:', assessmentId, age)
     try {
         const res = await uniCloud.callFunction({
@@ -331,11 +338,30 @@ const loadAssessmentSections = async (assessmentId, age) => {
             });
 
             // console.log('assessmentSections:', assessmentSections.value)
-            fetchAssessmentRecordData(currentStudent.value.childId, assessmentSections.value)
+            if (useCachedRecord) {
+                const cachedRecord = uni.getStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS);
+                const canReviewCachedRecord =
+                    cachedRecord?.recordId &&
+                    cachedRecord.childId === currentStudent.value.childId &&
+                    cachedRecord.assessmentId === currentStudent.value.assessmentId;
+                if (canReviewCachedRecord) {
+                    applyAssessmentRecordData(cachedRecord, assessmentSections.value);
+                } else {
+                    isReviewingCompleted.value = false;
+                    await fetchAssessmentRecordData(
+                        currentStudent.value.childId,
+                        assessmentSections.value
+                    );
+                }
+            } else {
+                await fetchAssessmentRecordData(currentStudent.value.childId, assessmentSections.value)
+            }
+            return;
         }
-
+        throw new Error(res.result.message || '模块加载失败');
     } catch (e) {
         console.error('加载失败:', e);
+        throw e;
     }
 }
 
@@ -345,6 +371,34 @@ const loadAssessmentSections = async (assessmentId, age) => {
 const clearStudentsCache = (classId) => {
     const cacheKey = `class_${classId} _students`;
     uni.removeStorageSync(cacheKey);
+};
+
+const applyAssessmentRecordData = (temp, assessmentSections, recordState = {}) => {
+    if (!temp) return;
+
+    isContinue.value = recordState.isContinue || false;
+    isFirstTime.value = recordState.isFirstTime || false;
+    lastSaveTime.value = temp.lastSaveTime || null;
+    lastCompletedTime.value = temp.lastCompletedTime || null;
+    modulesStatusMap.value = {};
+    if (temp.modulesStatus) {
+        temp.modulesStatus.forEach((item) => {
+            modulesStatusMap.value[item.sectionId] = item;
+        });
+    }
+
+    if (temp.lastSectionId) {
+        const section = assessmentSections.find(
+            (item) => item.section_id === temp.lastSectionId
+        );
+        if (section) {
+            activeCollapse.value = section.name;
+        }
+    } else if (assessmentSections.length > 0) {
+        activeCollapse.value = assessmentSections[0].name;
+    }
+
+    uni.setStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS, temp);
 };
 
 
@@ -372,32 +426,10 @@ const fetchAssessmentRecordData = async (childId, assessmentSections) => {
             console.log('是否继续评估:', res.result.isContinue);
             console.log('是否第一次:', res.result.isFirstTime);
             
-            // 设置状态信息
-            isContinue.value = res.result.isContinue || false;
-            isFirstTime.value = res.result.isFirstTime || false;
-            lastSaveTime.value = temp.lastSaveTime || null;
-            lastCompletedTime.value = temp.lastCompletedTime || null;
-            
-            // 构建模块状态映射
-            if (temp.modulesStatus) {
-                temp.modulesStatus.forEach(m => {
-                    modulesStatusMap.value[m.sectionId] = m;
-                });
-            }
-            
-            // 设置默认展开的模块（上次做到的模块）
-            if (temp.lastSectionId) {
-                const section = assessmentSections.find(s => s.section_id === temp.lastSectionId);
-                if (section) {
-                    activeCollapse.value = section.name;
-                }
-            } else if (assessmentSections.length > 0) {
-                // 没有上次记录，默认展开第一个
-                activeCollapse.value = assessmentSections[0].name;
-            }
-            
-            // 保存到本地存储
-            uni.setStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS, temp);
+            applyAssessmentRecordData(temp, assessmentSections, {
+                isContinue: res.result.isContinue,
+                isFirstTime: res.result.isFirstTime,
+            });
         }
     } catch (error) {
         console.error('查询失败:', error);
@@ -410,7 +442,7 @@ onShow(() => {
     checkLoginStatus();
     
     // 从 form 页面返回时，重新加载数据以获取最新的保存时间和进度
-    if (currentStudent.value.childId && assessmentSections.value.length > 0) {
+    if (!isReviewingCompleted.value && currentStudent.value.childId && assessmentSections.value.length > 0) {
         fetchAssessmentRecordData(currentStudent.value.childId, assessmentSections.value);
     }
 })
@@ -420,22 +452,34 @@ onReachBottom(() => {
 
 })
 
-onLoad((options) => {
+onLoad(async (options) => {
     console.log('onLoad options:', options);
-    if (options && options.childId) {
-        currentStudent.value = {
-            ...options,
-            ageInt: Number(options.ageInt) || 0
-        };
-        console.log('currentStudent:', currentStudent.value)
-        uni.setStorageSync(ASSESS_STUDENT, currentStudent.value);
-        loadAssessmentSections(options.assessmentId, Number(options.ageInt));
-    } else {
-        console.log('else')
-        const temp = uni.getStorageSync(ASSESS_STUDENT);
-        console.log('temp:', temp)
-        loadAssessmentSections(temp.assessmentId, Number(temp.ageInt));
-        currentStudent.value = temp;
+    isReviewingCompleted.value = options?.reviewCompleted === '1';
+    uni.showLoading({ title: "正在加载模块...", mask: true });
+    try {
+        if (options && options.childId) {
+            currentStudent.value = {
+                ...options,
+                ageInt: Number(options.ageInt) || 0
+            };
+            console.log('currentStudent:', currentStudent.value)
+            uni.setStorageSync(ASSESS_STUDENT, currentStudent.value);
+        } else {
+            console.log('else')
+            const temp = uni.getStorageSync(ASSESS_STUDENT);
+            console.log('temp:', temp)
+            currentStudent.value = temp;
+        }
+
+        await loadAssessmentSections(
+            currentStudent.value.assessmentId,
+            Number(currentStudent.value.ageInt),
+            isReviewingCompleted.value
+        );
+    } catch (error) {
+        uni.showToast({ title: "模块加载失败，请重试", icon: "none" });
+    } finally {
+        uni.hideLoading();
     }
 
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
@@ -506,6 +550,11 @@ onMounted(() => {
         &.continue-banner {
             background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
             border: 2rpx solid #FFB74D;
+        }
+
+        &.completed-banner {
+            background: linear-gradient(135deg, #E8F5E9 0%, #D7F2DF 100%);
+            border: 2rpx solid #66BB6A;
         }
         
         &.first-banner {

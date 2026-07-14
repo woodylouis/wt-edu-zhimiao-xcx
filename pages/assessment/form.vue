@@ -14,12 +14,16 @@
           <view class="steps-wrapper">
             <view
               v-for="(item, index) in currentAbllsNameList"
-              :key="index"
+              :key="item.abllsSectionAlphabet"
               class="step-item"
-              :class="{ active: index === stepCurrentIndex }"
+              :class="{
+                active: index === stepCurrentIndex,
+                completed: isStepCompleted(item),
+              }"
               @click="handleStepClick(item, index)"
             >
-              {{ item.sectionName }}
+              <text>{{ item.sectionName }}</text>
+              <text v-if="isStepCompleted(item)" class="step-completed-mark">✓</text>
             </view>
           </view>
         </scroll-view>
@@ -126,7 +130,9 @@
           :items="confirmInfo"
           confirmText="生成报告"
           @cancel="show = false"
-          :cancelText="'不生成报告'"
+          cancelText="检查一下"
+          :extraText="allAssessmentModulesCompleted ? '回到量表的单元选择模块' : ''"
+          @extra="handleBackToModuleList"
           @create="handleConfirm"
         />
       </view>
@@ -207,6 +213,9 @@
   const tips = ref("当前模块题目已完成。以下是小结：");
   const tips2 = ref("");
   const isClickNavBack = ref(false);
+  const allAssessmentModulesCompleted = ref(
+    Boolean(currentAssessmentModuleStatus?.isCompleted)
+  );
   // const tips2 = ref('本评测还有模块未完成。');
 
   // 监听selectedAnswer变化
@@ -313,6 +322,11 @@
     }
   };
 
+  const handleBackToModuleList = () => {
+    show.value = false;
+    uni.redirectTo({ url: "/pages/assessment/listMoudules?reviewCompleted=1" });
+  };
+
   const changeStatus = (sectionName, status) => {
     // 把在wtdb-business-assess-history和wtdb-business-assess-record的相关状态字段改成true
   };
@@ -324,6 +338,24 @@
       !answers.value.some((a) => !a || !a.text)
     );
   });
+
+  const isStepCompleted = (item) => {
+    return allAbllsSectionsRecordForm.value.some(
+      (record) =>
+        record.alphabet === item.abllsSectionAlphabet &&
+        record.allQuestionsCompleted
+    );
+  };
+
+  const restoreQuestionProgress = () => {
+    let lastAnsweredIndex = -1;
+    questions.value.forEach((item, index) => {
+      if (item.options?.some((option) => option.selected)) {
+        lastAnsweredIndex = index;
+      }
+    });
+    currentIndex.value = Math.max(lastAnsweredIndex, 0);
+  };
 
   const uploadRecord = async (childId) => {
     try {
@@ -437,7 +469,11 @@
               content: "进度保存成功。是否返回到上一页？",
               success: (res) => {
                 if (res.confirm) {
-                  uni.redirectTo({ url: "/pages/assessment/listMoudules" });
+                  uni.redirectTo({
+                    url: allAssessmentModulesCompleted.value
+                      ? "/pages/assessment/listMoudules?reviewCompleted=1"
+                      : "/pages/assessment/listMoudules",
+                  });
                   isClickNavBack.value = false;
                 } else if (res.cancel) {
                   console.log("用户取消返回");
@@ -487,6 +523,39 @@
         inProgressSection.value = res.result.data.inProgress;
         notStartedSection.value = res.result.data.notStarted;
         completedSection.value = res.result.data.completed;
+        allAssessmentModulesCompleted.value =
+          sections.length > 0 &&
+          completedSection.value.length === sections.length &&
+          inProgressSection.value.length === 0 &&
+          notStartedSection.value.length === 0;
+        const latestModules = [
+          ...completedSection.value,
+          ...inProgressSection.value,
+          ...notStartedSection.value,
+        ];
+        const latestModulesMap = new Map(
+          latestModules.map((item) => [item.sectionId, item])
+        );
+        const cachedModules = currentAssessmentModuleStatus?.modulesStatus || [];
+        const modulesStatus = cachedModules.length
+          ? cachedModules.map(
+              (item) => latestModulesMap.get(item.sectionId) || item
+            )
+          : latestModules;
+        const now = Date.now();
+        uni.setStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS, {
+          ...currentAssessmentModuleStatus,
+          modulesStatus,
+          lastSectionId: currentSectionId,
+          lastSectionIndex: sections.findIndex(
+            (item) => item.sectionId === currentSectionId
+          ),
+          isCompleted: allAssessmentModulesCompleted.value,
+          lastSaveTime: now,
+          lastCompletedTime: allAssessmentModulesCompleted.value
+            ? currentAssessmentModuleStatus?.lastCompletedTime || now
+            : currentAssessmentModuleStatus?.lastCompletedTime,
+        });
         console.log("inProgressSection:", inProgressSection.value);
         console.log("notStartedSection:", notStartedSection.value);
         console.log("completedSection:", completedSection.value);
@@ -736,7 +805,7 @@
         childAgeInt
       );
       stepCurrentIndex.value = index;
-      currentIndex.value = 0;
+      restoreQuestionProgress();
       // console.log('singleAbllsSectionsForm:', singleAbllsSectionsForm.value)
       updateAllAbllsSectionsRecord();
     } catch (e) {
@@ -866,6 +935,7 @@
         currentAbllsSectionAlphabet,
         childAgeInt
       );
+      restoreQuestionProgress();
     } catch (e) {
       uni.showToast({ title: "加载失败，请返回重试", icon: "none" });
     } finally {
@@ -1005,6 +1075,27 @@
     border-bottom: 4rpx solid transparent;
     font-size: 26rpx;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+  }
+
+  .step-item.completed {
+    color: #287a43;
+  }
+
+  .step-completed-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30rpx;
+    height: 30rpx;
+    border-radius: 50%;
+    background: #459c5c;
+    color: #fff;
+    font-size: 20rpx;
+    font-weight: 600;
+    line-height: 30rpx;
   }
 
   .step-item.active {
