@@ -1,4 +1,4 @@
-const echarts = require('../../uni_modules/lime-echart/static/echarts.min');
+const echarts = require('./static/echarts.min');
 
 const processSectionScores = (sectionSummaryList) => {
     // 通过遍历sectionSummaryList，提取其sectionName和的abllsSectionSummaryList列表，然后继续遍历abllsSectionSummaryList列表，获得abllsSection的expectedTotalScore的和以及actualTotalScore的和。

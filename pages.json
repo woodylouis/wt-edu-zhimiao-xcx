@@ -24,51 +24,6 @@
       }
     },
     {
-      "path": "pages/assessment/listMoudules",
-      "style": {
-        "navigationBarTitleText": "",
-        "enablePullDownRefresh": false,
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/assessment/afterAssess",
-      "style": {
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/assessment/form",
-      "style": {
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/assessment/list",
-      "style": {
-        "navigationStyle": "custom",
-        "navigationBarTitleText": "成长评估"
-      }
-    },
-    {
-      "path": "pages/assessment/chooseChild",
-      "style": {
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/assessment/report",
-      "style": {
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/assessment/report-v2",
-      "style": {
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/enter-class/createClassForm1",
       "style": {
         "navigationStyle": "custom",
@@ -222,6 +177,56 @@
     // #endif
   ],
   "subPackages": [
+    {
+      "root": "pages/assessment",
+      "pages": [
+        {
+          "path": "listMoudules",
+          "style": {
+            "navigationBarTitleText": "",
+            "enablePullDownRefresh": false,
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "afterAssess",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "form",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "list",
+          "style": {
+            "navigationStyle": "custom",
+            "navigationBarTitleText": "成长评估"
+          }
+        },
+        {
+          "path": "chooseChild",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "report",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "report-v2",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
     {
       "root": "uni_modules/uni-feedback",
       "pages": [

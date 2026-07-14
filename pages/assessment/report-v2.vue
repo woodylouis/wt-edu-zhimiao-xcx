@@ -319,7 +319,7 @@
 </template>
 
 <script setup>
-  const echarts = require("../../uni_modules/lime-echart/static/echarts.min");
+  const echarts = require("./static/echarts.min");
   import { onLoad, onShareAppMessage } from "@dcloudio/uni-app";
   import { ref, onUnmounted, onMounted, computed, watch, nextTick } from "vue";
   import common from "@/common/common.js";

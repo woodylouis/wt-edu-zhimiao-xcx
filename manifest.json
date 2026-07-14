@@ -56,6 +56,14 @@
         "optimization" : {
             "subPackages" : true
         },
+        "packOptions" : {
+            "ignore" : [
+                {
+                    "type" : "file",
+                    "value" : "uni_modules/lime-echart/static/echarts.min.js"
+                }
+            ]
+        },
         "mergeVirtualHostAttributes" : true,
         "uniStatistics" : {
             "enable" : true

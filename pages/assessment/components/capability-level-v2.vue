@@ -46,7 +46,7 @@
 import { ref, computed, watchEffect, onMounted, watch } from "vue";
 // import { MarkdownIt, parseTokens } from "@/uni_modules/wtto-markdown/js_sdk/index";
 import "@/uni_modules/wtto-markdown/js_sdk/markdown.css";
-const echarts = require('../../../uni_modules/lime-echart/static/echarts.min');
+const echarts = require('../static/echarts.min');
 
 const convertScoreToStage = (score, type) => {
     const thresholds = {
