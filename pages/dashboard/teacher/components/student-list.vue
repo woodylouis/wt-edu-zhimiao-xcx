@@ -45,7 +45,7 @@ const onAssessClick = (student) => {
     .student-list {
         display: flex;
         flex-direction: column;
-        gap: 16rpx;
+        gap: 24rpx;
 
         .student-item {
             width: 100%;

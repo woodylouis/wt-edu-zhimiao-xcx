@@ -1,16 +1,20 @@
 <template>
     <view class="growth-assessment">
+        <view class="page-orb orb-coral"></view>
+        <view class="page-orb orb-purple"></view>
+        <view class="page-spark">+</view>
         <u-sticky>
             <custom-nav 
                 :needBack="true" 
                 :needBar="false" 
                 :xcxName="'切换'" 
                 :backHandler="handleNavBack"
-                navCustomStyle="background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);"
+                navCustomStyle="background: linear-gradient(135deg, #FFF2B8 0%, #FFD778 45%, #FFB8AC 100%);height: calc(100vh / 8);"
             />
         </u-sticky>
         <view class="form-container">
             <view class="form-header">
+                <view class="header-kicker">MY GROWTH CLASS</view>
                 <view class="form-title">选择班级</view>
                 <view class="form-description">请选择您要进入的班级</view>
             </view>
@@ -138,11 +142,35 @@
                 <text class="enter-arrow">→</text>
             </view>
         </view>
+
+        <dopamine-modal
+            :show="showEnterConfirm"
+            eyebrow="即将进入"
+            title="确认进入这个班级吗？"
+            :content="enterConfirmContent"
+            confirm-text="确定进入"
+            cancel-text="再看看"
+            @confirm="confirmEnterClass"
+            @cancel="showEnterConfirm = false"
+        />
+
+        <dopamine-loading
+            :show="loadingVisible"
+            :text="loadingText"
+            subtext="小芽正在整理班级信息"
+        />
     </view>
 </template>
 
 <script>
+import DopamineModal from "@/components/dopamine-modal/index.vue"
+import DopamineLoading from "@/components/dopamine-loading/index.vue"
+
 export default {
+    components: {
+        DopamineModal,
+        DopamineLoading
+    },
     computed: {
         userInfo() {
             return store.userInfo
@@ -173,6 +201,10 @@ export default {
             if (!this.selectedSchoolId) return ''
             const school = this.groupedClasses[this.selectedRole].find(s => s.schoolId === this.selectedSchoolId)
             return school?.schoolName || '未分配学校'
+        },
+        enterConfirmContent() {
+            if (!this.selectedClass) return ''
+            return `即将进入「${this.selectedClass.name}」，进入后可以查看学生并开始成长评估。`
         }
     },
     data() {
@@ -195,6 +227,9 @@ export default {
             },
             userLocation: null,
             schoolDistances: {},
+            showEnterConfirm: false,
+            loadingVisible: false,
+            loadingText: '正在加载班级',
             classColors: [
                 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -249,32 +284,24 @@ export default {
         
         async handleEnterClass() {
             if (!this.selectedClass) return
-            
-            // 二次确认弹窗
-            uni.showModal({
-                title: '确认进入',
-                content: `确定要进入「${this.selectedClass.name}」吗？`,
-                confirmText: '确定进入',
-                confirmColor: '#4CAF50',
-                success: async (res) => {
-                    if (res.confirm) {
-                        await this.doEnterClass()
-                    }
-                }
-            })
+            this.showEnterConfirm = true
+        },
+
+        async confirmEnterClass() {
+            this.showEnterConfirm = false
+            await this.doEnterClass()
         },
         
         // 执行进入班级
         async doEnterClass() {
-            uni.showLoading({ title: '正在进入...' })
+            this.loadingText = '正在进入班级'
+            this.loadingVisible = true
             
             try {
                 const { result } = await uniCloud.callFunction({
                     name: 'wtdb-business-class-detail',
                     data: { code: this.selectedClass.classCode }
                 })
-                
-                uni.hideLoading()
                 
                 if (result.code === 200) {
                     uni.setStorageSync('currentClass', result.data)
@@ -283,8 +310,9 @@ export default {
                     })
                 }
             } catch (e) {
-                uni.hideLoading()
                 uni.showToast({ title: '进入失败', icon: 'none' })
+            } finally {
+                this.loadingVisible = false
             }
         },
         
@@ -307,6 +335,8 @@ export default {
         },
         
         async loadClasses() {
+            this.loadingText = '正在整理班级'
+            this.loadingVisible = true
             try {
                 const res = await uniCloud.callFunction({
                     name: 'wtdb-business-member-class',
@@ -362,6 +392,8 @@ export default {
             } catch (error) {
                 console.error('班级数据加载失败', error)
                 uni.showToast({ title: '加载失败', icon: 'none' })
+            } finally {
+                this.loadingVisible = false
             }
         },
         
@@ -927,5 +959,360 @@ export default {
         font-size: 32rpx;
         color: #fff;
     }
+}
+</style>
+
+<style scoped lang="scss">
+.growth-assessment {
+    position: relative;
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: #31284f;
+    background:
+        radial-gradient(circle at 12% 18%, rgba(255, 208, 69, 0.34) 0 96rpx, transparent 98rpx),
+        radial-gradient(circle at 90% 34%, rgba(163, 132, 255, 0.22) 0 130rpx, transparent 132rpx),
+        linear-gradient(180deg, #fff9df 0%, #fff5f1 42%, #f4efff 100%);
+}
+
+.page-orb {
+    position: fixed;
+    z-index: 0;
+    border: 4rpx solid #392f59;
+    pointer-events: none;
+}
+
+.orb-coral {
+    top: 24%;
+    left: -54rpx;
+    width: 112rpx;
+    height: 112rpx;
+    border-radius: 50%;
+    background: #ff8f82;
+    box-shadow: 12rpx 12rpx 0 #ffd447;
+}
+
+.orb-purple {
+    top: 56%;
+    right: -46rpx;
+    width: 94rpx;
+    height: 142rpx;
+    border-radius: 48rpx;
+    background: #a58bff;
+    transform: rotate(16deg);
+}
+
+.page-spark {
+    position: fixed;
+    z-index: 0;
+    top: 43%;
+    left: 22rpx;
+    color: #ff765f;
+    font-size: 58rpx;
+    font-weight: 900;
+    transform: rotate(18deg);
+}
+
+.form-container {
+    position: relative;
+    z-index: 1;
+    padding: 30rpx 28rpx 80rpx;
+}
+
+.form-header {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 32rpx;
+    padding: 34rpx 38rpx 36rpx;
+    text-align: left;
+    border: 4rpx solid #392f59;
+    border-radius: 36rpx;
+    background: linear-gradient(135deg, #7c63e8 0%, #a78cff 100%);
+    box-shadow: 12rpx 12rpx 0 #ffd447;
+
+    &::after {
+        content: '';
+        position: absolute;
+        right: -26rpx;
+        bottom: -40rpx;
+        width: 156rpx;
+        height: 156rpx;
+        border: 4rpx solid #392f59;
+        border-radius: 52% 48% 43% 57%;
+        background: #ff8f82;
+        transform: rotate(14deg);
+    }
+}
+
+.header-kicker {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    margin-bottom: 14rpx;
+    padding: 8rpx 16rpx;
+    color: #392f59;
+    font-size: 20rpx;
+    font-weight: 900;
+    letter-spacing: 2rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 999rpx;
+    background: #ffd447;
+}
+
+.form-header .form-title {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+    font-size: 48rpx;
+    font-weight: 900;
+    letter-spacing: 2rpx;
+}
+
+.form-header .form-description {
+    position: relative;
+    z-index: 1;
+    margin-top: 10rpx;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 26rpx;
+    font-weight: 600;
+}
+
+.role-tabs {
+    gap: 20rpx;
+    margin-bottom: 34rpx;
+    padding: 0;
+    background: transparent;
+}
+
+.role-tabs .role-tab {
+    min-height: 112rpx;
+    padding: 20rpx 18rpx;
+    border: 4rpx solid #392f59;
+    border-radius: 30rpx;
+    background: #fff;
+    box-shadow: 7rpx 7rpx 0 #ffaaa0;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+
+    &:active {
+        transform: translate(4rpx, 4rpx);
+        box-shadow: 3rpx 3rpx 0 #ffaaa0;
+    }
+
+    &:last-child {
+        box-shadow: 7rpx 7rpx 0 #79dfc2;
+    }
+}
+
+.role-tabs .role-tab .role-icon {
+    font-size: 42rpx;
+}
+
+.role-tabs .role-tab .role-text {
+    color: #392f59;
+    font-size: 27rpx;
+    font-weight: 800;
+}
+
+.role-tabs .role-tab-active {
+    background: #ffd447;
+    box-shadow: 7rpx 7rpx 0 #a58bff !important;
+}
+
+.school-groups {
+    gap: 28rpx;
+}
+
+.school-group {
+    overflow: hidden;
+    border: 4rpx solid #392f59;
+    border-radius: 32rpx;
+    background: #fffdf6;
+    box-shadow: 9rpx 9rpx 0 #b9a6ff;
+}
+
+.school-group-nearest {
+    border-color: #392f59;
+    background: #fffef9;
+    box-shadow: 9rpx 9rpx 0 #ff8f82;
+}
+
+.school-header {
+    min-height: 126rpx;
+    padding: 24rpx;
+    background: linear-gradient(135deg, #fff 0%, #fff8d9 100%);
+}
+
+.school-group-expanded .school-header {
+    border-bottom: 3rpx dashed rgba(57, 47, 89, 0.3);
+}
+
+.school-avatar {
+    width: 82rpx;
+    height: 82rpx;
+    border: 3rpx solid #392f59;
+    box-shadow: 4rpx 4rpx 0 #ffd447;
+}
+
+.school-name {
+    color: #31284f;
+    font-size: 29rpx;
+    font-weight: 900;
+}
+
+.nearest-badge,
+.in-range-tag {
+    color: #392f59;
+    border: 2rpx solid #392f59;
+    background: #79dfc2;
+    font-weight: 800;
+}
+
+.school-meta,
+.meta-item {
+    color: #746d88;
+    font-weight: 600;
+}
+
+.expand-icon {
+    width: 48rpx;
+    height: 48rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border: 3rpx solid #392f59;
+    border-radius: 50%;
+    background: #a58bff;
+}
+
+.class-list {
+    padding: 22rpx;
+    background: #fff8ee;
+}
+
+.class-item {
+    margin-bottom: 18rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 26rpx;
+    background: #fff;
+    box-shadow: 5rpx 5rpx 0 rgba(57, 47, 89, 0.13);
+}
+
+.class-item:last-child {
+    margin-bottom: 0;
+}
+
+.class-item-selected {
+    border-color: #392f59;
+    background: #eee9ff;
+    box-shadow: 7rpx 7rpx 0 #ffd447;
+}
+
+.class-card {
+    min-height: 112rpx;
+    padding: 20rpx;
+    border: none;
+    background: transparent;
+}
+
+.class-item-selected .class-card {
+    border: none;
+    background: transparent;
+}
+
+.class-avatar {
+    border: 3rpx solid #392f59;
+}
+
+.class-info .class-name {
+    color: #31284f;
+    font-size: 28rpx;
+    font-weight: 900;
+}
+
+.class-info .class-role {
+    color: #746d88;
+    font-weight: 600;
+}
+
+.class-check .check-circle,
+.class-check .uncheck-circle {
+    border: 3rpx solid #392f59;
+}
+
+.class-check .check-circle {
+    color: #fff;
+    background: #7c63e8;
+    box-shadow: 3rpx 3rpx 0 #ffd447;
+}
+
+.no-data {
+    min-height: 360rpx;
+    padding: 44rpx;
+    border: 4rpx solid #392f59;
+    border-radius: 34rpx;
+    background: #fff;
+    box-shadow: 10rpx 10rpx 0 #79dfc2;
+}
+
+.no-data .empty-illustration {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 126rpx;
+    height: 126rpx;
+    margin-bottom: 24rpx;
+    font-size: 68rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 42% 58% 54% 46%;
+    background: #ffd447;
+    transform: rotate(-4deg);
+}
+
+.no-data .empty-text {
+    color: #31284f;
+    font-weight: 900;
+}
+
+.bottom-action {
+    z-index: 8;
+    left: 22rpx;
+    right: 22rpx;
+    bottom: calc(22rpx + env(safe-area-inset-bottom));
+    width: auto;
+    padding: 18rpx 20rpx;
+    border: 4rpx solid #392f59;
+    border-radius: 30rpx;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 9rpx 9rpx 0 #79dfc2;
+}
+
+.selected-info .selected-label,
+.selected-info .school-text {
+    color: #746d88;
+    font-weight: 600;
+}
+
+.selected-info .selected-name {
+    color: #31284f;
+    font-weight: 900;
+}
+
+.enter-btn {
+    padding: 22rpx 32rpx;
+    border: 4rpx solid #392f59;
+    border-radius: 24rpx;
+    background: #7c63e8;
+    box-shadow: 6rpx 6rpx 0 #ffd447;
+
+    &:active {
+        transform: translate(4rpx, 4rpx);
+        box-shadow: 2rpx 2rpx 0 #ffd447;
+    }
+}
+
+.enter-btn .enter-text,
+.enter-btn .enter-arrow {
+    color: #fff;
+    font-weight: 900;
 }
 </style>

@@ -21,11 +21,7 @@
             
             <!-- 评估列表 -->
             <view class="assess-list">
-                <view class="loading-wrap" v-if="loading">
-                    <u-loading-icon mode="circle"></u-loading-icon>
-                    <text class="loading-text">加载中...</text>
-                </view>
-                <view v-else>
+                <view v-if="!loading">
                     <view 
                         v-for="item in assessmentList" 
                         :key="item.id" 
@@ -56,12 +52,19 @@
                 </button>
             </view>
         </view>
+
+        <DopamineLoading
+            :show="loading || locationLoading"
+            :text="loading ? '正在准备成长量表' : '正在确认校园位置'"
+            :subtext="loading ? '小芽在挑选合适的成长任务' : '定位小雷达正在转圈圈'"
+        />
     </view>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { shouldBypassAssessmentLocationCheck } from '@/common/debug.js'
+import DopamineLoading from '@/components/dopamine-loading/index.vue'
 
 const props = defineProps({
     visible: {
@@ -78,6 +81,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'confirm'])
 
 const loading = ref(false)
+const locationLoading = ref(false)
 const assessmentList = ref([])
 const selectedAssessment = ref(null)
 
@@ -210,7 +214,7 @@ const checkLocationPermission = () => {
             return
         }
         
-        uni.showLoading({ title: '正在检查位置...' })
+        locationLoading.value = true
         
         // 使用 getFuzzyLocation 获取模糊位置（隐私合规）
         uni.getFuzzyLocation({
@@ -220,7 +224,7 @@ const checkLocationPermission = () => {
                 performLocationCheck(res.latitude, res.longitude, schoolId, resolve)
             },
             fail: (err) => {
-                uni.hideLoading()
+                locationLoading.value = false
                 console.error('位置获取失败:', err)
                 
                 // 判断是否是权限问题
@@ -268,7 +272,7 @@ const checkLocationPermission = () => {
 
 // 执行位置检查的云函数调用
 const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
-    uni.showLoading({ title: '正在检查位置...' })
+    locationLoading.value = true
     
     // getFuzzyLocation 返回模糊位置，误差约 500-1000 米
     // 因此需要增加额外的浮动容差
@@ -286,8 +290,6 @@ const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
                 radius: TOTAL_RADIUS // 考虑模糊定位误差后的总范围
             }
         })
-        
-        uni.hideLoading()
         
         if (checkRes.result.code === 200) {
             const { inRange, distance, schoolName } = checkRes.result.data
@@ -310,10 +312,11 @@ const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
             resolve({ canProceed: true })
         }
     } catch (e) {
-        uni.hideLoading()
         console.error('云函数调用失败:', e)
         // 云函数调用失败时，允许继续（容错处理）
         resolve({ canProceed: true })
+    } finally {
+        locationLoading.value = false
     }
 }
 
@@ -458,20 +461,6 @@ const onStartAssess = async () => {
     max-height: 400rpx;
 }
 
-.loading-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60rpx 0;
-}
-
-.loading-text {
-    font-size: 24rpx;
-    color: #999;
-    margin-top: 16rpx;
-}
-
 .assess-item {
     display: flex;
     align-items: center;
@@ -565,5 +554,205 @@ const onStartAssess = async () => {
         color: #F57C00;
         line-height: 1.4;
     }
+}
+</style>
+
+<style lang="scss" scoped>
+.assess-modal {
+    z-index: 999;
+}
+
+.modal-mask {
+    background: rgba(57, 47, 89, 0.62);
+    backdrop-filter: blur(8rpx);
+}
+
+.modal-content {
+    width: calc(100% - 72rpx);
+    max-height: 84vh;
+    overflow: hidden;
+    border: 4rpx solid #392f59;
+    border-radius: 38rpx;
+    background: #fffaf0;
+    box-shadow: 12rpx 14rpx 0 #ffd447;
+}
+
+.modal-header {
+    position: relative;
+    overflow: hidden;
+    padding: 30rpx 30rpx 28rpx;
+    border-bottom: 3rpx solid #392f59;
+    background: linear-gradient(135deg, #7c63e8 0%, #a58bff 100%);
+
+    &::after {
+        content: '+';
+        position: absolute;
+        right: 112rpx;
+        top: -8rpx;
+        color: #ffd447;
+        font-size: 58rpx;
+        font-weight: 900;
+        transform: rotate(18deg);
+    }
+}
+
+.modal-title {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+    font-size: 35rpx;
+    font-weight: 900;
+}
+
+.close-btn {
+    position: relative;
+    z-index: 1;
+    width: 54rpx;
+    height: 54rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 18rpx;
+    background: #fff;
+    box-shadow: 3rpx 3rpx 0 #ffd447;
+}
+
+.close-icon {
+    color: #392f59;
+    font-size: 28rpx;
+    font-weight: 900;
+}
+
+.student-info {
+    margin: 22rpx 24rpx 14rpx;
+    padding: 20rpx 22rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 26rpx;
+    background: linear-gradient(135deg, #fff1ac 0%, #c9f4e6 100%);
+    box-shadow: 5rpx 5rpx 0 #ff8f82;
+}
+
+.student-avatar {
+    width: 84rpx;
+    height: 84rpx;
+    border: 4rpx solid #392f59;
+    box-shadow: 4rpx 4rpx 0 #a58bff;
+}
+
+.student-name {
+    color: #31284f;
+    font-size: 30rpx;
+    font-weight: 900;
+}
+
+.student-age {
+    color: #625a79;
+    font-weight: 700;
+}
+
+.assess-list {
+    max-height: 410rpx;
+    padding: 6rpx 24rpx;
+}
+
+.assess-item {
+    min-height: 94rpx;
+    margin: 14rpx 0;
+    padding: 20rpx 22rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 24rpx;
+    background: #fff;
+    box-shadow: 4rpx 4rpx 0 rgba(57, 47, 89, 0.15);
+}
+
+.assess-item.selected {
+    border-color: #392f59;
+    background: #eee9ff;
+    box-shadow: 6rpx 6rpx 0 #79dfc2;
+}
+
+.assess-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 58rpx;
+    height: 58rpx;
+    margin-right: 16rpx;
+    border: 2rpx solid #392f59;
+    border-radius: 18rpx;
+    background: #ffd447;
+    font-size: 31rpx;
+}
+
+.assess-title {
+    color: #31284f;
+    font-size: 28rpx;
+    font-weight: 800;
+}
+
+.check-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42rpx;
+    height: 42rpx;
+    color: #fff;
+    border: 3rpx solid #392f59;
+    border-radius: 50%;
+    background: #7c63e8;
+    font-size: 25rpx;
+    font-weight: 900;
+}
+
+.hint-text {
+    align-items: flex-start;
+    justify-content: flex-start;
+    margin: 14rpx 24rpx 0;
+    padding: 15rpx 18rpx;
+    border: 2rpx dashed #392f59;
+    border-radius: 18rpx;
+    background: #fff1ac;
+}
+
+.hint-text text {
+    color: #615878;
+    font-size: 23rpx;
+    font-weight: 650;
+}
+
+.modal-footer {
+    gap: 18rpx;
+    padding: 22rpx 24rpx 26rpx;
+    border-top: none;
+}
+
+.cancel-btn,
+.confirm-btn {
+    height: 82rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 24rpx;
+    font-size: 28rpx;
+    font-weight: 900;
+
+    &::after {
+        border: none;
+    }
+}
+
+.cancel-btn {
+    color: #392f59;
+    background: #fff;
+    box-shadow: 5rpx 5rpx 0 #ffb6ad;
+}
+
+.confirm-btn {
+    color: #fff;
+    background: #7c63e8;
+    box-shadow: 5rpx 5rpx 0 #ffd447;
+}
+
+.confirm-btn[disabled] {
+    color: #827b94;
+    border-color: #827b94;
+    background: #ded9e9;
+    box-shadow: 5rpx 5rpx 0 #c7c0d5;
 }
 </style>

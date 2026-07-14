@@ -31,10 +31,10 @@
         
         <!-- 操作按钮区域 -->
         <view class="action-area">
-            <button class="action-btn report-btn" @click="handleReportClick">
+            <button class="action-btn report-btn" hover-class="action-btn--pressed" @click="handleReportClick">
                 <text class="btn-icon">📊</text>
             </button>
-            <button class="action-btn assess-btn" @click="handleAssessClick">
+            <button class="action-btn assess-btn" hover-class="action-btn--pressed" @click="handleAssessClick">
                 <text class="btn-icon">✍️</text>
             </button>
         </view>
@@ -247,5 +247,129 @@ const handleAssessClick = () => {
 .assess-btn {
     background: linear-gradient(135deg, #FFB74D 0%, #FF9800 100%);
     box-shadow: 0 2rpx 8rpx rgba(255, 152, 0, 0.35);
+}
+</style>
+
+<style lang="scss" scoped>
+.student-card {
+    min-height: 162rpx;
+    padding: 24rpx 22rpx;
+    border: 4rpx solid #392f59;
+    border-radius: 32rpx;
+    background: linear-gradient(135deg, #fff 0%, #fffaf0 100%);
+    box-shadow: 8rpx 8rpx 0 #ffd447;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -18rpx;
+        right: 132rpx;
+        width: 48rpx;
+        height: 30rpx;
+        border: 3rpx solid #392f59;
+        border-radius: 50%;
+        background: #ff8f82;
+        transform: rotate(-12deg);
+    }
+}
+
+.avatar-ring {
+    width: 92rpx;
+    height: 92rpx;
+    padding: 5rpx;
+    border: 4rpx solid #392f59;
+    background: #a58bff;
+    box-shadow: 5rpx 5rpx 0 #ff8f82;
+    box-sizing: border-box;
+}
+
+.avatar {
+    border: 3rpx solid #fff;
+    box-sizing: border-box;
+}
+
+.star-badge {
+    right: -8rpx;
+    bottom: -5rpx;
+    width: 36rpx;
+    height: 36rpx;
+    border: 3rpx solid #392f59;
+    background: #79dfc2;
+    box-shadow: none;
+}
+
+.info-area {
+    margin-left: 22rpx;
+}
+
+.student-name {
+    max-width: 190rpx;
+    color: #31284f;
+    font-size: 31rpx;
+    font-weight: 900;
+}
+
+.new-tag {
+    height: 34rpx;
+    padding: 2rpx 12rpx;
+    border: 2rpx solid #392f59;
+    border-radius: 999rpx;
+    background: #ffb6ad;
+}
+
+.new-tag-text {
+    color: #392f59;
+    font-weight: 900;
+}
+
+.date-tag {
+    padding: 7rpx 12rpx;
+    border: 2rpx solid #392f59;
+    border-radius: 999rpx;
+    background: #eee9ff;
+}
+
+.date-text {
+    color: #625a79;
+    font-weight: 700;
+}
+
+.count-badge {
+    padding: 7rpx 13rpx;
+    border: 2rpx solid #392f59;
+    border-radius: 999rpx;
+    background: #79dfc2;
+    box-shadow: none;
+}
+
+.count-text {
+    color: #392f59;
+    font-weight: 900;
+}
+
+.action-area {
+    gap: 14rpx;
+    margin-left: 12rpx;
+}
+
+.action-btn {
+    width: 66rpx;
+    height: 66rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 21rpx;
+    box-shadow: 4rpx 4rpx 0 #392f59;
+}
+
+.action-btn--pressed {
+    transform: translate(3rpx, 3rpx);
+    box-shadow: 1rpx 1rpx 0 #392f59;
+}
+
+.report-btn {
+    background: #a58bff;
+}
+
+.assess-btn {
+    background: #ffd447;
 }
 </style>

@@ -1,5 +1,8 @@
 <template>
   <view class="dashboard">
+    <view class="dashboard-orb dashboard-orb--coral"></view>
+    <view class="dashboard-orb dashboard-orb--purple"></view>
+    <view class="dashboard-spark">✦</view>
     <u-sticky>
       <custom-nav
         :xcxName="'成长评估'"
@@ -7,6 +10,8 @@
         :needBar="false"
       />
       <view class="user-profile">
+        <view class="profile-confetti profile-confetti--one">+</view>
+        <view class="profile-confetti profile-confetti--two">●</view>
 
         <!-- 左侧内容容器 -->
         <view class="profile-left" @click="onClickProfile">
@@ -74,25 +79,6 @@
         </button>
       </view>
       
-      <view v-if="loading" class="u-demo-block">
-        <view class="u-demo-block__content">
-          <u-skeleton
-            rows="6"
-            :title="false"
-            :rowsWidth="['100%', '100%', '100%', '100%', '100%', '100%']"
-            :rowsHeight="[
-              '160rpx',
-              '160rpx',
-              '160rpx',
-              '160rpx',
-              '160rpx',
-              '160rpx',
-            ]"
-            loading
-            :animate="true"
-          ></u-skeleton>
-        </view>
-      </view>
       <StudentList
         v-if="!loading && filteredStudentList.length > 0"
         :studentList="filteredStudentList"
@@ -123,6 +109,12 @@
       @close="showAssessModal = false"
       @confirm="onAssessConfirm"
     />
+
+    <DopamineLoading
+      :show="loading || actionLoading"
+      :text="loading ? '正在召集小朋友' : '正在寻找成长报告'"
+      :subtext="loading ? '小芽正在整理班级名单' : '马上就好，惊喜正在路上'"
+    />
   </view>
 </template>
 
@@ -135,15 +127,17 @@
   import QcSuspendBtn from "@/components/qc-suspendBtn/qc-suspendBtn.vue";
   import StudentList from "./components/student-list.vue";
   import AssessModal from "./components/assess-modal.vue";
+  import DopamineLoading from "@/components/dopamine-loading/index.vue";
   import btnConfig from "@/common/suspen-btn/config.js";
 
   const navCustomStyle =
-    "background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);";
+    "background: linear-gradient(135deg, #FFF2B8 0%, #FFD778 48%, #FFB8AC 100%);height: calc(100vh / 8);";
   const defaultAvatarUrl = ref(
     "https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png"
   );
   const switchIconUrl = "../../../static/general/switch.png";
   const loading = ref(true);
+  const actionLoading = ref(false);
   const totalStudents = ref(0); // 学生总数
   const lastLoadedClassId = ref(''); // 记录上次加载的班级ID
 
@@ -243,19 +237,15 @@
     }
   };
 
-      const handleStudentClick = async (student) => {
+  const handleStudentClick = async (student) => {
     console.log("查看报告 - 学生:", student);
-    uni.showLoading({
-      title: "请稍后",
-      mask: true,
-    });
+    actionLoading.value = true;
     
     try {
       // 检查学生是否有报告
       const hasReport = await checkStudentReport(student._id);
 
       if (!hasReport) {
-        uni.hideLoading();
         uni.showToast({
           title: "该学生暂无评估报告",
           icon: "none",
@@ -266,13 +256,13 @@
       uni.setStorageSync(CURRENT_STUDENT, {
         ...student,
       });
-      uni.hideLoading();
       uni.navigateTo({
         url: `/pages/assessment/report-v2?isHistory=true`,
       });
     } catch (e) {
-      uni.hideLoading();
       console.error("查看报告失败:", e);
+    } finally {
+      actionLoading.value = false;
     }
   };
   
@@ -856,25 +846,302 @@
     // text-decoration: underline;
   }
 
-  .u-skeleton-slot {
-    @include flex;
-    align-items: flex-start;
+</style>
 
-    &__image {
-      width: 40px;
-      height: 40px;
-      border-radius: 100px;
-    }
+<style scoped lang="scss">
+.dashboard {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: #31284f;
+  background:
+    radial-gradient(circle at 8% 32%, rgba(255, 212, 71, 0.3) 0 86rpx, transparent 88rpx),
+    radial-gradient(circle at 95% 56%, rgba(165, 139, 255, 0.2) 0 126rpx, transparent 128rpx),
+    linear-gradient(180deg, #fff7d9 0%, #fff4ed 42%, #f4efff 100%);
+}
 
-    &__content {
-      margin-left: 10px;
-      flex: 1;
-    }
+.dashboard-orb {
+  position: fixed;
+  z-index: 0;
+  pointer-events: none;
+  border: 4rpx solid #392f59;
+}
+
+.dashboard-orb--coral {
+  top: 36%;
+  left: -48rpx;
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 50%;
+  background: #ff8f82;
+  box-shadow: 10rpx 10rpx 0 #ffd447;
+}
+
+.dashboard-orb--purple {
+  right: -44rpx;
+  bottom: 22%;
+  width: 92rpx;
+  height: 138rpx;
+  border-radius: 48rpx;
+  background: #a58bff;
+  transform: rotate(-14deg);
+}
+
+.dashboard-spark {
+  position: fixed;
+  z-index: 0;
+  top: 51%;
+  left: 22rpx;
+  color: #ff765f;
+  font-size: 54rpx;
+  font-weight: 900;
+  transform: rotate(15deg);
+}
+
+.dashboard .user-profile {
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  min-height: 154rpx;
+  height: auto;
+  margin: -2rpx 26rpx 14rpx;
+  padding: 24rpx 26rpx;
+  border: 4rpx solid #392f59;
+  border-radius: 34rpx;
+  background: linear-gradient(135deg, #fff 0%, #fff1ac 100%);
+  box-shadow: 9rpx 9rpx 0 #ff8f82;
+}
+
+.dashboard .user-profile .profile-confetti {
+  position: absolute;
+  z-index: 0;
+  color: #7c63e8;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.dashboard .user-profile .profile-confetti--one {
+  top: 10rpx;
+  right: 112rpx;
+  font-size: 44rpx;
+  transform: rotate(18deg);
+}
+
+.dashboard .user-profile .profile-confetti--two {
+  right: 168rpx;
+  bottom: 14rpx;
+  color: #ff765f;
+  font-size: 18rpx;
+}
+
+.dashboard .user-profile .profile-left,
+.dashboard .user-profile .switch-btn {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard .user-profile .avatar-wrapper {
+  width: 98rpx;
+  height: 98rpx;
+  border: 4rpx solid #392f59;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 5rpx 5rpx 0 #a58bff;
+}
+
+.dashboard .user-profile .avatar-wrapper .avatar-image {
+  width: 100%;
+  height: 100%;
+  border: 4rpx solid #fff;
+  box-sizing: border-box;
+}
+
+.dashboard .user-profile .avatar-wrapper .avatar-badge {
+  right: -8rpx;
+  bottom: -6rpx;
+  width: 38rpx;
+  height: 38rpx;
+  border: 3rpx solid #392f59;
+  background: #79dfc2;
+  box-shadow: none;
+}
+
+.dashboard .user-profile .info .name {
+  color: #31284f;
+  font-size: 33rpx;
+  font-weight: 900;
+}
+
+.dashboard .user-profile .info .class-row .class-tag {
+  padding: 7rpx 14rpx;
+  border: 2rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #fff;
+}
+
+.dashboard .user-profile .info .class-row .class-tag .tag-text {
+  color: #615878;
+  font-weight: 700;
+}
+
+.dashboard .user-profile .info .class-row .invite-btn {
+  padding: 7rpx 16rpx;
+  border: 2rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #a58bff;
+}
+
+.dashboard .user-profile .info .class-row .invite-btn .btn-text {
+  color: #fff;
+  font-weight: 900;
+}
+
+.dashboard .user-profile .switch-btn {
+  width: 70rpx;
+  height: 70rpx;
+  border: 4rpx solid #392f59;
+  border-radius: 22rpx;
+  background: #79dfc2;
+  box-shadow: 5rpx 5rpx 0 #ffd447;
+
+  &:active {
+    transform: translate(3rpx, 3rpx);
+    box-shadow: 2rpx 2rpx 0 #ffd447;
+  }
+}
+
+.dashboard .user-profile .switch-btn .switch-icon {
+  width: 38rpx;
+  height: 38rpx;
+}
+
+.dashboard .search-bar {
+  position: relative;
+  z-index: 1;
+  padding: 26rpx 28rpx 14rpx;
+  background: transparent;
+}
+
+.dashboard .search-bar .search-input-wrapper {
+  height: 92rpx;
+  padding: 0 24rpx;
+  border: 4rpx solid #392f59;
+  border-radius: 28rpx;
+  background: #fff;
+  box-shadow: 7rpx 7rpx 0 #ffd447;
+}
+
+.dashboard .search-bar .search-input-wrapper .search-icon {
+  font-size: 34rpx;
+}
+
+.dashboard .search-bar .search-input-wrapper .search-input {
+  color: #31284f;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.dashboard .list-header {
+  position: relative;
+  z-index: 1;
+  padding: 20rpx 30rpx 12rpx;
+  background: transparent;
+}
+
+.dashboard .list-header .student-count {
+  display: inline-flex;
+  align-items: baseline;
+  padding: 10rpx 20rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #eee9ff;
+  box-shadow: 4rpx 4rpx 0 #79dfc2;
+}
+
+.dashboard .list-header .student-count .count-label {
+  color: #615878;
+  font-weight: 700;
+}
+
+.dashboard .list-header .student-count .count-num {
+  margin: 0 8rpx;
+  color: #7c63e8;
+  font-size: 38rpx;
+  font-weight: 900;
+}
+
+.dashboard > .student-list {
+  position: relative;
+  z-index: 1;
+  padding: 12rpx 28rpx 200rpx;
+}
+
+.dashboard .empty-state {
+  min-height: 410rpx;
+  margin-top: 12rpx;
+  padding: 46rpx 34rpx;
+  border: 4rpx solid #392f59;
+  border-radius: 36rpx;
+  background: #fff;
+  box-shadow: 10rpx 10rpx 0 #79dfc2;
+}
+
+.dashboard .empty-state .empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 128rpx;
+  height: 128rpx;
+  margin-bottom: 22rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 45% 55% 48% 52%;
+  background: #ffd447;
+  font-size: 66rpx;
+  transform: rotate(-4deg);
+}
+
+.dashboard .empty-state .empty-title {
+  color: #31284f;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.dashboard .empty-state .empty-desc {
+  color: #746d88;
+  font-weight: 600;
+}
+
+.dashboard .empty-state .create-student-btn {
+  margin-top: 30rpx;
+  border: 4rpx solid #392f59;
+  border-radius: 24rpx;
+  color: #fff;
+  background: #7c63e8;
+  box-shadow: 6rpx 6rpx 0 #ffd447;
+  font-weight: 900;
+
+  &::after {
+    border: none;
   }
 
-  .u-demo-block__content {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
+  &:active {
+    transform: translate(4rpx, 4rpx);
+    box-shadow: 2rpx 2rpx 0 #ffd447;
   }
+}
+
+.dashboard .bottom-create {
+  padding: 32rpx 0 0;
+}
+
+.dashboard .bottom-create .help-link {
+  display: inline-flex;
+  padding: 12rpx 22rpx;
+  color: #392f59;
+  border: 3rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #ffb6ad;
+  font-size: 25rpx;
+  font-weight: 800;
+}
 </style>
