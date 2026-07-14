@@ -7,8 +7,13 @@
     <!-- 导航 -->
     <view class="navigation">
       <view class="title" :style="xcxNameMarginTopStyle">
-        <view class="brand-mark">芽</view>
+        <view class="brand-symbol">
+          <view class="sprout-stem"></view>
+          <view class="sprout-leaf brand-leaf-left"></view>
+          <view class="sprout-leaf brand-leaf-right"></view>
+        </view>
         <text class="brand-name">{{ $t("xcxName") }}</text>
+        <view class="brand-accent"></view>
       </view>
       <view class="hero-stage">
         <view class="growth-illustration">
@@ -360,32 +365,83 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      min-height: 62rpx;
+      box-sizing: border-box;
+      padding: 7rpx 20rpx 7rpx 9rpx;
+      border: 2rpx solid #ded7f5;
+      border-radius: 36rpx;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 8rpx 22rpx rgba(69, 52, 125, 0.12);
       transform: translate(-50%, -50%);
       white-space: nowrap;
     }
 
-    .brand-mark {
+    .brand-symbol {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
       width: 48rpx;
       height: 48rpx;
-      margin-right: 12rpx;
-      border: 3rpx solid #2f2854;
-      border-radius: 17rpx 17rpx 17rpx 6rpx;
+      flex-shrink: 0;
+      border: 2rpx solid #2f2854;
+      border-radius: 50% 50% 50% 18rpx;
+      background: #7657f6;
+      transform: rotate(-4deg);
+    }
+
+    .sprout-stem {
+      position: absolute;
+      width: 4rpx;
+      height: 20rpx;
+      left: 21rpx;
+      bottom: 8rpx;
+      border-radius: 5rpx;
+      background: #ffffff;
+      transform: rotate(2deg);
+    }
+
+    .sprout-leaf {
+      position: absolute;
+      width: 18rpx;
+      height: 12rpx;
+      border: 2rpx solid #2f2854;
+    }
+
+    .brand-leaf-left {
+      top: 13rpx;
+      left: 7rpx;
+      border-radius: 18rpx 4rpx 18rpx 4rpx;
+      background: #8ee3c2;
+      transform: rotate(28deg);
+    }
+
+    .brand-leaf-right {
+      top: 8rpx;
+      right: 6rpx;
+      border-radius: 4rpx 18rpx 4rpx 18rpx;
       background: #ffcf46;
-      box-shadow: 5rpx 5rpx 0 #2f2854;
-      color: #2f2854;
-      font-size: 24rpx;
-      font-weight: 800;
-      line-height: 1;
+      transform: rotate(-25deg);
     }
 
     .brand-name {
+      margin-left: 13rpx;
       color: #2f2854;
-      font-size: 34rpx;
+      font-size: 31rpx;
       font-weight: 800;
-      letter-spacing: 2rpx;
+      letter-spacing: 3rpx;
+      line-height: 1;
+    }
+
+    .brand-accent {
+      width: 9rpx;
+      height: 9rpx;
+      align-self: flex-start;
+      margin-top: 9rpx;
+      margin-left: 5rpx;
+      border-radius: 50%;
+      background: #ff7d6b;
+      box-shadow: 7rpx 7rpx 0 #ffcf46;
     }
 
     .hero-stage {
