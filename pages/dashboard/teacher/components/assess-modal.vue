@@ -54,9 +54,9 @@
         </view>
 
         <DopamineLoading
-            :show="loading || locationLoading"
-            :text="loading ? '正在准备成长量表' : '正在确认校园位置'"
-            :subtext="loading ? '小芽在挑选合适的成长任务' : '定位小雷达正在转圈圈'"
+            :show="loading || locationLoading || navigationLoading"
+            :text="loading ? '正在准备成长量表' : locationLoading ? '正在确认校园位置' : '正在打开评估任务'"
+            :subtext="loading ? '小芽在挑选合适的成长任务' : locationLoading ? '定位小雷达正在转圈圈' : '量表已选好，马上开始闯关'"
         />
     </view>
 </template>
@@ -82,6 +82,7 @@ const emit = defineEmits(['close', 'confirm'])
 
 const loading = ref(false)
 const locationLoading = ref(false)
+const navigationLoading = ref(false)
 const assessmentList = ref([])
 const selectedAssessment = ref(null)
 
@@ -135,13 +136,13 @@ watch(() => props.visible, (val) => {
 // 加载评估列表
 const loadAssessments = async () => {
     loading.value = true
+    const loadingStartedAt = Date.now()
     try {
         // 先尝试读取缓存
         const CACHE_KEY = 'teacher_assessment_list'
         const cachedData = uni.getStorageSync(CACHE_KEY)
         if (cachedData && Date.now() - cachedData.timestamp < 3600000) {
             assessmentList.value = cachedData.list
-            loading.value = false
             return
         }
         
@@ -163,6 +164,10 @@ const loadAssessments = async () => {
         console.error('加载评估列表失败:', e)
         uni.showToast({ title: '加载失败', icon: 'none' })
     } finally {
+        const remaining = 420 - (Date.now() - loadingStartedAt)
+        if (remaining > 0) {
+            await new Promise((resolve) => setTimeout(resolve, remaining))
+        }
         loading.value = false
     }
 }
@@ -344,6 +349,7 @@ const onStartAssess = async () => {
     })
     
     // 跳转到评估模块页面
+    navigationLoading.value = true
     uni.navigateTo({
         url: `/pages/assessment/listMoudules?classId=${classId}` +
             `&className=${className}` +
@@ -353,10 +359,15 @@ const onStartAssess = async () => {
             `&childAge=${studentAge.value}` +
             `&ageInt=${ageInt.value}` +
             `&assessmentId=${selectedAssessment.value.id}` +
-            `&assessmentTitle=${selectedAssessment.value.title}`
+            `&assessmentTitle=${selectedAssessment.value.title}`,
+        success: () => emit('close'),
+        fail: () => {
+            uni.showToast({ title: '打开评估失败，请重试', icon: 'none' })
+        },
+        complete: () => {
+            navigationLoading.value = false
+        }
     })
-    
-    emit('close')
 }
 </script>
 

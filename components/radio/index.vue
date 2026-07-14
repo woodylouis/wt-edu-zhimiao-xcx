@@ -1,15 +1,23 @@
 <template>
     <view class="radio-container">
-        <p style="color: #3D464A;font-size: 18px;font-style: normal;font-weight: 600;line-height: 24px;">
-            {{ content }}
-        </p>
+        <view class="question-prompt">
+            <view class="question-badge">Q</view>
+            <text class="question-text">{{ content }}</text>
+        </view>
         <view class="radio-group">
-            <view v-for="(option, index) in options" :key="index" class="radio-item" @click="selectOption(index)">
+            <view
+                v-for="(option, index) in options"
+                :key="index"
+                class="radio-item"
+                :class="{ 'radio-item--selected': option.selected }"
+                @click="selectOption(index)"
+            >
                 <view class="radio-icon">
-                    <image v-if="option.selected" src='/static/general/radio-selected.png' class="selected-icon" />
-                    <image v-else src='/static/general/radio-unselected.png' class="unselected-icon" />
+                    <view v-if="option.selected" class="radio-check">✓</view>
+                    <view v-else class="radio-empty"></view>
                 </view>
-                <text class="radio-text" style="flex: 1; word-break: break-word;">{{ option.name }}</text>
+                <text class="radio-text">{{ option.name }}</text>
+                <text v-if="option.selected" class="selected-spark">✦</text>
             </view>
         </view>
     </view>
@@ -39,37 +47,125 @@ const selectOption = (index) => {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .radio-container {
     display: flex;
     flex-direction: column;
-    gap: 16rpx;
+    gap: 20rpx;
+}
+
+.question-prompt {
+    display: flex;
+    align-items: flex-start;
+    gap: 14rpx;
+}
+
+.question-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48rpx;
+    height: 48rpx;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    border: 3rpx solid #44365f;
+    border-radius: 16rpx;
+    color: #ffffff;
+    background: #7c63e8;
+    box-shadow: 3rpx 4rpx 0 #ffd447;
+    font-size: 23rpx;
+    font-weight: 950;
+}
+
+.question-text {
+    padding-top: 3rpx;
+    color: #3b3052;
+    font-size: 30rpx;
+    font-weight: 900;
+    line-height: 1.5;
+}
+
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 15rpx;
 }
 
 .radio-item {
+    position: relative;
     display: flex;
-    align-items: flex-start;
-    /* 修改为flex-start以支持多行文本 */
-    padding: 16rpx 16rpx 16rpx 0;
-    border-radius: 8rpx;
+    align-items: center;
+    min-height: 80rpx;
+    box-sizing: border-box;
+    padding: 17rpx 18rpx;
+    overflow: hidden;
+    border: 2rpx solid #d9d0e1;
+    border-radius: 23rpx;
+    background: #faf8fc;
+    box-shadow: 0 4rpx 0 rgba(68, 54, 95, 0.08);
+    transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.radio-item:active {
+    transform: scale(0.985);
+}
+
+.radio-item--selected {
+    border: 3rpx solid #44365f;
+    background: linear-gradient(135deg, #fff0a9 0%, #ffe0ad 100%);
+    box-shadow: 5rpx 5rpx 0 #ff8f82;
 }
 
 .radio-icon {
-    width: 40rpx;
-    height: 40rpx;
-    margin-right: 16rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44rpx;
+    height: 44rpx;
+    margin-right: 15rpx;
     flex-shrink: 0;
-    /* 防止图标被压缩 */
 }
 
-.selected-icon,
-.unselected-icon {
-    width: 100%;
-    height: 100%;
+.radio-empty,
+.radio-check {
+    width: 40rpx;
+    height: 40rpx;
+    box-sizing: border-box;
+    border: 3rpx solid #887a93;
+    border-radius: 50%;
+}
+
+.radio-check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-color: #44365f;
+    color: #ffffff;
+    background: #52c49e;
+    box-shadow: 2rpx 3rpx 0 #44365f;
+    font-size: 23rpx;
+    font-weight: 950;
 }
 
 .radio-text {
-    font-size: 28rpx;
-    color: #333;
+    min-width: 0;
+    flex: 1;
+    color: #55485f;
+    font-size: 26rpx;
+    font-weight: 700;
+    line-height: 1.48;
+    word-break: break-word;
+}
+
+.radio-item--selected .radio-text {
+    color: #3b3052;
+    font-weight: 850;
+}
+
+.selected-spark {
+    margin-left: 10rpx;
+    color: #8b67e8;
+    font-size: 26rpx;
+    font-weight: 900;
 }
 </style>

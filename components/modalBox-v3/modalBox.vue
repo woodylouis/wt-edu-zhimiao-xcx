@@ -1,18 +1,24 @@
 <!-- 选择弹窗 -->
 <template>
     <view class="create-class-card">
+        <view class="modal-spark modal-spark--one">✦</view>
+        <view class="modal-spark modal-spark--two">+</view>
         <view class="create-class-header">
-            <text class="header-text">请确认以下信息是否正确</text>
+            <view class="header-icon">🌱</view>
+            <view class="header-copy">
+                <text class="header-kicker">成长任务确认</text>
+                <text class="header-text">请确认以下信息</text>
+            </view>
         </view>
 
-        <div class="confirmation-content">
+        <view class="confirmation-content">
             <view v-if="tips" class="info-tips"> {{ tips }} </view>
-            <div v-for="(item, index) in items" :key="index" class="info-field">
-                <span class="info-label">{{ item.label }} </span>
-                <span class="info-value">{{ item.name }}</span>
-            </div>
+            <view v-for="(item, index) in items" :key="index" class="info-field">
+                <text class="info-label">{{ item.label }} </text>
+                <text class="info-value">{{ item.name }}</text>
+            </view>
             <view class="info-tips"> {{ tips2 }} </view>
-        </div>
+        </view>
 
         <view class="buttons-container" :class="{ 'has-extra-button': extraText }">
             <view class="btn btn-cancel" @tap="onCancel">
@@ -270,5 +276,212 @@ export default {
     font-weight: 500;
     color: #00214d;
     line-height: 40rpx;
+}
+</style>
+
+<style scoped lang="scss">
+.create-class-card {
+    position: relative;
+    width: 610rpx;
+    max-height: 82vh;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 4rpx solid #44365f;
+    border-radius: 38rpx;
+    background: #fffef8;
+    box-shadow: 10rpx 12rpx 0 #ffd447;
+}
+
+.modal-spark {
+    position: absolute;
+    z-index: 3;
+    color: #ffd447;
+    font-weight: 950;
+    pointer-events: none;
+}
+
+.modal-spark--one {
+    top: 18rpx;
+    right: 28rpx;
+    font-size: 35rpx;
+    transform: rotate(14deg);
+}
+
+.modal-spark--two {
+    top: 72rpx;
+    right: 76rpx;
+    color: #ffffff;
+    font-size: 29rpx;
+    transform: rotate(-12deg);
+}
+
+.create-class-header {
+    position: relative;
+    height: auto;
+    min-height: 132rpx;
+    box-sizing: border-box;
+    justify-content: flex-start;
+    gap: 18rpx;
+    padding: 24rpx 30rpx;
+    border-bottom: 3rpx solid #44365f;
+    background: linear-gradient(135deg, #ff7f95 0%, #9b78ef 100%);
+    text-align: left;
+}
+
+.create-class-header::after {
+    content: '';
+    position: absolute;
+    width: 94rpx;
+    height: 94rpx;
+    right: -30rpx;
+    bottom: -38rpx;
+    border-radius: 50%;
+    background: rgba(255, 212, 71, 0.45);
+}
+
+.header-icon {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 74rpx;
+    height: 74rpx;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    border: 3rpx solid #44365f;
+    border-radius: 24rpx;
+    background: #fff2aa;
+    box-shadow: 4rpx 5rpx 0 #44365f;
+    font-size: 38rpx;
+}
+
+.header-copy {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.header-kicker {
+    color: #fff1ad;
+    font-size: 20rpx;
+    font-weight: 850;
+    letter-spacing: 2rpx;
+}
+
+.header-text {
+    margin-top: 4rpx;
+    color: #ffffff;
+    font-size: 31rpx;
+    font-weight: 950;
+    line-height: 1.3;
+}
+
+.confirmation-content {
+    max-height: 45vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 24rpx 28rpx 4rpx;
+    overflow-y: auto;
+    align-items: stretch;
+    font-size: 25rpx;
+}
+
+.info-field {
+    display: flex;
+    box-sizing: border-box;
+    flex-direction: column;
+    gap: 7rpx;
+    margin: 14rpx 0 0;
+    padding: 18rpx 20rpx;
+    border: 2rpx solid #ded5e6;
+    border-radius: 20rpx;
+    background: #faf8fc;
+    line-height: 1.4;
+}
+
+.info-field:first-child {
+    margin-top: 0;
+}
+
+.info-label {
+    color: #897b94;
+    font-size: 21rpx;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.info-value {
+    color: #3e3356;
+    font-size: 25rpx;
+    font-weight: 850;
+    line-height: 1.5;
+    word-break: break-word;
+    white-space: pre-line;
+}
+
+.info-tips {
+    margin: 12rpx 0 0;
+    padding: 17rpx 19rpx;
+    border: 2rpx dashed #a07945;
+    border-radius: 19rpx;
+    color: #735021;
+    background: #fff3bc;
+    font-size: 23rpx;
+    font-weight: 750;
+    line-height: 1.55;
+}
+
+.info-tips:empty {
+    display: none;
+}
+
+.buttons-container {
+    gap: 16rpx;
+    margin: 0;
+    padding: 25rpx 28rpx 30rpx;
+}
+
+.btn {
+    height: 80rpx;
+    box-sizing: border-box;
+    border: 3rpx solid #44365f;
+    border-radius: 25rpx;
+}
+
+.btn:active {
+    transform: translateY(3rpx);
+    box-shadow: none;
+}
+
+.btn-cancel {
+    color: #5a4d68;
+    border-color: #44365f;
+    background: #ffffff;
+    box-shadow: 4rpx 5rpx 0 #c9bdd4;
+}
+
+.btn-create {
+    color: #ffffff;
+    background: linear-gradient(135deg, #ff718b 0%, #8d6ae9 100%);
+    box-shadow: 4rpx 5rpx 0 #ffd447;
+}
+
+.btn-extra {
+    color: #315e53;
+    border-color: #44365f;
+    background: #b4efd9;
+    box-shadow: 4rpx 5rpx 0 #7f65d9;
+}
+
+.btn-text,
+.btn-cancel .btn-text,
+.btn-create .btn-text,
+.btn-extra .btn-text {
+    color: inherit;
+    font-size: 26rpx;
+    font-weight: 900;
 }
 </style>
