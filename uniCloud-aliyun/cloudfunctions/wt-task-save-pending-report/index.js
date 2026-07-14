@@ -6,6 +6,20 @@ const dbRecord = db.collection('wtdb-business-assess-record')
 const dbTask = db.collection('wtdb-report-tasks')
 const dbLog = db.collection('wtdb-debug-logs')
 
+function compactId(value) {
+	if (!value) return ''
+	if (typeof value === 'string') return value
+	if (value.$oid) return value.$oid
+	if (value._id) return compactId(value._id)
+	return String(value)
+}
+
+async function hasRunAccess(taskId, runToken) {
+	if (!runToken) return false
+	const res = await dbTask.where({ taskId }).field({ _id: true }).limit(1).get()
+	return compactId(res.data?.[0]?._id) === compactId(runToken)
+}
+
 async function log(tag, data = null, { taskId = '', recordId = '', level = 'info' } = {}) {
 	const now = Date.now()
 	const formattedTime = new Date(now).toLocaleString('zh-CN', { hour12: false })
@@ -15,9 +29,14 @@ async function log(tag, data = null, { taskId = '', recordId = '', level = 'info
 }
 
 exports.main = async (event = {}) => {
-	const taskWhere = event.taskId
-		? { taskId: event.taskId, status: 'pending' }
-		: { status: 'pending' }
+	if (!event.taskId) {
+		return { code: 400, message: '缺少参数: taskId' }
+	}
+	if (!await hasRunAccess(event.taskId, event.runToken)) {
+		return { code: 403, message: '无权执行该报告任务' }
+	}
+
+	const taskWhere = { taskId: event.taskId, status: 'pending' }
 	const tasks = await dbPending.where(taskWhere).limit(3).get()
 
 	for (const task of tasks.data) {
@@ -82,4 +101,6 @@ exports.main = async (event = {}) => {
 			await log('save-pending-error', { error: err.message }, { taskId, recordId, level: 'error' })
 		}
 	}
+
+	return { code: 200, data: { processed: tasks.data.length } }
 }

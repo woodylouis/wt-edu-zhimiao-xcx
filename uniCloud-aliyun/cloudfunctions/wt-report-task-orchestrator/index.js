@@ -7,7 +7,22 @@ const dbAnalysis = db.collection('wtdb-section-analysis-tasks')
 const dbPending = db.collection('wtdb-report-save-pending')
 const dbLog = db.collection('wtdb-debug-logs')
 
-const MAX_LOOPS = 3
+const MAX_LOOPS = 20
+const MAX_RUN_TIME = 7 * 60 * 1000
+
+function compactId(value) {
+	if (!value) return ''
+	if (typeof value === 'string') return value
+	if (value.$oid) return value.$oid
+	if (value._id) return compactId(value._id)
+	return String(value)
+}
+
+async function hasRunAccess(taskId, runToken) {
+	if (!runToken) return false
+	const res = await dbTask.where({ taskId }).field({ _id: true }).limit(1).get()
+	return compactId(res.data?.[0]?._id) === compactId(runToken)
+}
 
 async function log(tag, data = null, { taskId = '', level = 'info' } = {}) {
 	const now = Date.now()
@@ -30,35 +45,8 @@ async function appendTaskLog(taskId, message, extra = {}) {
 	})
 }
 
-async function resetTask(taskId, reason) {
-	await dbAnalysis.where({ taskId }).remove()
-	await dbPending.where({ taskId }).remove()
-
-	const taskRes = await dbTask.where({ taskId }).limit(1).get()
-	const task = taskRes.data?.[0]
-	if (!task) {
-		throw new Error(`任务不存在: ${taskId}`)
-	}
-
-	const metadata = task.metadata || {}
-	await appendTaskLog(taskId, reason || '任务重新进入生成队列', {
-		status: 'pending',
-		progress: 0,
-		completedSections: 0,
-		failReason: '',
-		errorMessage: '',
-		metadata: {
-			...metadata,
-			retryCount: Number(metadata.retryCount || 0) + 1
-		}
-	})
-}
-
-async function preparePendingTasks(taskId = '') {
-	const where = taskId
-		? { taskId, status: dbCmd.in(['pending']) }
-		: { status: 'pending' }
-	const res = await dbTask.where(where).limit(5).get()
+async function preparePendingTask(taskId) {
+	const res = await dbTask.where({ taskId, status: 'pending' }).limit(1).get()
 
 	for (const task of res.data || []) {
 		await appendTaskLog(task.taskId, '后台任务开始分派模块分析', {
@@ -70,13 +58,16 @@ async function preparePendingTasks(taskId = '') {
 		})
 	}
 
-	return res.data?.length || 0
 }
 
 async function callWorker(name, data = {}) {
 	try {
 		const res = await uniCloud.callFunction({ name, data })
-		return res.result || res
+		const result = res.result || res
+		if (result && Number(result.code) >= 400) {
+			throw new Error(result.message || `${name} 执行失败`)
+		}
+		return result
 	} catch (error) {
 		await log('orchestrator-call-failed', { name, error: error.message }, { level: 'error' })
 		throw error
@@ -85,20 +76,27 @@ async function callWorker(name, data = {}) {
 
 async function getTaskStatus(taskId) {
 	if (!taskId) return null
-	const res = await dbTask.where({ taskId }).field({ status: true, progress: true }).limit(1).get()
+	const res = await dbTask.where({ taskId }).field({
+		taskId: true,
+		recordId: true,
+		childId: true,
+		status: true,
+		progress: true,
+		totalSections: true,
+		completedSections: true,
+		failReason: true,
+		errorMessage: true
+	}).limit(1).get()
 	return res.data?.[0] || null
 }
 
-async function hasActiveWork(taskId = '') {
-	const analysisWhere = taskId
-		? { taskId, status: dbCmd.in(['pending', 'processing']) }
-		: { status: dbCmd.in(['pending', 'processing']) }
-	const pendingSaveWhere = taskId
-		? { taskId, status: 'pending' }
-		: { status: 'pending' }
-	const taskWhere = taskId
-		? { taskId, status: dbCmd.in(['pending', 'processing', 'waiting_merge', 'pending_save']) }
-		: { status: dbCmd.in(['pending', 'processing', 'waiting_merge', 'pending_save']) }
+async function hasActiveWork(taskId) {
+	const analysisWhere = { taskId, status: dbCmd.in(['pending', 'processing']) }
+	const pendingSaveWhere = { taskId, status: 'pending' }
+	const taskWhere = {
+		taskId,
+		status: dbCmd.in(['pending', 'processing', 'waiting_merge', 'pending_save'])
+	}
 
 	const [analysisCount, saveCount, taskCount] = await Promise.all([
 		dbAnalysis.where(analysisWhere).count(),
@@ -111,53 +109,102 @@ async function hasActiveWork(taskId = '') {
 		(taskCount.total || 0) > 0
 }
 
+function isTerminalStatus(status) {
+	return status === 'completed' || status === 'failed'
+}
+
+async function runTaskPipeline(taskId, runToken, startTime) {
+	let loopCount = 0
+	let deadlineReached = false
+
+	for (let i = 0; i < MAX_LOOPS; i++) {
+		loopCount = i + 1
+
+		if (Date.now() - startTime > MAX_RUN_TIME) {
+			deadlineReached = true
+			await log('orchestrator-deadline-reached', { taskId, loopCount }, { taskId, level: 'warn' })
+			break
+		}
+
+		await callWorker('wt-section-analysis-worker', { taskId, runToken })
+		await callWorker('wt-section-merge-to-report', { taskId, runToken })
+		await callWorker('wt-task-save-pending-report', { taskId, runToken })
+
+		const status = await getTaskStatus(taskId)
+		if (!status || isTerminalStatus(status.status)) {
+			break
+		}
+
+		const active = await hasActiveWork(taskId)
+		if (!active) break
+	}
+
+	const status = await getTaskStatus(taskId)
+	const active = await hasActiveWork(taskId)
+
+	if (active && status && !isTerminalStatus(status.status)) {
+		const message = deadlineReached
+			? '后台分析耗时较长，本次按需编排已到达执行时间上限'
+			: '后台分析仍有未完成步骤，本次按需编排已到达循环上限'
+		await appendTaskLog(taskId, message, {
+			status: 'failed',
+			failReason: message,
+			errorMessage: message
+		})
+		return {
+			loopCount,
+			deadlineReached,
+			active,
+			status: await getTaskStatus(taskId)
+		}
+	}
+
+	return {
+		loopCount,
+		deadlineReached,
+		active,
+		status
+	}
+}
+
 exports.main = async (event = {}) => {
+	const startTime = Date.now()
 	const taskId = event.taskId || ''
-	const action = event.action || ''
-	const kickOnly = !!event.kickOnly
+	const runToken = event.runToken || ''
+	if (!taskId) {
+		return { code: 400, message: '缺少参数: taskId' }
+	}
 
 	try {
-		await log('orchestrator-start', { taskId, action }, { taskId })
-
-		if (taskId && action === 'retry') {
-			await resetTask(taskId, '后台手动重新生成报告')
+		if (!await hasRunAccess(taskId, runToken)) {
+			return { code: 403, message: '无权执行该报告任务' }
 		}
 
-		const preparedCount = await preparePendingTasks(taskId)
-		if (preparedCount > 0 || !taskId) {
-			await callWorker('wt-section-task-dispatcher', taskId ? { taskId } : {})
-		}
+		await log('orchestrator-start', {
+			taskId,
+			source: event.source || '',
+			triggeredBy: event.triggeredBy || ''
+		}, { taskId })
 
-		if (kickOnly) {
-			await log('orchestrator-kick-done', { taskId }, { taskId })
-			return {
-				code: 200,
-				message: '报告任务已进入后台队列',
-				data: taskId ? await getTaskStatus(taskId) : null
-			}
-		}
+		await preparePendingTask(taskId)
+		await callWorker('wt-section-task-dispatcher', { taskId, runToken })
 
-		for (let i = 0; i < MAX_LOOPS; i++) {
-			await callWorker('wt-section-analysis-worker', taskId ? { taskId } : {})
-			await callWorker('wt-section-merge-to-report', taskId ? { taskId } : {})
-			await callWorker('wt-task-save-pending-report', taskId ? { taskId } : {})
+		const result = await runTaskPipeline(taskId, runToken, startTime)
 
-			if (taskId) {
-				const status = await getTaskStatus(taskId)
-				if (!status || status.status === 'completed' || status.status === 'failed') {
-					break
-				}
-			}
-
-			const active = await hasActiveWork(taskId)
-			if (!active) break
-		}
-
-		await log('orchestrator-done', { taskId }, { taskId })
+		await log('orchestrator-done', {
+			taskId,
+			loopCount: result.loopCount,
+			deadlineReached: result.deadlineReached,
+			active: result.active,
+			status: result.status
+		}, { taskId })
+		const failed = result.status?.status === 'failed'
 		return {
-			code: 200,
-			message: '报告任务编排完成',
-			data: taskId ? await getTaskStatus(taskId) : null
+			code: failed ? 500 : 200,
+			message: failed
+				? (result.status.failReason || result.status.errorMessage || '报告任务执行失败')
+				: '报告任务编排完成',
+			data: result.status
 		}
 	} catch (error) {
 		await log('orchestrator-error', { error: error.message, stack: error.stack }, { taskId, level: 'error' })

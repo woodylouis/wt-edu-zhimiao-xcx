@@ -8,6 +8,20 @@ const dbUser = db.collection('uni-id-users')
 const dbLog = db.collection('wtdb-debug-logs')
 const deepseek = require('deepseek-client')
 
+function compactId(value) {
+	if (!value) return ''
+	if (typeof value === 'string') return value
+	if (value.$oid) return value.$oid
+	if (value._id) return compactId(value._id)
+	return String(value)
+}
+
+async function hasRunAccess(taskId, runToken) {
+	if (!runToken) return false
+	const res = await dbTask.where({ taskId }).field({ _id: true }).limit(1).get()
+	return compactId(res.data?.[0]?._id) === compactId(runToken)
+}
+
 async function log(tag, data = null, { taskId = '', recordId = '', level = 'info' } = {}) {
 	const now = Date.now()
 	const formattedTime = new Date(now).toLocaleString('zh-CN', { hour12: false })
@@ -129,9 +143,14 @@ async function generateReportSummary(reportData, taskId, recordId) {
 }
 
 exports.main = async (event = {}) => {
-	const taskWhere = event.taskId
-		? { taskId: event.taskId, status: 'waiting_merge' }
-		: { status: 'waiting_merge' }
+	if (!event.taskId) {
+		return { code: 400, message: '缺少参数: taskId' }
+	}
+	if (!await hasRunAccess(event.taskId, event.runToken)) {
+		return { code: 403, message: '无权执行该报告任务' }
+	}
+
+	const taskWhere = { taskId: event.taskId, status: 'waiting_merge' }
 	const tasks = await dbTask.where(taskWhere).limit(3).get()
 	for (const task of tasks.data) {
 		console.log('有待处理任务数量', task)
@@ -274,4 +293,6 @@ exports.main = async (event = {}) => {
 			await log('merge-error', { error: err.message }, { taskId, recordId, level: 'error' })
 		}
 	}
+
+	return { code: 200, data: { processed: tasks.data.length } }
 }

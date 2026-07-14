@@ -109,6 +109,7 @@ const canViewReport = ref(false);
 const statusTitle = ref('正在生成智能分析报告...');
 const statusDesc = ref('AI正在分析中，约需5~7分钟');
 let pollTimer = null;
+let runPromise = null;
 
 let buttonStyle = {
     backgroundColor: "#FFFFFF",
@@ -217,6 +218,38 @@ const stopPolling = () => {
     }
 }
 
+const runReportTask = () => {
+    if (!taskId.value || runPromise) return runPromise;
+
+    statusTitle.value = '正在生成智能分析报告...';
+    statusDesc.value = '已按需启动DeepSeek分析，请保持网络连接';
+    runPromise = uniCloud.callFunction({
+        name: 'wt-run-report-tasks',
+        data: {
+            taskId: taskId.value,
+            source: 'mini-program-after-assess',
+            uniIdToken: uni.getStorageSync('uni_id_token')
+        },
+        timeout: 600000
+    }).then(res => {
+        if (res.result?.code === 200 && res.result.data) {
+            updateStatusText(res.result.data);
+            return;
+        }
+
+        if (res.result?.code !== 409) {
+            throw new Error(res.result?.message || '启动报告分析失败');
+        }
+    }).catch(error => {
+        console.error('按需执行报告任务失败:', error);
+    }).finally(() => {
+        runPromise = null;
+        pollReportTaskStatus();
+    });
+
+    return runPromise;
+}
+
 const viewReport = () => {
     const currentStudent = uni.getStorageSync('current_student') || {};
     uni.setStorageSync('current_student', {
@@ -240,6 +273,7 @@ onLoad(async function (options) {
     recordId.value = options.recordId || currentAssessmentModuleStatus?.recordId || '';
     childId.value = options.childId || assessStudent.childId || '';
     startPolling();
+    runReportTask();
 });
 
 onUnmounted(() => {

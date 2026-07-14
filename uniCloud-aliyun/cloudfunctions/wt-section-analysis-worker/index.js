@@ -9,6 +9,20 @@ const MAX_RETRY = 3 // 减少重试次数，避免云函数超时
 const TIMEOUT_MS = 30000 // 减少AI调用超时时间到30秒
 const MAX_EXECUTION_TIME = 4 * 60 * 1000 // 云函数最大执行时间4分钟
 
+function compactId(value) {
+	if (!value) return ''
+	if (typeof value === 'string') return value
+	if (value.$oid) return value.$oid
+	if (value._id) return compactId(value._id)
+	return String(value)
+}
+
+async function hasRunAccess(taskId, runToken) {
+	if (!runToken) return false
+	const res = await reportTaskCollection.where({ taskId }).field({ _id: true }).limit(1).get()
+	return compactId(res.data?.[0]?._id) === compactId(runToken)
+}
+
 async function log(tag, data = null, { taskId = '', recordId = '', level = 'info' } = {}) {
 	const now = Date.now()
 	const formattedTime = new Date(now).toLocaleString('zh-CN', { hour12: false })
@@ -176,11 +190,16 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
 }
 
 exports.main = async (event = {}) => {
+	if (!event.taskId) {
+		return { code: 400, message: '缺少参数: taskId' }
+	}
+	if (!await hasRunAccess(event.taskId, event.runToken)) {
+		return { code: 403, message: '无权执行该报告任务' }
+	}
+
 	const startTime = Date.now()
-	const taskWhere = event.taskId
-		? { taskId: event.taskId, status: 'pending' }
-		: { status: 'pending' }
-	const tasks = await taskCollection.where(taskWhere).limit(2).get() // 减少并发处理数量
+	const taskWhere = { taskId: event.taskId, status: 'pending' }
+	const tasks = await taskCollection.where(taskWhere).limit(1).get()
 	console.log('Fetched tasks:', tasks)
 
 	for (const task of tasks.data) {
@@ -262,4 +281,5 @@ exports.main = async (event = {}) => {
 	const executionTime = Date.now() - startTime
 	console.log('云函数执行完成，耗时:', executionTime + 'ms')
 	await log('worker-completed', { executionTime, tasksProcessed: tasks.data.length }, {})
+	return { code: 200, data: { processed: tasks.data.length, executionTime } }
 }
