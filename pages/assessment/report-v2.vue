@@ -43,9 +43,20 @@
           <section class="chart-area">
             <l-echart ref="radarChartRef"></l-echart>
           </section>
-          <section class="recommendation-section">
-            {{ reportSummary }}
-          </section>
+          <view
+            class="recommendation-section"
+            :class="{ clickable: reportSummary }"
+            @click="openReportSummaryPopup"
+          >
+            <view class="recommendation-marker"></view>
+            <view class="recommendation-content">
+              <view class="recommendation-label">AI分析</view>
+              <view class="recommendation-text">
+                {{ reportSummary || "暂无AI分析" }}
+              </view>
+            </view>
+            <view class="recommendation-action" v-if="reportSummary">全文</view>
+          </view>
         </div>
       </div>
       <view
@@ -267,6 +278,13 @@
         @onclickReportCard="onclickReportCard"
       />
     </view>
+    <analysis-modal
+      :show="showReportSummaryPopup"
+      title="能力分布图AI分析"
+      :subtitle="`${displayName} · ${dateString || '评估报告'}`"
+      :content="reportSummary"
+      @update:show="(val) => (showReportSummaryPopup = val)"
+    />
   </view>
 </template>
 
@@ -278,6 +296,7 @@
   import customNav from "@/components/customNav";
   import capabilityLevel from "./components/capability-level-v2";
   import popup from "./components/popup";
+  import analysisModal from "@/components/analysis-modal/analysis-modal.vue";
   import { getRadarOption } from "./charts";
   import { ALPHABET_AGE_MAP } from "@/lib/types/local_storage.js";
   let displayName = ref("可爱宝宝"); //
@@ -293,6 +312,7 @@
   const childAgeInt = ref(0);
   const dateString = ref("");
   const reportSummary = ref("");
+  const showReportSummaryPopup = ref(false);
   const showHistory = ref(false);
   const navCustomStyle =
     "background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8)";
@@ -327,6 +347,11 @@
 
   const handleClickHistory = () => {
     showHistory.value = true;
+  };
+
+  const openReportSummaryPopup = () => {
+    if (!reportSummary.value) return;
+    showReportSummaryPopup.value = true;
   };
 
   const getColorByAgeAndStage = (age, stageStr) => {
@@ -667,19 +692,71 @@
             left: 0;
             top: 612rpx;
             width: 670rpx;
-            // height: 110rpx;
+            height: 110rpx;
             color: #00214d;
             font-family: "PingFang SC", -apple-system, Roboto, Helvetica,
               sans-serif;
             font-size: 22rpx;
             font-weight: 400;
+            line-height: 28rpx;
             border-radius: 0 0 16rpx 16rpx;
             box-shadow: 0 8rpx 8rpx 0 rgba(0, 0, 0, 0.25);
             background-color: rgba(110, 221, 138, 0.12);
             display: flex;
             align-items: center;
-            padding: 0 24rpx;
+            gap: 16rpx;
+            padding: 12rpx 20rpx;
             box-sizing: border-box;
+            overflow: hidden;
+
+            &.clickable {
+              cursor: pointer;
+            }
+
+            .recommendation-marker {
+              width: 8rpx;
+              height: 70rpx;
+              border-radius: 999rpx;
+              background: linear-gradient(180deg, #6edd8a 0%, #ffb45c 100%);
+              flex-shrink: 0;
+            }
+
+            .recommendation-content {
+              flex: 1;
+              min-width: 0;
+            }
+
+            .recommendation-label {
+              color: #50636b;
+              font-size: 20rpx;
+              font-weight: 500;
+              line-height: 26rpx;
+              margin-bottom: 4rpx;
+            }
+
+            .recommendation-text {
+              width: 100%;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              word-break: break-word;
+            }
+
+            .recommendation-action {
+              min-width: 64rpx;
+              height: 40rpx;
+              border-radius: 999rpx;
+              background: #ffffff;
+              border: 1px solid rgba(0, 33, 77, 0.12);
+              color: #00214d;
+              font-size: 20rpx;
+              font-weight: 500;
+              line-height: 40rpx;
+              text-align: center;
+              flex-shrink: 0;
+            }
           }
         }
       }
