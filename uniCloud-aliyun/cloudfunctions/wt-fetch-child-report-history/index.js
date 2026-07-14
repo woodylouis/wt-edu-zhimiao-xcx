@@ -42,28 +42,40 @@ async function getAssessmentTitleMap(reports) {
 
 exports.main = async (event) => {
   try {
-    const { childId = '', reportId = '', recordId = '' } = event;
+    const {
+      childId = '',
+      reportId = '',
+      recordId = '',
+      documentId = ''
+    } = event;
 
-    if (!childId && !reportId && !recordId) {
+    if (!childId && !reportId && !recordId && !documentId) {
       return {
         code: 400,
-        msg: '缺少必要参数: childId、reportId 或 recordId'
+        msg: '缺少必要参数: childId、reportId、recordId 或 documentId'
       };
     }
 
-    const query = reportId
-      ? { reportId }
-      : recordId
-        ? { recordId }
-        : { childId };
-    if (childId && (reportId || recordId)) {
-      query.childId = childId;
-    }
+    let res;
+    if (documentId) {
+      res = await db.collection('wtdb-business-assess-report')
+        .doc(documentId)
+        .get();
+    } else {
+      const query = reportId
+        ? { reportId }
+        : recordId
+          ? { recordId }
+          : { childId };
+      if (childId && (reportId || recordId)) {
+        query.childId = childId;
+      }
 
-    const res = await db.collection('wtdb-business-assess-report')
-      .where(query)
-      .orderBy('completionTime', 'desc')
-      .get();
+      res = await db.collection('wtdb-business-assess-report')
+        .where(query)
+        .orderBy('completionTime', 'desc')
+        .get();
+    }
 
     let assessmentTitleMap = new Map();
     try {

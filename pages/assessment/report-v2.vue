@@ -38,12 +38,83 @@
             </view>
           </view>
         </view>
-        <view class="profile-right" @click="handleClickHistory">
+        <view
+          v-if="!isSharedView"
+          class="profile-right"
+          @click="handleClickHistory"
+        >
           <view class="history-icon-wrap">
             <image class="report-list-image" :src="listIconUrl" />
           </view>
           <text class="history-title">历史报告</text>
           <text class="history-hint">点击切换</text>
+        </view>
+        <view v-else class="profile-right profile-right--shared">
+          <view class="history-icon-wrap shared-icon-wrap">↗</view>
+          <text class="history-title">好友分享</text>
+          <text class="history-hint">仅当前报告</text>
+        </view>
+      </view>
+      <view class="report-toolbox">
+        <view class="toolbox-heading">
+          <view>
+            <view class="toolbox-kicker">SAVE & SHARE</view>
+            <text class="toolbox-title">保存与分享</text>
+          </view>
+          <view
+            class="toolbox-status"
+            :class="{ 'toolbox-status--ready': pdfUrl }"
+          >
+            <view class="status-dot"></view>
+            <text>{{ pdfStatusText }}</text>
+          </view>
+        </view>
+
+        <view class="toolbox-actions">
+          <button
+            class="toolbox-action toolbox-action--pdf"
+            :class="{ 'toolbox-action--busy': pdfBusy }"
+            :disabled="pdfActionDisabled"
+            hover-class="toolbox-action--pressed"
+            :hover-stay-time="80"
+            @click="handlePdfAction"
+          >
+            <view class="toolbox-action-icon pdf-icon">
+              <view v-if="pdfBusy" class="action-spinner"></view>
+              <text v-else>PDF</text>
+            </view>
+            <view class="toolbox-action-copy">
+              <text class="toolbox-action-title">{{ pdfActionTitle }}</text>
+              <text class="toolbox-action-hint">{{ pdfActionHint }}</text>
+            </view>
+            <text class="toolbox-action-arrow">›</text>
+          </button>
+
+          <button
+            class="toolbox-action toolbox-action--share"
+            open-type="share"
+            :disabled="!canShareReport"
+            hover-class="toolbox-action--pressed"
+            :hover-stay-time="80"
+          >
+            <view class="toolbox-action-icon share-icon">
+              <view class="share-node share-node--top"></view>
+              <view class="share-node share-node--left"></view>
+              <view class="share-node share-node--bottom"></view>
+              <view class="share-line share-line--top"></view>
+              <view class="share-line share-line--bottom"></view>
+            </view>
+            <view class="toolbox-action-copy">
+              <text class="toolbox-action-title">分享给好友</text>
+              <text class="toolbox-action-hint">发送当前这份成长报告</text>
+            </view>
+            <text class="toolbox-action-arrow">›</text>
+          </button>
+        </view>
+
+        <view class="privacy-note">
+          <view class="privacy-lock">✓</view>
+          <text>{{ privacyHint }}</text>
         </view>
       </view>
       <div class="assessment-container">
@@ -346,6 +417,13 @@
   const showReportSummaryPopup = ref(false);
   const showHistory = ref(false);
   const loadingVisible = ref(false);
+  const currentReport = ref(null);
+  const pdfUrl = ref("");
+  const pdfStatus = ref("");
+  const pdfGeneratedTime = ref(0);
+  const pdfGenerating = ref(false);
+  const pdfOpening = ref(false);
+  const isSharedView = ref(false);
   const navCustomStyle =
     "background: linear-gradient(135deg, #FFF2B8 0%, #FFD778 48%, #FFB8AC 100%);height: calc(100vh / 8)";
   // 在setup中添加卸载生命周期
@@ -359,6 +437,51 @@
 
   // 添加折叠面板状态管理
   const activeCollapse = ref([]);
+
+  const pdfBusy = computed(() => pdfGenerating.value || pdfOpening.value);
+  const currentReportId = computed(
+    () => currentReport.value?.reportId || currentReport.value?._id || ""
+  );
+  const canShareReport = computed(() => {
+    const report = currentReport.value || {};
+    return !!(
+      report.reportId ||
+      report._id ||
+      report.recordId ||
+      report.childId
+    );
+  });
+  const pdfActionDisabled = computed(
+    () =>
+      pdfBusy.value ||
+      !currentReportId.value ||
+      (isSharedView.value && !pdfUrl.value)
+  );
+  const pdfActionTitle = computed(() => {
+    if (pdfGenerating.value) return "正在生成PDF";
+    if (pdfOpening.value) return "正在打开PDF";
+    if (pdfUrl.value) return "查看PDF报告";
+    if (isSharedView.value) return "暂未生成PDF";
+    return "生成PDF报告";
+  });
+  const pdfActionHint = computed(() => {
+    if (pdfGenerating.value) return "正在排版，请稍候片刻";
+    if (pdfOpening.value) return "正在加载报告文件";
+    if (pdfUrl.value) return "可预览、保存或转发";
+    if (isSharedView.value) return "请联系报告管理者生成";
+    return "生成后自动打开预览";
+  });
+  const pdfStatusText = computed(() => {
+    if (pdfGenerating.value) return "生成中";
+    if (pdfUrl.value) return "PDF已就绪";
+    if (pdfStatus.value === "failed") return "可重新生成";
+    return "报告工具";
+  });
+  const privacyHint = computed(() =>
+    isSharedView.value
+      ? "这份报告来自微信分享，请谨慎转发儿童成长信息"
+      : "报告含儿童成长信息，分享前请确认接收人"
+  );
 
   // 折叠面板事件处理函数
   const openCollapse = (e) => {
@@ -374,6 +497,15 @@
   };
 
   const handleNavBack = () => {
+    if (isSharedView.value) {
+      const pages = getCurrentPages();
+      if (pages.length > 1) {
+        uni.navigateBack();
+      } else {
+        uni.reLaunch({ url: "/pages/enter-class/index" });
+      }
+      return;
+    }
     uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
   };
 
@@ -443,6 +575,7 @@
   const applyReportData = (report, fallback = {}) => {
     if (!report) return;
 
+    currentReport.value = report;
     displayName.value = report.childName || fallback.name || "未知姓名";
     classDisplay.value = report.className || fallback.className || "未知班级";
     avatarUrl.value = report.avatar || fallback.avatar || avatarUrl.value;
@@ -456,6 +589,9 @@
     reportSummary.value = report.reportSummary || "";
     dateString.value = report.date || common.formatDate(report.completionTime) || "";
     assessmentId.value = report.assessmentId || assessmentId.value;
+    pdfUrl.value = report.pdfUrl || "";
+    pdfStatus.value = report.pdfStatus || "";
+    pdfGeneratedTime.value = report.pdfGeneratedTime || 0;
   };
 
   const onclickReportCard = (index) => {
@@ -477,6 +613,7 @@
     childId = "",
     reportId = "",
     recordId = "",
+    documentId = "",
   } = {}) => {
     loadingVisible.value = true;
 
@@ -488,6 +625,7 @@
           childId,
           reportId,
           recordId,
+          documentId,
           uniIdToken: uni.getStorageSync("uni_id_token"),
         },
       });
@@ -548,7 +686,181 @@
     }
   };
 
+  const updateCurrentReportPdf = (url) => {
+    const report = currentReport.value;
+    if (!report) return;
+
+    const generatedTime = Date.now();
+    report.pdfUrl = url;
+    report.pdfStatus = "completed";
+    report.pdfGeneratedTime = generatedTime;
+    pdfUrl.value = url;
+    pdfStatus.value = "completed";
+    pdfGeneratedTime.value = generatedTime;
+
+    const index = historyReports.value.findIndex((item) => {
+      if (report.reportId && item.reportId) {
+        return item.reportId === report.reportId;
+      }
+      return item._id && item._id === report._id;
+    });
+    if (index >= 0) {
+      historyReports.value[index] = { ...report };
+    }
+  };
+
+  const resolvePdfUrl = async (sourceUrl) => {
+    if (!sourceUrl) throw new Error("PDF地址不存在");
+    if (/^https?:\/\//i.test(sourceUrl)) return sourceUrl;
+
+    const result = await uniCloud.getTempFileURL({ fileList: [sourceUrl] });
+    return result?.fileList?.[0]?.tempFileURL || sourceUrl;
+  };
+
+  const downloadPdf = (url) =>
+    new Promise((resolve, reject) => {
+      uni.downloadFile({
+        url,
+        success: (result) => {
+          if (result.statusCode === 200 && result.tempFilePath) {
+            resolve(result.tempFilePath);
+          } else {
+            reject(new Error("PDF下载失败"));
+          }
+        },
+        fail: reject,
+      });
+    });
+
+  const openPdfFile = (filePath) =>
+    new Promise((resolve, reject) => {
+      uni.openDocument({
+        filePath,
+        fileType: "pdf",
+        showMenu: true,
+        success: resolve,
+        fail: reject,
+      });
+    });
+
+  const previewPdf = async (sourceUrl) => {
+    if (pdfOpening.value) return;
+    pdfOpening.value = true;
+
+    try {
+      const accessibleUrl = await resolvePdfUrl(sourceUrl);
+
+      // #ifdef H5
+      window.open(accessibleUrl, "_blank");
+      return;
+      // #endif
+
+      // #ifndef H5
+      const filePath = await downloadPdf(accessibleUrl);
+      await openPdfFile(filePath);
+      // #endif
+    } catch (error) {
+      console.error("PDF打开失败:", error);
+      uni.showToast({
+        title: "PDF打开失败，请稍后重试",
+        icon: "none",
+      });
+    } finally {
+      pdfOpening.value = false;
+    }
+  };
+
+  const generatePdf = async () => {
+    if (pdfGenerating.value || !currentReport.value) return "";
+    pdfGenerating.value = true;
+    pdfStatus.value = "generating";
+
+    try {
+      const report = currentReport.value;
+      const response = await uniCloud.callFunction({
+        name: "wtdb-generate-report-pdf",
+        data: {
+          reportId: report.reportId || report._id,
+          childId: report.childId || "",
+          forceRegenerate: false,
+          uniIdToken: uni.getStorageSync("uni_id_token"),
+        },
+      });
+      const result = response?.result || {};
+      const generatedUrl = result?.data?.pdfUrl || "";
+
+      if (result.code !== 200 || !generatedUrl) {
+        const error = new Error(result.msg || "PDF生成失败");
+        error.code = result.code;
+        throw error;
+      }
+
+      updateCurrentReportPdf(generatedUrl);
+      uni.showToast({
+        title: result.data.cached ? "PDF已准备好" : "PDF生成成功",
+        icon: "success",
+      });
+      return generatedUrl;
+    } catch (error) {
+      console.error("PDF生成失败:", error);
+      pdfStatus.value = "failed";
+      const errorMessage =
+        error.code === 401
+          ? "登录已过期，请重新登录"
+          : error.code === 403
+            ? "暂无生成该报告的权限"
+            : error.message || "PDF生成失败，请稍后重试";
+      uni.showToast({ title: errorMessage, icon: "none" });
+      return "";
+    } finally {
+      pdfGenerating.value = false;
+    }
+  };
+
+  const handlePdfAction = async () => {
+    if (pdfBusy.value) return;
+    if (!currentReportId.value) {
+      uni.showToast({ title: "报告尚未加载完成", icon: "none" });
+      return;
+    }
+    if (isSharedView.value && !pdfUrl.value) {
+      uni.showToast({ title: "请联系报告管理者生成PDF", icon: "none" });
+      return;
+    }
+
+    const targetUrl = pdfUrl.value || (await generatePdf());
+    if (targetUrl) await previewPdf(targetUrl);
+  };
+
+  const buildReportSharePath = () => {
+    const report = currentReport.value || {};
+    const params = { isShare: "true" };
+
+    if (report.reportId) {
+      params.reportId = report.reportId;
+    } else if (report._id) {
+      params.documentId = report._id;
+    } else if (report.recordId) {
+      params.recordId = report.recordId;
+    } else if (report.childId) {
+      params.childId = report.childId;
+    } else {
+      return "/pages/enter-class/index";
+    }
+
+    const query = Object.keys(params)
+      .map((key) => `${key}=${encodeURIComponent(params[key])}`)
+      .join("&");
+    return `/pages/assessment/report-v2?${query}`;
+  };
+
   onLoad(async function (options) {
+    isSharedView.value = options.isShare === "true";
+
+    // #ifdef MP-WEIXIN
+    uni.showShareMenu({ menus: ["shareAppMessage"] });
+    // #endif
+
     if (options.isHistory == "true") {
       const student = uni.getStorageSync("current_student") || {};
       const currentClass = uni.getStorageSync("currentClass") || {};
@@ -574,11 +886,15 @@
       console.log("isShare", options);
 
       historyReports.value = await fetchChildReportHistory({
-        childId: options.studentId,
+        childId: options.childId || options.studentId || "",
+        reportId: options.reportId || "",
+        recordId: options.recordId || "",
+        documentId: options.documentId || "",
       });
 
       if (historyReports.value.length > 0) {
         const latestReport = historyReports.value[0];
+        historyReports.value = [latestReport];
         applyReportData(latestReport, {
           name: options.name,
           className: options.nickname,
@@ -608,7 +924,12 @@
         childId: options.childId,
       });
       if (historyReports.value.length > 0) {
-        analysisTextAI.value = historyReports.value[0].aiResponse || "";
+        const matchingReport =
+          historyReports.value.find(
+            (report) => report.assessmentId === assessmentId.value
+          ) || historyReports.value[0];
+        applyReportData(matchingReport, cachedData || {});
+        analysisTextAI.value = matchingReport.aiResponse || "";
       }
     }
   });
@@ -625,17 +946,10 @@
   });
 
   onShareAppMessage((res) => {
-    const student = uni.getStorageSync("current_student");
-    const currentClass = uni.getStorageSync("currentClass");
-
     console.log("onShareAppMessage", res);
-    if (res.from === "button") {
-      // 来自页面内分享按钮
-      console.log(res.target);
-    }
     return {
-      title: `${uni.getStorageSync("current_student").name}的评估报告`,
-      path: `/pages/assessment/report-v2?isShare=true&nickname=${currentClass.nickname}&studentId=${student._id}&name=${student.name}&avatar=${student.avatar}&birthdate=${student.birthdate}&class_id=${student.class_id}&gender=${student.gender}&lastAssessmentDate=${student.lastAssessmentDate}`,
+      title: `${displayName.value}的成长评估报告｜知苗成长`,
+      path: buildReportSharePath(),
     };
   });
 </script>
@@ -1703,6 +2017,12 @@
   }
 }
 
+.report-page .content .user-profile .profile-right--shared {
+  background: #79dfc2;
+  box-shadow: 5rpx 5rpx 0 #a58bff;
+  pointer-events: none;
+}
+
 .history-icon-wrap {
   display: flex;
   align-items: center;
@@ -1713,6 +2033,12 @@
   border: 2rpx solid #392f59;
   border-radius: 15rpx;
   background: #fff;
+}
+
+.shared-icon-wrap {
+  color: #7c63e8;
+  font-size: 28rpx;
+  font-weight: 900;
 }
 
 .report-page .content .user-profile .profile-right .report-list-image {
@@ -1732,6 +2058,293 @@
   color: rgba(255, 255, 255, 0.82);
   font-size: 16rpx;
   font-weight: 700;
+}
+
+.report-toolbox {
+  position: relative;
+  overflow: hidden;
+  margin: 30rpx 28rpx 8rpx;
+  padding: 24rpx;
+  border: 4rpx solid #392f59;
+  border-radius: 32rpx;
+  background: linear-gradient(135deg, #fff 0%, #f4efff 100%);
+  box-shadow: 9rpx 9rpx 0 #79dfc2;
+  box-sizing: border-box;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -44rpx;
+    right: -38rpx;
+    width: 112rpx;
+    height: 112rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 50%;
+    background: #ffd447;
+    opacity: 0.72;
+  }
+}
+
+.toolbox-heading {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.toolbox-kicker {
+  display: inline-flex;
+  margin-bottom: 6rpx;
+  padding: 5rpx 10rpx;
+  color: #392f59;
+  border: 2rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #ffb6ad;
+  font-size: 16rpx;
+  font-weight: 900;
+  letter-spacing: 1rpx;
+  line-height: 1;
+}
+
+.toolbox-title {
+  display: block;
+  color: #31284f;
+  font-size: 30rpx;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.toolbox-status {
+  display: flex;
+  align-items: center;
+  margin-right: 58rpx;
+  padding: 7rpx 13rpx;
+  color: #615878;
+  border: 2rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #fff;
+  font-size: 18rpx;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.status-dot {
+  width: 12rpx;
+  height: 12rpx;
+  margin-right: 7rpx;
+  border: 2rpx solid #392f59;
+  border-radius: 50%;
+  background: #ffd447;
+}
+
+.toolbox-status--ready .status-dot {
+  background: #79dfc2;
+}
+
+.toolbox-actions {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.toolbox-action {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 124rpx;
+  margin: 0;
+  padding: 16rpx;
+  color: #392f59;
+  border: 3rpx solid #392f59;
+  border-radius: 24rpx;
+  box-shadow: 5rpx 5rpx 0 rgba(57, 47, 89, 0.18);
+  line-height: 1;
+  text-align: left;
+  box-sizing: border-box;
+
+  &::after {
+    border: 0;
+  }
+
+  &[disabled] {
+    color: #837c92;
+    background: #f2f0f4;
+    opacity: 0.66;
+  }
+}
+
+.toolbox-action--pdf {
+  background: #fff1ac;
+}
+
+.toolbox-action--share {
+  background: #d8f7eb;
+}
+
+.toolbox-action--pressed {
+  transform: translate(3rpx, 3rpx);
+  box-shadow: 2rpx 2rpx 0 rgba(57, 47, 89, 0.18);
+}
+
+.toolbox-action-icon {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 58rpx;
+  height: 64rpx;
+  margin-right: 13rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 16rpx;
+  box-sizing: border-box;
+}
+
+.pdf-icon {
+  color: #fff;
+  background: #ff765f;
+  box-shadow: 3rpx 3rpx 0 #ffd447;
+
+  text {
+    font-size: 17rpx;
+    font-weight: 900;
+  }
+}
+
+.share-icon {
+  background: #7c63e8;
+  box-shadow: 3rpx 3rpx 0 #79dfc2;
+}
+
+.share-node {
+  position: absolute;
+  z-index: 2;
+  width: 12rpx;
+  height: 12rpx;
+  border: 2rpx solid #392f59;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.share-node--top {
+  top: 9rpx;
+  right: 9rpx;
+}
+
+.share-node--left {
+  top: 25rpx;
+  left: 9rpx;
+}
+
+.share-node--bottom {
+  right: 9rpx;
+  bottom: 9rpx;
+}
+
+.share-line {
+  position: absolute;
+  left: 18rpx;
+  width: 24rpx;
+  height: 3rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  transform-origin: left center;
+}
+
+.share-line--top {
+  top: 28rpx;
+  transform: rotate(-30deg);
+}
+
+.share-line--bottom {
+  bottom: 27rpx;
+  transform: rotate(30deg);
+}
+
+.toolbox-action-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.toolbox-action-title {
+  overflow: hidden;
+  color: #392f59;
+  font-size: 23rpx;
+  font-weight: 900;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbox-action-hint {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 8rpx;
+  color: #6f6880;
+  font-size: 17rpx;
+  font-weight: 650;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.toolbox-action-arrow {
+  flex-shrink: 0;
+  margin-left: 6rpx;
+  color: #392f59;
+  font-size: 36rpx;
+  font-weight: 900;
+}
+
+.action-spinner {
+  width: 25rpx;
+  height: 25rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: toolboxSpin 0.8s linear infinite;
+  box-sizing: border-box;
+}
+
+.privacy-note {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  margin-top: 18rpx;
+  color: #716980;
+  font-size: 19rpx;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.privacy-lock {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 9rpx;
+  color: #fff;
+  border: 2rpx solid #392f59;
+  border-radius: 50%;
+  background: #7c63e8;
+  font-size: 15rpx;
+  font-weight: 900;
+}
+
+@keyframes toolboxSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .report-page .content .assessment-container {

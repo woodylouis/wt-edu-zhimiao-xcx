@@ -13,10 +13,16 @@
                                 :custom-style="inputStyle" type="number" @blur="handleCodeBlur" />
                         </u-form-item>
                     </view>
+                    <view v-if="isSharedInvite" class="invite-notice">
+                        <view class="notice-check">✓</view>
+                        <view class="notice-copy">
+                            <text class="notice-title">班级码已自动填写</text>
+                            <text class="notice-hint">确认无误后，点击下一步即可申请加入</text>
+                        </view>
+                    </view>
                     <text class="help-link">*如何获得班级码？</text>
                     <view class="help-tips">
-                        <!-- <view>1、通过家长或老师分享到微信、朋友圈的班级信息可以获得班级代码；</view> -->
-                        <view>通过已经加入班级的其他家长或老师可在班级首页查看班级代码。</view>
+                        <view>好友分享的小程序卡片会自动带入班级码，也可以向班级老师获取。</view>
                     </view>
 
                     <u-button @click="handleSubmit" :custom-style="buttonStyle">直接点击下一步</u-button>
@@ -43,6 +49,7 @@ export default {
     data() {
         return {
             show: false,
+            isSharedInvite: false,
             formData: {  // 增加classInfo字段定义
                 role: '',
                 code: '',
@@ -203,6 +210,11 @@ export default {
         if (options.role) {
             this.formData.role = options.role;
         }
+        if (options.classCode) {
+            this.formData.code = String(options.classCode).replace(/\D/g, '');
+            this.isSharedInvite = true;
+            this.updateLocalStorage();
+        }
         console.log('初始化表单数据:', this.formData);
     },
 }
@@ -268,5 +280,51 @@ export default {
     font-weight: 400;
     line-height: 20px;
     /* 181.818% */
+}
+
+.invite-notice {
+    display: flex;
+    align-items: center;
+    margin-top: -8rpx;
+    padding: 20rpx 22rpx;
+    border: 2rpx solid #392f59;
+    border-radius: 22rpx;
+    background: linear-gradient(135deg, #d8f7eb 0%, #fff5cb 100%);
+    box-shadow: 5rpx 5rpx 0 #79dfc2;
+}
+
+.notice-check {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 48rpx;
+    height: 48rpx;
+    margin-right: 16rpx;
+    color: #fff;
+    border: 2rpx solid #392f59;
+    border-radius: 50%;
+    background: #7c63e8;
+    font-size: 24rpx;
+    font-weight: 900;
+}
+
+.notice-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.notice-title {
+    color: #392f59;
+    font-size: 25rpx;
+    font-weight: 800;
+}
+
+.notice-hint {
+    margin-top: 5rpx;
+    color: #6f6880;
+    font-size: 21rpx;
+    line-height: 1.35;
 }
 </style>

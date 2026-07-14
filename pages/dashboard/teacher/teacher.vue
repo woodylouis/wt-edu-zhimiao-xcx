@@ -24,12 +24,21 @@
           <view class="info">
             <text class="name">{{ displayName }}</text>
             <view class="class-row">
-              <view class="class-tag">
+              <view class="class-tag" @click.stop="onClickInvite">
                 <text class="tag-text">{{ classDisplay }}</text>
+                <text v-if="currentClass.code" class="copy-text">复制</text>
               </view>
-              <view class="invite-btn" @click.stop="onClickInvite">
-                <text class="btn-text">邀请</text>
-              </view>
+              <button
+                class="invite-btn"
+                open-type="share"
+                :disabled="!currentClass.code"
+                hover-class="invite-btn--pressed"
+                :hover-stay-time="80"
+                @click.stop
+              >
+                <text class="share-mark">↗</text>
+                <text class="btn-text">分享</text>
+              </button>
             </view>
           </view>
         </view>
@@ -122,7 +131,12 @@
 <script setup>
   import customNav from "@/components/customNav";
   import { ref, onMounted, computed, reactive } from "vue";
-  import { onShow, onLoad, onUnload } from "@dcloudio/uni-app";
+  import {
+    onShow,
+    onLoad,
+    onUnload,
+    onShareAppMessage,
+  } from "@dcloudio/uni-app";
   import { CURRENT_STUDENT } from "@/lib/types/local_storage.js";
 
   import QcSuspendBtn from "@/components/qc-suspendBtn/qc-suspendBtn.vue";
@@ -400,6 +414,10 @@
   });
 
   onLoad(async (options) => {
+    // #ifdef MP-WEIXIN
+    uni.showShareMenu({ menus: ["shareAppMessage"] });
+    // #endif
+
     // 检查是否有班级
     const hasClass = await checkIfAnyClass();
     if (!hasClass) return;
@@ -422,6 +440,20 @@
 
   onUnload(() => {
     // 页面卸载时的清理工作
+  });
+
+  onShareAppMessage(() => {
+    const classCode = currentClass.value?.code || "";
+    const query = classCode
+      ? `?classCode=${encodeURIComponent(classCode)}&role=teacher`
+      : "";
+
+    return {
+      title: classCode
+        ? `邀请你加入${classDisplay.value}，一起记录成长`
+        : "知苗成长｜看见孩子的每一次进步",
+      path: `/pages/enter-class/applyClassForm1${query}`,
+    };
   });
 
   const checkLoginStatus = () => {
@@ -582,6 +614,16 @@
               color: #666;
               line-height: 40rpx;
             }
+
+            .copy-text {
+              margin-left: 9rpx;
+              padding-left: 9rpx;
+              color: #7c63e8;
+              border-left: 1rpx solid rgba(57, 47, 89, 0.18);
+              font-size: 18rpx;
+              font-weight: 700;
+              line-height: 1;
+            }
           }
           
           .invite-btn {
@@ -591,12 +633,31 @@
             justify-content: center;
             background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%);
             padding: 0 20rpx;
+            margin: 0;
+            border: 0;
             border-radius: 20rpx;
             box-shadow: 0 2rpx 6rpx rgba(102, 187, 106, 0.25);
             transition: all 0.2s ease;
+            line-height: 40rpx;
+
+            &::after {
+              border: 0;
+            }
+
+            &[disabled] {
+              opacity: 0.5;
+            }
             
-            &:active {
+            &.invite-btn--pressed {
               transform: scale(0.95);
+            }
+
+            .share-mark {
+              margin-right: 6rpx;
+              color: #fff;
+              font-size: 20rpx;
+              font-weight: 900;
+              line-height: 40rpx;
             }
             
             .btn-text {
