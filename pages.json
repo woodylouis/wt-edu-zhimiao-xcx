@@ -253,7 +253,9 @@
         {
           "path": "login/login-withoutpwd",
           "style": {
-            "navigationBarBackgroundColor": "#6EDD8A"
+            "navigationBarTitleText": "欢迎登录",
+            "navigationBarTextStyle": "black",
+            "navigationBarBackgroundColor": "#FFF9E9"
           }
         },
         {

@@ -1,9 +1,14 @@
 <template>
   <view class="enter-class">
+    <view class="page-decoration decoration-coral"></view>
+    <view class="page-decoration decoration-blue"></view>
+    <view class="page-decoration decoration-yellow"></view>
+
     <!-- 导航 -->
     <view class="navigation">
       <view class="title" :style="xcxNameMarginTopStyle">
-        {{ $t("xcxName") }}
+        <view class="brand-mark">芽</view>
+        <text class="brand-name">{{ $t("xcxName") }}</text>
       </view>
       <!-- banner -->
       <unicloud-db
@@ -12,50 +17,135 @@
         collection="opendb-banner"
         field="_id,bannerfile,open_url,title"
       >
-        <!-- 当无banner数据时显示占位图 -->
-        <image
-          v-if="!(loading || data.length)"
-          class="banner-image"
-          src="/static/uni-center/headers.png"
-          mode="aspectFill"
-          :draggable="false"
-        />
+        <view class="hero-stage">
+          <!-- 当无 banner 数据时显示轻量的成长主题插画 -->
+          <view v-if="!(loading || data.length)" class="banner-fallback">
+            <view class="hero-copy">
+              <text class="hero-kicker">GROW UP HAPPY</text>
+              <text class="hero-title">看见每一次</text>
+              <text class="hero-title hero-title-last">小小成长</text>
+              <text class="hero-subtitle">用科学评估，发现孩子的闪光点</text>
+            </view>
 
-        <swiper
-          v-else
-          class="swiper-box"
-          @change="changeSwiper"
-          :current="current"
-          indicator-dots
-        >
-          <swiper-item v-for="(item, index) in data" :key="item._id">
-            <image
-              class="banner-image"
-              :src="item.bannerfile.url"
-              mode="aspectFill"
-              @click="clickBannerItem(item)"
-              :draggable="false"
-            />
-            <view class="banner-mask"></view>
-          </swiper-item>
-        </swiper>
+            <view class="hero-art">
+              <view class="art-sun"></view>
+              <view class="art-spark spark-one">+</view>
+              <view class="art-spark spark-two">✦</view>
+              <view class="report-card">
+                <view class="report-clip"></view>
+                <view class="report-face">
+                  <view class="face-eye"></view>
+                  <view class="face-eye"></view>
+                  <view class="face-smile"></view>
+                </view>
+                <view class="report-line line-long"></view>
+                <view class="report-line line-short"></view>
+              </view>
+              <view class="growth-badge">+1</view>
+            </view>
+          </view>
+
+          <swiper
+            v-else
+            class="swiper-box"
+            @change="changeSwiper"
+            :current="current"
+            indicator-dots
+            indicator-color="rgba(255,255,255,.58)"
+            indicator-active-color="#ffffff"
+          >
+            <swiper-item v-for="(item, index) in data" :key="item._id">
+              <image
+                class="banner-image"
+                :src="item.bannerfile.url"
+                mode="aspectFill"
+                @click="clickBannerItem(item)"
+                :draggable="false"
+              />
+              <view class="banner-mask"></view>
+            </swiper-item>
+          </swiper>
+
+          <view class="hero-sticker">快乐成长</view>
+          <view class="hero-dot dot-left"></view>
+          <view class="hero-dot dot-right"></view>
+        </view>
       </unicloud-db>
     </view>
+
     <view class="enter-class-option">
+      <view class="section-heading">
+        <view class="section-icon">
+          <view class="section-icon-dot"></view>
+        </view>
+        <view class="section-copy">
+          <text class="section-title">开启成长旅程</text>
+          <text class="section-subtitle">选择一种方式，马上开始吧</text>
+        </view>
+      </view>
+
       <!-- <view class="option" @click="onClickButton(0)">
         <view class="title">{{ $t("enterClassMethod.create") }}</view>
         <image class="image" src="../../static/enter-class/create.svg" />
       </view> -->
-      <view class="option" @click="onClickButton(1)">
-        <view class="title"> {{ $t("enterClassMethod.apply") }}</view>
-        <image class="image" src="../../static/enter-class/apply.svg" />
+      <view
+        class="option"
+        hover-class="option-pressed"
+        :hover-stay-time="80"
+        @click="onClickButton(1)"
+      >
+        <view class="option-copy">
+          <view class="option-tag">推荐</view>
+          <text class="option-title">{{ $t("enterClassMethod.apply") }}</text>
+          <text class="option-subtitle">找到孩子的班级，一起记录成长</text>
+          <view class="option-action">
+            <text>现在加入</text>
+            <view class="action-arrow">→</view>
+          </view>
+        </view>
+        <view class="option-visual">
+          <view class="visual-orbit orbit-large"></view>
+          <view class="visual-orbit orbit-small"></view>
+          <image class="image" src="../../static/enter-class/apply.svg" />
+        </view>
       </view>
-      <view class="help-container" @click="onClickEnter">
-        <text class="help-link">进入现有班级</text>
+
+      <view
+        class="help-container"
+        hover-class="help-pressed"
+        :hover-stay-time="80"
+        @click="onClickEnter"
+      >
+        <view class="help-icon">
+          <view class="help-person person-back"></view>
+          <view class="help-person person-front"></view>
+        </view>
+        <view class="help-copy">
+          <text class="help-label">已经加入过班级？</text>
+          <text class="help-link">进入现有班级</text>
+        </view>
+        <view class="help-arrow">›</view>
+      </view>
+
+      <view class="promise-row">
+        <view class="promise-item">
+          <view class="promise-dot dot-purple"></view>
+          <text>科学量表</text>
+        </view>
+        <view class="promise-divider"></view>
+        <view class="promise-item">
+          <view class="promise-dot dot-coral"></view>
+          <text>温暖陪伴</text>
+        </view>
+        <view class="promise-divider"></view>
+        <view class="promise-item">
+          <view class="promise-dot dot-green"></view>
+          <text>持续成长</text>
+        </view>
       </view>
     </view>
 
-    <up-overlay :show="show">
+    <up-overlay :show="show" :opacity="0.52">
       <view class="warp">
         <modal-box-mcq
           :tips="tips"
@@ -67,16 +157,29 @@
         <!-- 传递选中值 -->
       </view>
     </up-overlay>
+
+    <dopamine-modal
+      :show="showLoginPrompt"
+      eyebrow="开启成长旅程"
+      title="登录后再进入班级吧"
+      content="登录后就能加入班级，与老师一起记录孩子的每一个闪光瞬间。"
+      confirm-text="去登录"
+      cancel-text="稍后再说"
+      @confirm="handleLoginConfirm"
+      @cancel="handleLoginCancel"
+    />
   </view>
 </template>
 
 <script>
   // 导入modlBox组件
   import modalBoxMcq from "../../components/modalBox-MCQ";
+  import DopamineModal from "../../components/dopamine-modal";
 
   export default {
     components: {
       modalBoxMcq,
+      DopamineModal,
     },
     data() {
       return {
@@ -93,6 +196,7 @@
         tips: "创建班级",
         confirmText: "立即创建",
         isJoinClass: false,
+        showLoginPrompt: false,
       };
     },
     onLoad() {
@@ -179,24 +283,7 @@
           const isValid = token && userInfo?._id && tokenExpired > Date.now();
 
           if (!isValid) {
-            uni.showModal({
-              title: "提示",
-              content: "登录才可以进入班级",
-              showConfirm: true,
-              confirmText: "去登录",
-              showCancel: true,
-              cancelText: "稍后再说",
-              success: ({ confirm, cancel }) => {
-                if (confirm) {
-                  this.navigateToLogin();
-                } else if (cancel) {
-                  uni.showToast({
-                    title: "您已取消登录",
-                    icon: "none",
-                  });
-                }
-              },
-            });
+            this.showLoginPrompt = true;
             return false;
           }
           return true;
@@ -209,6 +296,17 @@
       navigateToLogin() {
         uni.navigateTo({
           url: "/uni_modules/uni-id-pages/pages/login/login-withoutpwd",
+        });
+      },
+      handleLoginConfirm() {
+        this.showLoginPrompt = false;
+        this.navigateToLogin();
+      },
+      handleLoginCancel() {
+        this.showLoginPrompt = false;
+        uni.showToast({
+          title: "您已取消登录",
+          icon: "none",
         });
       },
       onClickButton(item) {
@@ -246,38 +344,352 @@
 
 <style scoped lang="scss">
   .enter-class {
-    background-color: #f2f7f6;
-    height: 100vh;
+    position: relative;
+    min-height: 100vh;
+    box-sizing: border-box;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, #fff9e9 0%, #fffdf7 46%, #f8f6ff 100%);
+    color: #2f2854;
+    font-family: "PingFang SC", "Helvetica Neue", sans-serif;
+    padding-bottom: calc(36rpx + env(safe-area-inset-bottom));
+  }
+
+  .page-decoration {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .decoration-coral {
+    width: 220rpx;
+    height: 220rpx;
+    top: 510rpx;
+    left: -138rpx;
+    background: rgba(255, 111, 105, 0.13);
+  }
+
+  .decoration-blue {
+    width: 280rpx;
+    height: 280rpx;
+    right: -190rpx;
+    bottom: 150rpx;
+    background: rgba(91, 143, 249, 0.11);
+  }
+
+  .decoration-yellow {
+    width: 24rpx;
+    height: 24rpx;
+    right: 52rpx;
+    top: 696rpx;
+    background: #ffcf46;
+    box-shadow: 32rpx 24rpx 0 rgba(255, 111, 105, 0.58);
   }
 
   .navigation {
-    flex-direction: column;
-    align-items: center;
-    position: relative; // 新增相对定位容器
-    height: calc(100vh / 3); // 添加与轮播图相同的高度
+    position: relative;
+    height: 640rpx;
 
     .title {
+      position: absolute;
+      left: 50%;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48rpx;
+      height: 48rpx;
+      margin-right: 12rpx;
+      border: 3rpx solid #2f2854;
+      border-radius: 17rpx 17rpx 17rpx 6rpx;
+      background: #ffcf46;
+      box-shadow: 5rpx 5rpx 0 #2f2854;
+      color: #2f2854;
+      font-size: 24rpx;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .brand-name {
+      color: #2f2854;
+      font-size: 34rpx;
+      font-weight: 800;
+      letter-spacing: 2rpx;
+    }
+
+    .hero-stage {
+      position: absolute;
+      top: calc(var(--status-bar-height) + 88rpx);
+      right: 28rpx;
+      bottom: 24rpx;
+      left: 28rpx;
+      border: 5rpx solid #2f2854;
+      border-radius: 40rpx;
+      background: #7b61ff;
+      box-shadow: 12rpx 14rpx 0 #ffcf46;
+    }
+
+    .banner-fallback {
+      position: relative;
+      display: flex;
       width: 100%;
-      text-align: center;
-      margin-bottom: 0; // 移除下边距
-      position: absolute; // 新增绝对定位
-      left: 50%; // 水平居中
-      transform: translate(-50%, -50%); // 精确居中
-      z-index: 1; // 确保标题在轮播图之上
+      height: 100%;
+      overflow: hidden;
+      border-radius: 34rpx;
+      background: linear-gradient(135deg, #7657f6 0%, #986cfb 56%, #f479b4 100%);
+    }
+
+    .banner-fallback::before {
+      content: "";
+      position: absolute;
+      width: 230rpx;
+      height: 230rpx;
+      top: -126rpx;
+      left: 240rpx;
+      border: 30rpx solid rgba(255, 255, 255, 0.12);
+      border-radius: 50%;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      width: 58%;
+      box-sizing: border-box;
+      padding: 24rpx 0 20rpx 36rpx;
+    }
+
+    .hero-kicker {
+      align-self: flex-start;
+      margin-bottom: 14rpx;
+      padding: 7rpx 14rpx;
+      border: 2rpx solid rgba(255, 255, 255, 0.68);
+      border-radius: 20rpx;
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+      font-size: 17rpx;
+      font-weight: 700;
+      letter-spacing: 2rpx;
+      line-height: 1;
+    }
+
+    .hero-title {
+      color: #ffffff;
+      font-size: 48rpx;
+      font-weight: 800;
+      line-height: 1.16;
+      letter-spacing: 1rpx;
+      text-shadow: 3rpx 4rpx 0 rgba(47, 40, 84, 0.25);
+    }
+
+    .hero-title-last {
+      margin-top: 2rpx;
+    }
+
+    .hero-subtitle {
+      margin-top: 15rpx;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 21rpx;
+      font-weight: 500;
+      line-height: 1.5;
+      white-space: nowrap;
+    }
+
+    .hero-art {
+      position: relative;
+      flex: 1;
+      height: 100%;
+    }
+
+    .art-sun {
+      position: absolute;
+      width: 180rpx;
+      height: 180rpx;
+      top: 50%;
+      right: 15rpx;
+      transform: translateY(-48%);
+      border-radius: 50%;
+      background: #ffcf46;
+      box-shadow: inset -14rpx -12rpx 0 rgba(255, 145, 63, 0.22);
+    }
+
+    .report-card {
+      position: absolute;
+      top: 50%;
+      right: 38rpx;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 144rpx;
+      height: 172rpx;
+      box-sizing: border-box;
+      padding-top: 28rpx;
+      transform: translateY(-51%) rotate(6deg);
+      border: 4rpx solid #2f2854;
+      border-radius: 22rpx;
+      background: #fffdf7;
+      box-shadow: 8rpx 9rpx 0 rgba(47, 40, 84, 0.28);
+    }
+
+    .report-clip {
+      position: absolute;
+      width: 64rpx;
+      height: 20rpx;
+      top: -13rpx;
+      left: 38rpx;
+      border: 4rpx solid #2f2854;
+      border-radius: 12rpx;
+      background: #ff7d6b;
+    }
+
+    .report-face {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      width: 68rpx;
+      height: 62rpx;
+      box-sizing: border-box;
+      padding: 0 13rpx 10rpx;
+      border-radius: 50%;
+      background: #8ee3c2;
+    }
+
+    .face-eye {
+      width: 7rpx;
+      height: 10rpx;
+      border-radius: 50%;
+      background: #2f2854;
+    }
+
+    .face-smile {
+      position: absolute;
+      width: 25rpx;
+      height: 12rpx;
+      left: 20rpx;
+      bottom: 11rpx;
+      border-bottom: 4rpx solid #2f2854;
+      border-radius: 0 0 22rpx 22rpx;
+    }
+
+    .report-line {
+      height: 8rpx;
+      margin-top: 12rpx;
+      border-radius: 8rpx;
+      background: #ded8ff;
+    }
+
+    .line-long {
+      width: 90rpx;
+    }
+
+    .line-short {
+      width: 62rpx;
+      margin-top: 8rpx;
+      background: #ffb4a8;
+    }
+
+    .growth-badge {
+      position: absolute;
+      right: 12rpx;
+      bottom: 40rpx;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56rpx;
+      height: 56rpx;
+      border: 3rpx solid #2f2854;
+      border-radius: 50%;
+      background: #8ee3c2;
+      color: #2f2854;
+      font-size: 23rpx;
+      font-weight: 800;
+      transform: rotate(-9deg);
+    }
+
+    .art-spark {
+      position: absolute;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 800;
+      animation: sparkle 2.8s ease-in-out infinite;
+    }
+
+    .spark-one {
+      top: 34rpx;
+      right: 22rpx;
+      font-size: 34rpx;
+    }
+
+    .spark-two {
+      left: 6rpx;
+      bottom: 38rpx;
+      color: #ffcf46;
+      font-size: 32rpx;
+      animation-delay: 0.8s;
+    }
+
+    .hero-sticker {
+      position: absolute;
+      top: -20rpx;
+      left: 34rpx;
+      z-index: 8;
+      padding: 9rpx 22rpx;
+      border: 3rpx solid #2f2854;
+      border-radius: 24rpx 24rpx 24rpx 8rpx;
+      background: #8ee3c2;
+      color: #2f2854;
+      font-size: 20rpx;
+      font-weight: 800;
+      letter-spacing: 1rpx;
+      transform: rotate(-3deg);
+    }
+
+    .hero-dot {
+      position: absolute;
+      z-index: 8;
+      width: 18rpx;
+      height: 18rpx;
+      border: 3rpx solid #2f2854;
+      border-radius: 50%;
+    }
+
+    .dot-left {
+      left: -12rpx;
+      bottom: 42rpx;
+      background: #ff7d6b;
+    }
+
+    .dot-right {
+      right: -13rpx;
+      top: 58rpx;
+      background: #8ee3c2;
     }
 
     .swiper-box {
       height: 100%;
       width: 100%;
-      position: absolute; // 新增绝对定位
-      top: 0;
-      left: 0;
+      overflow: hidden;
+      border-radius: 34rpx;
 
       .banner-image {
         width: 100%;
         height: 100%;
-        object-fit: cover;
-        border-radius: 0; // 移除圆角;
+        border-radius: 34rpx;
       }
 
       .banner-mask {
@@ -285,50 +697,212 @@
         bottom: 0;
         left: 0;
         right: 0;
-        height: 100rpx;
+        height: 110rpx;
         background: linear-gradient(
           to top,
-          rgba(255, 255, 255, 1) 0%,
-          rgba(255, 255, 255, 0) 100%
+          rgba(47, 40, 84, 0.24) 0%,
+          rgba(47, 40, 84, 0) 100%
         );
         z-index: 1;
+        pointer-events: none;
       }
     }
   }
 
   .enter-class-option {
-    // 左右、上面分别空出40rpx
-    margin: 40rpx 40rpx 0 40rpx;
+    position: relative;
+    z-index: 2;
+    margin: 4rpx 28rpx 0;
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      margin: 0 6rpx 24rpx;
+    }
+
+    .section-icon {
+      position: relative;
+      width: 48rpx;
+      height: 48rpx;
+      margin-right: 18rpx;
+      border: 3rpx solid #2f2854;
+      border-radius: 17rpx;
+      background: #ffcf46;
+      transform: rotate(-7deg);
+    }
+
+    .section-icon::before,
+    .section-icon::after {
+      content: "";
+      position: absolute;
+      background: #2f2854;
+      border-radius: 6rpx;
+    }
+
+    .section-icon::before {
+      width: 23rpx;
+      height: 5rpx;
+      top: 20rpx;
+      left: 11rpx;
+    }
+
+    .section-icon::after {
+      width: 5rpx;
+      height: 23rpx;
+      top: 11rpx;
+      left: 20rpx;
+    }
+
+    .section-icon-dot {
+      position: absolute;
+      width: 8rpx;
+      height: 8rpx;
+      top: -8rpx;
+      right: -7rpx;
+      border-radius: 50%;
+      background: #ff7d6b;
+    }
+
+    .section-copy {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .section-title {
+      color: #2f2854;
+      font-size: 32rpx;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .section-subtitle {
+      margin-top: 7rpx;
+      color: #827a9d;
+      font-size: 22rpx;
+      line-height: 1.2;
+    }
 
     .option {
-      width: calc(100vw - 80rpx);
-      height: 118px;
-      flex-shrink: 0;
-      border-radius: 12px;
-      background: #fff;
-      box-shadow: 0px 0px 1px 0px rgba(193, 197, 210, 0.2);
-      margin-bottom: 32rpx;
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      width: 100%;
+      height: 250rpx;
+      box-sizing: border-box;
+      overflow: hidden;
+      border: 4rpx solid #2f2854;
+      border-radius: 34rpx;
+      background: linear-gradient(135deg, #fff0a8 0%, #ffdb65 100%);
+      box-shadow: 10rpx 11rpx 0 #2f2854;
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
 
-      .title {
-        color: #100d40;
-        font-family: "PingFang SC";
-        font-size: 20px;
-        font-style: normal;
-        font-weight: 600;
-        line-height: normal;
-        margin-left: 80rpx;
-        margin-right: 90rpx;
-        // font-size: 28rpx;
-      }
+    .option-pressed {
+      transform: translate(6rpx, 7rpx);
+      box-shadow: 4rpx 4rpx 0 #2f2854;
+    }
 
-      .image {
-        width: 170rpx;
-        height: 170rpx;
-        margin-right: 40rpx;
-      }
+    .option-copy {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      width: 62%;
+      box-sizing: border-box;
+      padding-left: 34rpx;
+    }
+
+    .option-tag {
+      align-self: flex-start;
+      padding: 6rpx 15rpx;
+      border: 2rpx solid #2f2854;
+      border-radius: 18rpx 18rpx 18rpx 5rpx;
+      background: #ff7d6b;
+      color: #ffffff;
+      font-size: 18rpx;
+      font-weight: 700;
+      line-height: 1;
+      transform: rotate(-2deg);
+    }
+
+    .option-title {
+      margin-top: 13rpx;
+      color: #2f2854;
+      font-size: 39rpx;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .option-subtitle {
+      margin-top: 7rpx;
+      color: #6e6144;
+      font-size: 21rpx;
+      font-weight: 500;
+      line-height: 1.45;
+      white-space: nowrap;
+    }
+
+    .option-action {
+      display: flex;
+      align-items: center;
+      margin-top: 15rpx;
+      color: #2f2854;
+      font-size: 22rpx;
+      font-weight: 700;
+    }
+
+    .action-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32rpx;
+      height: 32rpx;
+      margin-left: 10rpx;
+      border: 2rpx solid #2f2854;
+      border-radius: 50%;
+      background: #ffffff;
+      font-size: 22rpx;
+      line-height: 1;
+    }
+
+    .option-visual {
+      position: relative;
+      align-self: stretch;
+      flex: 1;
+    }
+
+    .visual-orbit {
+      position: absolute;
+      border: 3rpx solid #2f2854;
+      border-radius: 50%;
+    }
+
+    .orbit-large {
+      width: 188rpx;
+      height: 188rpx;
+      top: 30rpx;
+      right: -10rpx;
+      background: #8ee3c2;
+      box-shadow: inset -12rpx -12rpx 0 rgba(66, 174, 142, 0.15);
+    }
+
+    .orbit-small {
+      width: 45rpx;
+      height: 45rpx;
+      top: 22rpx;
+      right: 35rpx;
+      background: #9f83ff;
+    }
+
+    .image {
+      position: absolute;
+      z-index: 2;
+      width: 142rpx;
+      height: 142rpx;
+      top: 61rpx;
+      right: 17rpx;
+      transform: rotate(3deg);
     }
   }
 
@@ -337,24 +911,171 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-  }
-
-  .rect {
-    width: 120px;
-    height: 120px;
-    background-color: #fff;
+    box-sizing: border-box;
+    padding: 36rpx;
   }
 
   .help-container {
-    width: 100%;
+    position: relative;
     display: flex;
-    justify-content: center;
-    margin-top: 58rpx;
+    align-items: center;
+    width: 100%;
+    height: 108rpx;
+    box-sizing: border-box;
+    margin-top: 30rpx;
+    padding: 0 28rpx;
+    border: 3rpx solid #d9d1f4;
+    border-radius: 28rpx;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 9rpx 22rpx rgba(80, 61, 134, 0.08);
+    transition: transform 0.16s ease, background 0.16s ease;
+  }
+
+  .help-pressed {
+    transform: scale(0.985);
+    background: #f4f0ff;
+  }
+
+  .help-icon {
+    position: relative;
+    width: 62rpx;
+    height: 62rpx;
+    flex-shrink: 0;
+    margin-right: 20rpx;
+    border-radius: 20rpx;
+    background: #e7e0ff;
+  }
+
+  .help-person {
+    position: absolute;
+    border: 3rpx solid #2f2854;
+  }
+
+  .person-back {
+    width: 22rpx;
+    height: 31rpx;
+    top: 12rpx;
+    right: 10rpx;
+    border-radius: 50% 50% 10rpx 10rpx;
+    background: #ffcf46;
+  }
+
+  .person-front {
+    width: 25rpx;
+    height: 36rpx;
+    left: 11rpx;
+    bottom: 10rpx;
+    border-radius: 50% 50% 10rpx 10rpx;
+    background: #8ee3c2;
+  }
+
+  .help-copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .help-label {
+    color: #918aa5;
+    font-size: 21rpx;
+    line-height: 1.2;
   }
 
   .help-link {
-    color: #6f7374;
-    font-size: 32rpx;
-    // text-decoration: underline;
+    margin-top: 7rpx;
+    color: #4c3b91;
+    font-size: 27rpx;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .help-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46rpx;
+    height: 46rpx;
+    border-radius: 50%;
+    background: #7657f6;
+    color: #ffffff;
+    font-size: 36rpx;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .promise-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 31rpx;
+  }
+
+  .promise-item {
+    display: flex;
+    align-items: center;
+    color: #8c85a0;
+    font-size: 20rpx;
+    font-weight: 500;
+  }
+
+  .promise-dot {
+    width: 10rpx;
+    height: 10rpx;
+    margin-right: 8rpx;
+    border-radius: 50%;
+  }
+
+  .dot-purple {
+    background: #7657f6;
+  }
+
+  .dot-coral {
+    background: #ff7d6b;
+  }
+
+  .dot-green {
+    background: #3ec99a;
+  }
+
+  .promise-divider {
+    width: 1rpx;
+    height: 18rpx;
+    margin: 0 22rpx;
+    background: #d9d3e7;
+  }
+
+  @keyframes sparkle {
+    0%,
+    100% {
+      transform: scale(0.9) rotate(0deg);
+      opacity: 0.72;
+    }
+
+    50% {
+      transform: scale(1.16) rotate(12deg);
+      opacity: 1;
+    }
+  }
+
+  @media screen and (max-height: 700px) {
+    .navigation {
+      height: 570rpx;
+    }
+
+    .enter-class-option .option {
+      height: 226rpx;
+    }
+
+    .enter-class-option .image {
+      top: 50rpx;
+    }
+
+    .help-container {
+      margin-top: 24rpx;
+    }
+
+    .promise-row {
+      margin-top: 24rpx;
+    }
   }
 </style>

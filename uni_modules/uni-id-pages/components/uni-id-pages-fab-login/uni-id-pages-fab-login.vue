@@ -1,19 +1,45 @@
 <template>
 	<view>
-		<view class="fab-login-box">
-			<view class="item" v-for="(item, index) in servicesList" :key="index" @click="item.path ? toPage(item.path) : login_before(item.id, false)">
-				<image class="logo" :src="item.logo" mode="scaleToFill"></image>
-				<text class="login-title">{{ item.text }}</text>
+		<view v-if="servicesList.length" class="other-login-methods">
+			<view class="methods-divider">
+				<view class="divider-line"></view>
+				<text class="divider-text">其他登录方式</text>
+				<view class="divider-line"></view>
+			</view>
+			<view class="fab-login-box">
+				<view
+					class="item"
+					v-for="(item, index) in servicesList"
+					:key="index"
+					hover-class="item-pressed"
+					:hover-stay-time="80"
+					@click="item.path ? toPage(item.path) : login_before(item.id, false)"
+				>
+					<view class="logo-box">
+						<image class="logo" :src="item.logo" mode="aspectFit"></image>
+					</view>
+					<text class="login-title">{{ item.text }}</text>
+				</view>
 			</view>
 		</view>
+
+		<dopamine-loading
+			:show="loadingVisible"
+			:text="loadingText"
+			subtext="小芽正在为你打开成长空间"
+		/>
 	</view>
 </template>
 <script>
 import config from '@/uni_modules/uni-id-pages/config.js'
+import DopamineLoading from '@/components/dopamine-loading/index.vue'
 //前一个窗口的页面地址。控制点击切换快捷登录方式是创建还是返回
 import { store, mutations } from '@/uni_modules/uni-id-pages/common/store.js'
 let allServicesList = []
 export default {
+	components: {
+		DopamineLoading
+	},
 	computed: {
 		agreements() {
 			if (!config.agreements) {
@@ -44,6 +70,8 @@ export default {
 	},
 	data() {
 		return {
+			loadingVisible: false,
+			loadingText: '正在登录',
 			servicesList: [
 				// {
 				// 	"id": "username",
@@ -182,6 +210,13 @@ export default {
 		})
 	},
 	methods: {
+		showDopamineLoading(text = '正在登录') {
+			this.loadingText = text
+			this.loadingVisible = true
+		},
+		hideDopamineLoading() {
+			this.loadingVisible = false
+		},
 		getParentComponent() {
 			// #ifndef H5
 			return this.$parent;
@@ -341,9 +376,7 @@ export default {
 			}
 			// #endif
 
-			uni.showLoading({
-				mask: true
-			})
+			this.showDopamineLoading('正在安全登录')
 
 			if (type == 'univerify') {
 				let univerifyManager = uni.getUniverifyManager()
@@ -384,8 +417,8 @@ export default {
 					}
 				}
 
-				function closeUniverify() {
-					uni.hideLoading()
+				const closeUniverify = () => {
+					this.hideDopamineLoading()
 					univerifyManager.close()
 					// 取消订阅自定义按钮点击事件
 					univerifyManager.offButtonsClick(onButtonsClickFn)
@@ -410,7 +443,7 @@ export default {
 						// });
 					},
 					complete: async e => {
-						uni.hideLoading()
+						this.hideDopamineLoading()
 						//同步一键登录弹出层隐私协议框是否打勾
 						// this.agree = (await uni.getCheckBoxState())[1].state
 						// 取消订阅自定义按钮点击事件
@@ -437,7 +470,7 @@ export default {
 							provider: "apple"
 						})
 						Object.assign(e.authResult, res.userInfo)
-						uni.hideLoading()
+						this.hideDopamineLoading()
 					}
 					this.login(type == 'weixin' ? {
 						code: e.code
@@ -445,7 +478,7 @@ export default {
 				},
 				fail: async (err) => {
 					console.log(err);
-					uni.hideLoading()
+					this.hideDopamineLoading()
 				}
 			})
 		},
@@ -479,7 +512,7 @@ export default {
 					if (type == 'univerify') {
 						uni.closeAuthView()
 					}
-					uni.hideLoading()
+					this.hideDopamineLoading()
 				})
 		},
 		async getUserInfo(e) {
@@ -504,67 +537,108 @@ export default {
 </script>
 
 <style lang="scss">
-/* #ifndef APP-NVUE */
-.fab-login-box,
-.item {
+.other-login-methods {
+	position: fixed;
+	z-index: 20;
+	right: 0;
+	bottom: calc(22rpx + env(safe-area-inset-bottom));
+	left: 0;
 	display: flex;
-	box-sizing: border-box;
+	align-items: center;
 	flex-direction: column;
+	box-sizing: border-box;
+	padding: 0 36rpx;
 }
 
-/* #endif */
+.methods-divider {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+}
+
+.divider-line {
+	width: 105rpx;
+	height: 2rpx;
+	background: #d8d1e5;
+}
+
+.divider-text {
+	margin: 0 18rpx;
+	color: #918a9f;
+	font-size: 19rpx;
+	line-height: 1;
+}
 
 .fab-login-box {
+	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
-	width: 750rpx;
-	justify-content: space-around;
-	position: fixed;
-	left: 0;
+	justify-content: center;
+	width: 100%;
+	margin-top: 18rpx;
 }
 
 .item {
-	flex-direction: column;
-	justify-content: center;
+	display: flex;
 	align-items: center;
-	height: 200rpx;
+	justify-content: center;
+	width: 190rpx;
+	height: 78rpx;
+	box-sizing: border-box;
+	margin: 0 9rpx 10rpx;
+	border: 3rpx solid #2f2854;
+	border-radius: 24rpx;
+	background: rgba(255, 255, 255, 0.92);
+	box-shadow: 5rpx 6rpx 0 #ded7ff;
 	cursor: pointer;
+	transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
 
-/* #ifndef APP-NVUE */
-@media screen and (min-width: 690px) {
-	.fab-login-box {
-		max-width: 500px;
-		margin-left: calc(50% - 250px);
-	}
-
-	.item {
-		height: 160rpx;
-	}
+.item-pressed {
+	transform: translate(3rpx, 4rpx);
+	box-shadow: 2rpx 2rpx 0 #ded7ff;
 }
 
-@media screen and (max-width: 690px) {
-	.fab-login-box {
-		bottom: 10rpx;
-	}
+.logo-box {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48rpx;
+	height: 48rpx;
+	flex-shrink: 0;
+	border-radius: 16rpx;
+	background: #f4f1ff;
 }
-
-/* #endif */
 
 .logo {
-	width: 60rpx;
-	height: 60rpx;
-	max-width: 40px;
-	max-height: 40px;
-	border-radius: 100%;
-	border: solid 1px #F6F6F6;
+	width: 38rpx;
+	height: 38rpx;
 }
 
 .login-title {
-	text-align: center;
-	margin-top: 6px;
-	color: #999;
-	font-size: 10px;
-	width: 70px;
+	margin-left: 12rpx;
+	color: #4e4763;
+	font-size: 21rpx;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+@media screen and (min-width: 690px) {
+	.other-login-methods {
+		width: 500px;
+		right: auto;
+		left: calc(50% - 250px);
+	}
+}
+
+@media screen and (max-height: 700px) {
+	.other-login-methods {
+		bottom: calc(12rpx + env(safe-area-inset-bottom));
+	}
+
+	.item {
+		height: 70rpx;
+	}
 }
 </style>
