@@ -27,26 +27,41 @@
                         开始评估日期：{{ assessmentCreateTime }} <br>
                         提交日期：{{ currentDate }}
                     </view>
-                    <image
-                        src="https://cdn.builder.io/api/v1/image/assets/022245c9a8b14954aad66a5dc04d83ff/f2e436be44ad54ad40e29997f78afdd3ac0678de?placeholderIfAbsent=true"
-                        class="loading-image" mode="aspectFit" />
+                    <view class="progress-visual"
+                        :class="{ completed: taskStatus === 'completed', failed: taskStatus === 'failed' }">
+                        <view class="progress-orbit"></view>
+                        <view class="progress-center">
+                            <view class="progress-number-row">
+                                <text class="progress-number">{{ progress }}</text>
+                                <text class="progress-unit">%</text>
+                            </view>
+                            <text class="progress-caption">报告进度</text>
+                        </view>
+                    </view>
                     <text class="loading-message">
                         {{ statusTitle }}
                     </text>
-                    <view class="progress-box" v-if="progress > 0">
-                        <view class="progress-track">
-                            <view class="progress-fill" :style="{ width: progress + '%' }"></view>
-                        </view>
-                        <text class="progress-label">{{ progress }}%</text>
+                    <text class="status-detail">{{ statusDesc }}</text>
+                    <view class="section-progress" v-if="totalSections > 0">
+                        <text>模块分析进度</text>
+                        <text class="section-progress-count">{{ completedSections }}/{{ totalSections }}</text>
                     </view>
-                    <!-- 分割线 -->
-                    <view class="separator"></view>
-                    <view class="tips">
-                        <img src="https://cdn.builder.io/api/v1/image/assets/022245c9a8b14954aad66a5dc04d83ff/e6fd64bcab073741b3e800de42955c66c3e1302f?placeholderIfAbsent=true"
-                            class="analysis-icon" alt="AI Analysis" />
-                        <p class="analysis-text">
-                            <span class="analysis-text-normal">{{ statusDesc }}</span>
-                        </p>
+                    <view class="progress-stages">
+                        <view v-for="(stage, index) in progressStages" :key="stage.title" class="progress-stage"
+                            :class="getStageClass(index)">
+                            <view class="stage-rail">
+                                <view class="stage-marker">
+                                    <text v-if="getStageClass(index) === 'completed'">✓</text>
+                                    <text v-else>{{ index + 1 }}</text>
+                                </view>
+                                <view v-if="index < progressStages.length - 1" class="stage-line"></view>
+                            </view>
+                            <view class="stage-content">
+                                <text class="stage-title">{{ stage.title }}</text>
+                                <text class="stage-desc">{{ stage.desc }}</text>
+                            </view>
+                            <text class="stage-state">{{ getStageStateText(index) }}</text>
+                        </view>
                     </view>
                 </view>
                 <view class="info-section">
@@ -77,8 +92,8 @@
 
 <script setup>
 
-import { onLoad } from '@dcloudio/uni-app'
-import { ref, onUnmounted } from "vue";
+import { onLoad, onShow, onHide } from '@dcloudio/uni-app'
+import { ref, onUnmounted, computed } from "vue";
 import customNav from '@/components/customNav';
 import { ASSESS_STUDENT, CURRENT_ASSESSMENT_MODULE_STATUS } from '@/lib/types/local_storage.js';
 
@@ -106,10 +121,14 @@ const childId = ref(assessStudent.childId || '');
 const reportId = ref('');
 const progress = ref(0);
 const canViewReport = ref(false);
-const statusTitle = ref('正在生成智能分析报告...');
-const statusDesc = ref('AI正在分析中，约需5~7分钟');
+const taskStatus = ref('pending');
+const totalSections = ref(0);
+const completedSections = ref(0);
+const currentSectionName = ref('');
+const failReason = ref('');
 let pollTimer = null;
 let runPromise = null;
+let pollInFlight = false;
 
 let buttonStyle = {
     backgroundColor: "#FFFFFF",
@@ -148,44 +167,101 @@ const backToHome = () => {
 }
 
 const statusMessageMap = {
-    pending: '任务已提交，等待AI分析',
-    processing: 'AI正在分析各评估模块',
-    waiting_merge: '正在生成报告总结',
+    pending: '正在准备分析',
+    processing: '正在准备评估模块',
+    waiting_merge: 'DeepSeek正在分析量表',
     pending_save: '正在保存智能分析报告',
     completed: '报告已生成',
     failed: '报告生成失败'
 }
 
+const progressStages = [
+    { title: '准备分析', desc: '校验量表和报告任务' },
+    { title: '分析评估模块', desc: '逐项分析已完成的评估单元' },
+    { title: '生成综合结论', desc: '整合各模块结果与发展建议' },
+    { title: '保存报告', desc: '完成报告存储并准备查看' }
+];
+
+const activeStageIndex = computed(() => {
+    if (taskStatus.value === 'completed') return progressStages.length;
+    if (taskStatus.value === 'pending_save') return 3;
+    if (taskStatus.value === 'waiting_merge') return progress.value >= 90 ? 2 : 1;
+    if (taskStatus.value === 'failed') {
+        if (progress.value >= 99) return 3;
+        if (progress.value >= 90) return 2;
+        if (progress.value > 0) return 1;
+    }
+    return 0;
+});
+
+const statusTitle = computed(() => {
+    if (taskStatus.value === 'waiting_merge' && progress.value >= 90) {
+        return '正在生成报告总结';
+    }
+    return statusMessageMap[taskStatus.value] || '正在生成智能分析报告...';
+});
+
+const statusDesc = computed(() => {
+    if (taskStatus.value === 'completed') return 'AI分析完成，可以查看报告';
+    if (taskStatus.value === 'failed') return failReason.value || 'AI分析失败，请稍后在后台重试';
+    if (taskStatus.value === 'pending_save') return '分析已完成，正在写入报告数据';
+    if (taskStatus.value === 'waiting_merge' && progress.value >= 90) {
+        return '所有模块分析已完成，正在生成综合结论';
+    }
+    if (taskStatus.value === 'waiting_merge' && totalSections.value > 0) {
+        const current = currentSectionName.value ? `，当前：${currentSectionName.value}` : '';
+        return `已完成 ${completedSections.value}/${totalSections.value} 个模块${current}`;
+    }
+    return '已需启动DeepSeek分析量表，请保持网络连接';
+});
+
+const getStageClass = (index) => {
+    if (index < activeStageIndex.value) return 'completed';
+    if (index === activeStageIndex.value) {
+        return taskStatus.value === 'failed' ? 'failed' : 'active';
+    }
+    return 'pending';
+};
+
+const getStageStateText = (index) => {
+    const state = getStageClass(index);
+    if (state === 'completed') return '已完成';
+    if (state === 'active') return '进行中';
+    if (state === 'failed') return '生成失败';
+    return '待处理';
+};
+
 const updateStatusText = (data = {}) => {
     const status = data.status || 'pending';
+    taskStatus.value = status;
     progress.value = Math.max(0, Math.min(100, Number(data.progress) || 0));
+    totalSections.value = Number(data.totalSections) || 0;
+    completedSections.value = Number(data.completedSections) || 0;
+    currentSectionName.value = data.currentSectionName || '';
+    failReason.value = data.failReason || '';
+    recordId.value = data.recordId || recordId.value;
+    reportId.value = data.reportId || reportId.value;
 
     if (status === 'completed') {
         progress.value = 100;
-        reportId.value = data.reportId || reportId.value;
         canViewReport.value = true;
-        statusTitle.value = '报告已生成';
-        statusDesc.value = 'AI分析完成，可以查看报告';
         stopPolling();
         return;
     }
 
     if (status === 'failed') {
         canViewReport.value = false;
-        statusTitle.value = '报告生成失败';
-        statusDesc.value = data.failReason || 'AI分析失败，请稍后在后台重试';
         stopPolling();
         return;
     }
 
     canViewReport.value = false;
-    statusTitle.value = statusMessageMap[status] || '正在生成智能分析报告...';
-    statusDesc.value = 'AI正在分析中，约需5~7分钟';
 }
 
 const pollReportTaskStatus = async () => {
-    if (!taskId.value && !recordId.value && !childId.value) return;
+    if ((!taskId.value && !recordId.value && !childId.value) || pollInFlight) return;
 
+    pollInFlight = true;
     try {
         const res = await uniCloud.callFunction({
             name: 'wt-get-report-task-status',
@@ -202,13 +278,15 @@ const pollReportTaskStatus = async () => {
         }
     } catch (error) {
         console.error('获取报告任务状态失败:', error);
+    } finally {
+        pollInFlight = false;
     }
 }
 
 const startPolling = () => {
     stopPolling();
     pollReportTaskStatus();
-    pollTimer = setInterval(pollReportTaskStatus, 8000);
+    pollTimer = setInterval(pollReportTaskStatus, 3000);
 }
 
 const stopPolling = () => {
@@ -221,8 +299,6 @@ const stopPolling = () => {
 const runReportTask = () => {
     if (!taskId.value || runPromise) return runPromise;
 
-    statusTitle.value = '正在生成智能分析报告...';
-    statusDesc.value = '已按需启动DeepSeek分析，请保持网络连接';
     runPromise = uniCloud.callFunction({
         name: 'wt-run-report-tasks',
         data: {
@@ -255,15 +331,22 @@ const viewReport = () => {
     uni.setStorageSync('current_student', {
         ...currentStudent,
         _id: childId.value || currentStudent._id || assessStudent.childId,
-        name: currentStudent.name || assessStudent.childName,
-        avatar: currentStudent.avatar || assessStudent.avatar,
-        class_id: currentStudent.class_id || assessStudent.classId,
-        birthdate: currentStudent.birthdate || assessStudent.birthdate,
-        gender: currentStudent.gender || assessStudent.gender,
-        lastAssessmentDate: currentStudent.lastAssessmentDate || currentDate,
-        age: currentStudent.age || assessStudent.childAge
+        name: assessStudent.childName || currentStudent.name,
+        avatar: assessStudent.avatar || currentStudent.avatar,
+        class_id: assessStudent.classId || currentStudent.class_id,
+        birthdate: assessStudent.birthdate || currentStudent.birthdate,
+        gender: assessStudent.gender || currentStudent.gender,
+        lastAssessmentDate: currentDate,
+        age: assessStudent.childAge || currentStudent.age
     });
-    uni.redirectTo({ url: '/pages/assessment/report-v2?isHistory=true' });
+    const params = [
+        'isHistory=true',
+        taskId.value ? `taskId=${encodeURIComponent(taskId.value)}` : '',
+        recordId.value ? `recordId=${encodeURIComponent(recordId.value)}` : '',
+        reportId.value ? `reportId=${encodeURIComponent(reportId.value)}` : '',
+        childId.value ? `childId=${encodeURIComponent(childId.value)}` : ''
+    ].filter(Boolean).join('&');
+    uni.redirectTo({ url: `/pages/assessment/report-v2?${params}` });
 }
 
 
@@ -274,6 +357,14 @@ onLoad(async function (options) {
     childId.value = options.childId || assessStudent.childId || '';
     startPolling();
     runReportTask();
+});
+
+onShow(() => {
+    if (taskId.value || recordId.value || childId.value) startPolling();
+});
+
+onHide(() => {
+    stopPolling();
 });
 
 onUnmounted(() => {
@@ -287,8 +378,9 @@ onUnmounted(() => {
 .assessment {
     .content {
         background-color: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);
-        height: calc(100vh - 100vh / 8);
+        min-height: calc(100vh - 100vh / 8);
         padding: 0 40rpx 20rpx 40rpx;
+        box-sizing: border-box;
 
         .user-profile {
             // height: calc(100vh / 8);
@@ -356,8 +448,8 @@ onUnmounted(() => {
             align-items: center;
             font-family: "PingFang SC", -apple-system, Roboto, Helvetica, sans-serif;
             color: #000000;
-            margin-top: 76rpx;
-            // background-color: red;
+            margin-top: 32rpx;
+            padding-bottom: 48rpx;
 
             .main-content-card {
                 width: 100%;
@@ -368,90 +460,248 @@ onUnmounted(() => {
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                height: 45vh;
+                min-height: 820rpx;
+                box-sizing: border-box;
+                padding-bottom: 32rpx;
 
                 .date-header {
                     font-size: 24rpx;
                     font-weight: 400;
                     align-self: flex-start;
                     padding: 28rpx;
+                    box-sizing: border-box;
+                    width: 100%;
+                    color: #6F7374;
+                    line-height: 38rpx;
                 }
 
-                .loading-image {
-                    width: 360rpx;
-                    height: 280rpx;
-                    margin-top: 60rpx;
-                }
+                .progress-visual {
+                    position: relative;
+                    width: 184rpx;
+                    height: 184rpx;
+                    flex-shrink: 0;
+                    margin-top: 8rpx;
 
+                    .progress-orbit {
+                        position: absolute;
+                        top: 0;
+                        right: 0;
+                        bottom: 0;
+                        left: 0;
+                        box-sizing: border-box;
+                        border: 14rpx solid #DDE5E1;
+                        border-top-color: #459C5C;
+                        border-right-color: #6EDD8A;
+                        border-radius: 50%;
+                        animation: report-progress-spin 1.4s linear infinite;
+                    }
+
+                    .progress-center {
+                        position: absolute;
+                        top: 24rpx;
+                        right: 24rpx;
+                        bottom: 24rpx;
+                        left: 24rpx;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 50%;
+                        background: #FFFFFF;
+                    }
+
+                    .progress-number-row {
+                        display: flex;
+                        align-items: baseline;
+                        justify-content: center;
+                    }
+
+                    .progress-number {
+                        color: #00214D;
+                        font-size: 48rpx;
+                        font-weight: 700;
+                        line-height: 58rpx;
+                    }
+
+                    .progress-unit {
+                        color: #00214D;
+                        font-size: 24rpx;
+                        margin-left: 2rpx;
+                    }
+
+                    .progress-caption {
+                        color: #6F7374;
+                        font-size: 20rpx;
+                        line-height: 30rpx;
+                    }
+
+                    &.completed {
+                        .progress-orbit {
+                            animation: none;
+                            border-color: #459C5C;
+                        }
+                    }
+
+                    &.failed {
+                        .progress-orbit {
+                            animation: none;
+                            border-color: #CF7274;
+                        }
+                    }
+                }
 
                 .loading-message {
                     font-size: 30rpx;
                     font-weight: 600;
-                    line-height: 1.2;
-                    margin-top: 52rpx;
+                    line-height: 44rpx;
+                    margin-top: 24rpx;
+                    color: #00214D;
+                    text-align: center;
                 }
 
-                .progress-box {
-                    width: 70%;
+                .status-detail {
+                    width: calc(100% - 64rpx);
+                    margin-top: 8rpx;
+                    color: #6F7374;
+                    font-size: 24rpx;
+                    line-height: 36rpx;
+                    text-align: center;
+                    min-height: 36rpx;
+                }
+
+                .section-progress {
+                    width: calc(100% - 64rpx);
+                    box-sizing: border-box;
                     display: flex;
                     align-items: center;
-                    gap: 16rpx;
-                    margin-top: 24rpx;
-
-                    .progress-track {
-                        flex: 1;
-                        height: 12rpx;
-                        background: #E9E9E9;
-                        border-radius: 999rpx;
-                        overflow: hidden;
-                    }
-
-                    .progress-fill {
-                        height: 100%;
-                        background: #6EDD8A;
-                        border-radius: 999rpx;
-                        transition: width 0.2s ease;
-                    }
-
-                    .progress-label {
-                        color: #3D464A;
-                        font-size: 24rpx;
-                    }
+                    justify-content: space-between;
+                    margin-top: 20rpx;
+                    padding: 16rpx 20rpx;
+                    background: #F2F7F6;
+                    border-radius: 8rpx;
+                    color: #3D464A;
+                    font-size: 24rpx;
                 }
 
-                .separator {
-                    width: 100%;
-                    height: 1px;
-                    background-color: #E9E9E9;
-                    margin-top: 40rpx;
-                    margin-bottom: 40rpx;
-                }
-
-                .tips {
-                    display: flex;
-                    align-items: stretch;
-                    gap: 8px;
-                    font-family: PingFang SC, -apple-system, Roboto, Helvetica, sans-serif;
-                    font-size: 15px;
-                    color: rgba(0, 0, 0, 1);
+                .section-progress-count {
+                    color: #287A43;
                     font-weight: 600;
-                    line-height: 1.2;
+                }
 
-                    .analysis-icon {
-                        aspect-ratio: 1;
-                        object-fit: contain;
-                        object-position: center;
-                        width: 23px;
-                        height: 23px;
+                .progress-stages {
+                    width: calc(100% - 64rpx);
+                    margin-top: 28rpx;
+                }
+
+                .progress-stage {
+                    display: flex;
+                    align-items: flex-start;
+                    min-height: 92rpx;
+
+                    .stage-rail {
+                        width: 48rpx;
+                        min-height: 92rpx;
+                        align-self: stretch;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
                         flex-shrink: 0;
                     }
 
-                    .analysis-text {
-                        margin: auto 0;
-                        flex-basis: auto;
+                    .stage-marker {
+                        width: 40rpx;
+                        height: 40rpx;
+                        box-sizing: border-box;
+                        border: 2rpx solid #C5CECA;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: #FFFFFF;
+                        color: #8A9290;
+                        font-size: 22rpx;
+                        font-weight: 600;
+                        flex-shrink: 0;
+                    }
 
-                        .analysis-text-normal {
-                            font-weight: 400;
+                    .stage-line {
+                        width: 2rpx;
+                        flex: 1;
+                        min-height: 44rpx;
+                        margin: 6rpx 0;
+                        background: #DDE5E1;
+                    }
+
+                    .stage-content {
+                        flex: 1;
+                        min-width: 0;
+                        padding: 0 16rpx 20rpx 16rpx;
+                        display: flex;
+                        flex-direction: column;
+                    }
+
+                    .stage-title {
+                        color: #3D464A;
+                        font-size: 26rpx;
+                        font-weight: 600;
+                        line-height: 40rpx;
+                    }
+
+                    .stage-desc {
+                        color: #8A9290;
+                        font-size: 22rpx;
+                        line-height: 34rpx;
+                    }
+
+                    .stage-state {
+                        width: 88rpx;
+                        flex-shrink: 0;
+                        color: #8A9290;
+                        font-size: 22rpx;
+                        line-height: 40rpx;
+                        text-align: right;
+                    }
+
+                    &.completed {
+                        .stage-marker {
+                            border-color: #459C5C;
+                            background: #459C5C;
+                            color: #FFFFFF;
+                        }
+
+                        .stage-line {
+                            background: #8ACB9B;
+                        }
+
+                        .stage-state {
+                            color: #287A43;
+                        }
+                    }
+
+                    &.active {
+                        .stage-marker {
+                            border-color: #459C5C;
+                            background: #E7F6EB;
+                            color: #287A43;
+                            animation: report-stage-pulse 1.5s ease-in-out infinite;
+                        }
+
+                        .stage-title,
+                        .stage-state {
+                            color: #287A43;
+                        }
+                    }
+
+                    &.failed {
+                        .stage-marker {
+                            border-color: #CF7274;
+                            background: #FCEBEC;
+                            color: #A63E42;
+                        }
+
+                        .stage-title,
+                        .stage-state {
+                            color: #A63E42;
                         }
                     }
                 }
@@ -459,7 +709,7 @@ onUnmounted(() => {
 
             .info-section {
                 display: flex;
-                margin-top: 114rpx;
+                margin-top: 36rpx;
                 width: 100%;
                 max-width: 572rpx;
                 align-items: center;
@@ -483,6 +733,27 @@ onUnmounted(() => {
 
         }
 
+    }
+}
+
+@keyframes report-progress-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes report-stage-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.08);
     }
 }
 </style>

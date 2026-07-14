@@ -46,6 +46,7 @@ function toTaskStatus(task) {
 		progress: Number(task.progress) || 0,
 		totalSections: Number(task.totalSections) || 0,
 		completedSections: Number(task.completedSections) || 0,
+		reportId: task.report?.reportId || '',
 		failReason: task.failReason || task.errorMessage || ''
 	}
 }

@@ -5,7 +5,7 @@
   },
   "cloudfunction-config": {
     "concurrency": 10,
-    "memorySize": 256,
+    "memorySize": 1024,
     "timeout": 600
   },
   "extensions": {

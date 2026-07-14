@@ -131,7 +131,7 @@
           confirmText="生成报告"
           @cancel="show = false"
           cancelText="检查一下"
-          :extraText="allAssessmentModulesCompleted ? '回到量表的单元选择模块' : ''"
+          extraText="返回单元列表"
           @extra="handleBackToModuleList"
           @create="handleConfirm"
         />
@@ -324,7 +324,11 @@
 
   const handleBackToModuleList = () => {
     show.value = false;
-    uni.redirectTo({ url: "/pages/assessment/listMoudules?reviewCompleted=1" });
+    uni.redirectTo({
+      url: allAssessmentModulesCompleted.value
+        ? "/pages/assessment/listMoudules?reviewCompleted=1"
+        : "/pages/assessment/listMoudules",
+    });
   };
 
   const changeStatus = (sectionName, status) => {

@@ -82,9 +82,46 @@ async function getReportByRecordId(recordId) {
   return res.data && res.data[0];
 }
 
-function normalizeTask(task, report) {
+async function getAnalysisProgress(taskId) {
+  if (!taskId) return null;
+
+  const res = await db.collection('wtdb-section-analysis-tasks')
+    .where({ taskId })
+    .field({ sectionId: true, sectionName: true, status: true, updateTime: true })
+    .get();
+  const sections = (res.data || []).map(item => ({
+    sectionId: item.sectionId || '',
+    sectionName: item.sectionName || '',
+    status: item.status || 'pending'
+  }));
+  const completedSections = sections.filter(item => item.status === 'done').length;
+  const currentSection = sections.find(item => item.status === 'processing') ||
+    sections.find(item => item.status === 'pending') ||
+    null;
+
+  return {
+    sections,
+    totalSections: sections.length,
+    completedSections,
+    currentSectionName: currentSection && currentSection.sectionName || ''
+  };
+}
+
+function normalizeTask(task, report, analysisProgress) {
   const status = task ? task.status : 'completed';
   const taskReport = task && task.report;
+  const analysisTotal = Number(analysisProgress && analysisProgress.totalSections) || 0;
+  const taskTotal = Number(task && task.totalSections) || 0;
+  const totalSections = analysisTotal || taskTotal;
+  const analysisCompleted = Number(analysisProgress && analysisProgress.completedSections) || 0;
+  const taskCompleted = Number(task && task.completedSections) || 0;
+  const completedSections = analysisTotal ? analysisCompleted : taskCompleted;
+  const derivedProgress = totalSections
+    ? Math.min(90, Math.round((completedSections / totalSections) * 90))
+    : 0;
+  let progress = task ? Math.max(Number(task.progress) || 0, derivedProgress) : 100;
+  if (status === 'pending_save') progress = Math.max(progress, 99);
+  if (status === 'completed') progress = 100;
 
   return {
     taskId: task && task.taskId || '',
@@ -92,9 +129,11 @@ function normalizeTask(task, report) {
     childId: compactId(task && task.childId || report && report.childId),
     status,
     statusText: STATUS_TEXT[status] || status,
-    progress: task ? (Number(task.progress) || 0) : 100,
-    totalSections: Number(task && task.totalSections) || 0,
-    completedSections: Number(task && task.completedSections) || 0,
+    progress,
+    totalSections,
+    completedSections,
+    currentSectionName: analysisProgress && analysisProgress.currentSectionName || '',
+    sectionProgress: analysisProgress && analysisProgress.sections || [],
     reportId: (report && (report.reportId || compactId(report._id))) ||
       (taskReport && taskReport.reportId) ||
       '',
@@ -125,7 +164,7 @@ exports.main = async (event = {}, context) => {
 
     const uid = compactId(tokenRes.uid);
     const task = await getTask({ taskId, recordId, childId });
-    const resolvedRecordId = recordId || getTaskRecordId(task);
+    const resolvedRecordId = getTaskRecordId(task) || recordId;
     const report = await getReportByRecordId(resolvedRecordId);
 
     if (!task && !report) {
@@ -142,10 +181,14 @@ exports.main = async (event = {}, context) => {
       };
     }
 
+    const analysisProgress = task
+      ? await getAnalysisProgress(task.taskId)
+      : null;
+
     return {
       code: 200,
       msg: 'success',
-      data: normalizeTask(task, report)
+      data: normalizeTask(task, report, analysisProgress)
     };
   } catch (error) {
     console.error('获取报告任务状态失败:', error);

@@ -402,6 +402,30 @@
     return `${lastStage}阶`;
   };
 
+  const formatChildAge = (value) => {
+    if (value === undefined || value === null || value === "") return "";
+    const text = String(value);
+    return text.includes("岁") ? text : `${text}岁`;
+  };
+
+  const applyReportData = (report, fallback = {}) => {
+    if (!report) return;
+
+    displayName.value = report.childName || fallback.name || "未知姓名";
+    classDisplay.value = report.className || fallback.className || "未知班级";
+    avatarUrl.value = report.avatar || fallback.avatar || avatarUrl.value;
+    childAge.value =
+      formatChildAge(report.childAge) ||
+      fallback.childAge ||
+      common.ageDisplay(fallback.birthdate) ||
+      "未知年龄";
+    childAgeInt.value = report.ageInt || 0;
+    sectionSummaryList.value = report.sectionSummaryList || [];
+    reportSummary.value = report.reportSummary || "";
+    dateString.value = report.date || common.formatDate(report.completionTime) || "";
+    assessmentId.value = report.assessmentId || assessmentId.value;
+  };
+
   const onclickReportCard = (index) => {
     console.log("onclickReportCard received index:", index);
     console.log("Current report data:", historyReports.value[index]);
@@ -411,24 +435,29 @@
       activeCollapse.value = [];
     });
 
-    // 更新页面显示的报告数据
-    sectionSummaryList.value = selectedReport.sectionSummaryList || [];
-    reportSummary.value = selectedReport.reportSummary || "";
-    childAgeInt.value = selectedReport.ageInt || 0;
-    dateString.value = selectedReport.date;
+    applyReportData(selectedReport);
 
     // 关闭历史报告弹窗
     showHistory.value = false;
   };
 
-  const fetchChildReportHistory = async (childId) => {
+  const fetchChildReportHistory = async ({
+    childId = "",
+    reportId = "",
+    recordId = "",
+  } = {}) => {
     // 显示加载提示
 
     try {
       // 1. 查询学生报告数据
       const res = await uniCloud.callFunction({
         name: "wt-fetch-child-report-history",
-        data: { childId },
+        data: {
+          childId,
+          reportId,
+          recordId,
+          uniIdToken: uni.getStorageSync("uni_id_token"),
+        },
       });
 
       if (res.result.code !== 200 || !res.result.data.length) {
@@ -444,7 +473,8 @@
         uni.getStorageSync("teacher_assessment_list")?.list || [];
       return res.result.data.map((report) => {
         const assessment = assessmentList.find(
-          (item) => item._id === report.id
+          (item) =>
+            item.id === report.assessmentId || item._id === report.assessmentId
         );
         return {
           ...report,
@@ -486,45 +516,49 @@
 
   onLoad(async function (options) {
     if (options.isHistory == "true") {
-      const student = uni.getStorageSync("current_student");
+      const student = uni.getStorageSync("current_student") || {};
+      const currentClass = uni.getStorageSync("currentClass") || {};
       uni.showLoading({
         title: "加载中...",
         mask: true,
       });
 
-      historyReports.value = await fetchChildReportHistory(student._id);
+      historyReports.value = await fetchChildReportHistory({
+        childId: options.childId || student._id || "",
+        reportId: options.reportId || "",
+        recordId: options.recordId || "",
+      });
 
       if (historyReports.value.length > 0) {
-        const latestReport = historyReports.value[0];
-        const currentClass = uni.getStorageSync("currentClass");
-        displayName.value = student.name || "未知姓名";
-        classDisplay.value = currentClass.nickname || "未知班级";
-        childAge.value = common.ageDisplay(student.birthdate) || "未知年龄";
-        sectionSummaryList.value = latestReport.sectionSummaryList || [];
-        childAgeInt.value = latestReport.ageInt || 0;
-        dateString.value = common.formatDate(latestReport.completionTime) || "";
-        reportSummary.value = latestReport.reportSummary || "";
-        console.log("latestReport", latestReport);
+        const currentReport = historyReports.value[0];
+        applyReportData(currentReport, {
+          name: student.name,
+          className: currentClass.nickname,
+          avatar: student.avatar,
+          birthdate: student.birthdate,
+          childAge: student.age,
+        });
+        console.log("currentReport", currentReport);
       }
-    } else if ((options.isShare = "true")) {
+    } else if (options.isShare === "true") {
       console.log("isShare", options);
       uni.showLoading({
         title: "加载中...",
         mask: true,
       });
 
-      historyReports.value = await fetchChildReportHistory(options.studentId);
+      historyReports.value = await fetchChildReportHistory({
+        childId: options.studentId,
+      });
 
       if (historyReports.value.length > 0) {
         const latestReport = historyReports.value[0];
-        displayName.value = options.name || "未知姓名";
-        classDisplay.value = options.nickname || "未知班级";
-        childAge.value =
-          common.ageDisplay(Number(options.birthdate)) || "未知年龄";
-        sectionSummaryList.value = latestReport.sectionSummaryList || [];
-        childAgeInt.value = latestReport.ageInt || 0;
-        dateString.value = common.formatDate(latestReport.completionTime) || "";
-        reportSummary.value = latestReport.reportSummary || "";
+        applyReportData(latestReport, {
+          name: options.name,
+          className: options.nickname,
+          avatar: options.avatar,
+          birthdate: Number(options.birthdate),
+        });
         console.log("latestReport", latestReport);
       }
     } else {
@@ -544,7 +578,9 @@
           cachedData.completionTime
         ).toLocaleString();
       }
-      historyReports.value = await fetchChildReportHistory(options.childId);
+      historyReports.value = await fetchChildReportHistory({
+        childId: options.childId,
+      });
       if (historyReports.value.length > 0) {
         analysisTextAI.value = historyReports.value[0].aiResponse || "";
       }
