@@ -510,7 +510,10 @@
         );
         return {
           ...report,
-          title: assessment?.title || "未知评估",
+          title:
+            report.assessmentTitle?.trim() ||
+            assessment?.title ||
+            "评估报告",
           date: common.formatDate(report.completionTime),
         };
       });

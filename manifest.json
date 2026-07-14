@@ -1,24 +1,24 @@
 {
-    "name": "zhimiao-xcx",
-    "appid": "__UNI__0FAB82A",
-    "description": "云端一体应用快速开发基本项目模版",
-    "versionName": "1.0.0",
-    "versionCode": "100",
-    "transformPx": false,
-    "app-plus": {
-        "usingComponents": true,
-        "nvueStyleCompiler": "uni-app",
-        "compilerVersion": 3,
-        "splashscreen": {
-            "alwaysShowBeforeRender": true,
-            "waiting": true,
-            "autoclose": true,
-            "delay": 0
+    "name" : "zhimiao-xcx",
+    "appid" : "__UNI__0FAB82A",
+    "description" : "云端一体应用快速开发基本项目模版",
+    "versionName" : "1.0.0",
+    "versionCode" : "100",
+    "transformPx" : false,
+    "app-plus" : {
+        "usingComponents" : true,
+        "nvueStyleCompiler" : "uni-app",
+        "compilerVersion" : 3,
+        "splashscreen" : {
+            "alwaysShowBeforeRender" : true,
+            "waiting" : true,
+            "autoclose" : true,
+            "delay" : 0
         },
-        "modules": {},
-        "distribute": {
-            "android": {
-                "permissions": [
+        "modules" : {},
+        "distribute" : {
+            "android" : {
+                "permissions" : [
                     "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.MOUNT_UNMOUNT_FILESYSTEMS\"/>",
                     "<uses-permission android:name=\"android.permission.VIBRATE\"/>",
@@ -36,52 +36,50 @@
                     "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>"
                 ]
             },
-            "ios": {},
-            "sdkConfigs": {
-                "push": {
-                    "unipush": null
+            "ios" : {},
+            "sdkConfigs" : {
+                "push" : {
+                    "unipush" : null
                 }
             }
         }
     },
-    "quickapp": {},
-    "mp-weixin": {
-        "appid": "wx34eaa0d9018f1772",
-        "setting": {
-            "urlCheck": false,
-            "es6": true,
-            "minified": true
+    "quickapp" : {},
+    "mp-weixin" : {
+        "appid" : "wx34eaa0d9018f1772",
+        "setting" : {
+            "urlCheck" : false,
+            "es6" : true,
+            "minified" : true
         },
-        "usingComponents": true,
-        "optimization": {
-            "subPackages": true
+        "usingComponents" : true,
+        "optimization" : {
+            "subPackages" : true
         },
-        "mergeVirtualHostAttributes": true,
-        "uniStatistics": {
-            "enable": true
+        "mergeVirtualHostAttributes" : true,
+        "uniStatistics" : {
+            "enable" : true
         },
-        "__usePrivacyCheck__": true,
-        "requiredPrivateInfos": [
-            "getFuzzyLocation"
-        ],
-        "permission": {
-            "scope.userFuzzyLocation": {
-                "desc": "用于计算您与学校的距离"
+        "__usePrivacyCheck__" : true,
+        "requiredPrivateInfos" : [ "getFuzzyLocation" ],
+        "permission" : {
+            "scope.userFuzzyLocation" : {
+                "desc" : "用于计算您与学校的距离"
             }
         }
     },
-    "mp-alipay": {
-        "usingComponents": true
+    "mp-alipay" : {
+        "usingComponents" : true
     },
-    "mp-baidu": {
-        "usingComponents": true
+    "mp-baidu" : {
+        "usingComponents" : true
     },
-    "mp-toutiao": {
-        "usingComponents": true
+    "mp-toutiao" : {
+        "usingComponents" : true
     },
-    "uniStatistics": {
-        "enable": false,
-        "version": "2"
+    "uniStatistics" : {
+        "enable" : false,
+        "version" : "2"
     },
-    "vueVersion": "3"
+    "vueVersion" : "3"
 }

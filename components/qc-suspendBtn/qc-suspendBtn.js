@@ -1,4 +1,9 @@
 export const suspendBtnProps = {
+  // 视觉主题，不影响按钮的拖拽和点击逻辑
+  theme: {
+    type: String,
+    default: 'default',
+  },
   /**
    * 菜单类型
    * - LineUp :     竖向向上弹出菜单

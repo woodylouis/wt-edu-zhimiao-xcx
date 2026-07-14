@@ -99,6 +99,7 @@
       :childBtns="btnConfig.suspen.childBtns"
       :openType="btnConfig.suspen.openType"
       :padding="10"
+      theme="dopamine"
       @childClick="btnConfig.childClick"
     />
     

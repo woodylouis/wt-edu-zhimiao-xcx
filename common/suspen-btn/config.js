@@ -7,19 +7,26 @@ export default {
         mainBtn: {
             size: 52,
             bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/tools.png',
+            icon: '✦',
             initX: 400,
             initY: 0,
         },
         childSize: 44,
         childBtns: [
             {
-                bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/exit-1.png'
+                bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/exit-1.png',
+                icon: '🧹',
+                label: '清缓存'
             },
             {
                 bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/assessment.png',
+                icon: '📝',
+                label: '量表库'
             },
             {
                 bgImg: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/cloudstorage/home.png',
+                icon: '🏠',
+                label: '回首页'
             }
         ],
         padding: 0,

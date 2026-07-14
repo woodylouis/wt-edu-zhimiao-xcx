@@ -133,7 +133,8 @@ const childAni = uni.createAnimation({
 
 // 设置主按钮动画
 const mainAnimation = computed(() => {
-  mainAni.rotateZ(isExpand.value ? 180 : 0).step()
+  const expandedRotation = props.theme === 'dopamine' ? 45 : 180
+  mainAni.rotateZ(isExpand.value ? expandedRotation : 0).step()
   return mainAni.export()
 })
 
@@ -259,33 +260,48 @@ const childClick = (index) => {
 }
 </script>
 <template>
-  <movable-area v-if="isReady" class="qc-suspendbtn" :style="moveAreaStyle">
+  <movable-area
+    v-if="isReady"
+    :class="['qc-suspendbtn', `qc-suspendbtn--${props.theme}`]"
+    :style="moveAreaStyle"
+  >
     <movable-view class="drag-back" direction="all" :style="dragStyle + dragViewStyle" inertia :x="currentX"
       :y="currentY" :disabled="!props.moveable" @change="onDragChange" @touchend="onTouchEnd">
       <view class="allbtns-back" :style="allbtnsBackStyle">
-        <view v-for="(child, index) in props.childBtns" class="child-btn" :key="index"
+        <view v-for="(child, index) in props.childBtns" :class="['child-btn', `child-btn--${index + 1}`]" :key="index"
           :style="`width:${props.childSize}px;height:${props.childSize}px;`" :animation="childBtnsAni(index)"
           @tap="childClick(index)">
-          <image class="child-btn-content f-c-c" v-if="child.bgImg" :src="child.bgImg" />
+          <view
+            v-if="props.theme === 'dopamine'"
+            class="child-btn-content child-btn-content--dopamine f-c-c"
+          >
+            <text class="child-btn-icon">{{ child.icon || '✨' }}</text>
+          </view>
+          <image class="child-btn-content f-c-c" v-else-if="child.bgImg" :src="child.bgImg" />
           <view class="child-btn-content f-c-c" v-else-if="child.textBg"
             :style="`background-color:${child.textBg.bgColor};${child.textBg.textStyle}`">
             {{ child.textBg.content }}
           </view>
+          <text
+            v-if="props.theme === 'dopamine' && child.label"
+            class="child-btn-label"
+          >{{ child.label }}</text>
         </view>
-        <view class="main-btn" :style="`width:${props.mainBtn.size}px;height:${props.mainBtn.size}px;`"
+        <view :class="['main-btn', { 'main-btn--expanded': isExpand }]" :style="`width:${props.mainBtn.size}px;height:${props.mainBtn.size}px;`"
           :animation="mainAnimation" @tap="mainClick">
-          <image class="main-btn-content f-c-c" :src="props.mainBtn.bgImg" />
-          <!-- <view
-            class="main-btn-content f-c-c"
-            v-else-if="props.mainBtn.textBg"
-            :style="`background-color:${props.mainBtn.textBg.bgColor};${props.mainBtn.textBg.textStyle}`"
+          <view
+            v-if="props.theme === 'dopamine'"
+            class="main-btn-content main-btn-content--dopamine f-c-c"
           >
-            {{ props.mainBtn.textBg.content }}
-          </view> -->
+            <text class="main-btn-spark main-btn-spark--one">✦</text>
+            <text class="main-btn-spark main-btn-spark--two">•</text>
+            <text class="main-btn-icon">{{ isExpand ? '×' : (props.mainBtn.icon || '✨') }}</text>
+          </view>
+          <image v-else class="main-btn-content f-c-c" :src="props.mainBtn.bgImg" />
         </view>
       </view>
     </movable-view>
-    <view v-if="isExpand" class="screen-back" @tap="mainClick" />
+    <view v-if="isExpand" :class="['screen-back', `screen-back--${props.theme}`]" @tap="mainClick" />
   </movable-area>
 </template>
 <style lang="scss">
