@@ -10,67 +10,37 @@
         <view class="brand-mark">芽</view>
         <text class="brand-name">{{ $t("xcxName") }}</text>
       </view>
-      <!-- banner -->
-      <unicloud-db
-        ref="bannerdb"
-        v-slot:default="{ data, loading, error, options }"
-        collection="opendb-banner"
-        field="_id,bannerfile,open_url,title"
-      >
-        <view class="hero-stage">
-          <!-- 当无 banner 数据时显示轻量的成长主题插画 -->
-          <view v-if="!(loading || data.length)" class="banner-fallback">
-            <view class="hero-copy">
-              <text class="hero-kicker">GROW UP HAPPY</text>
-              <text class="hero-title">看见每一次</text>
-              <text class="hero-title hero-title-last">小小成长</text>
-              <text class="hero-subtitle">用科学评估，发现孩子的闪光点</text>
-            </view>
-
-            <view class="hero-art">
-              <view class="art-sun"></view>
-              <view class="art-spark spark-one">+</view>
-              <view class="art-spark spark-two">✦</view>
-              <view class="report-card">
-                <view class="report-clip"></view>
-                <view class="report-face">
-                  <view class="face-eye"></view>
-                  <view class="face-eye"></view>
-                  <view class="face-smile"></view>
-                </view>
-                <view class="report-line line-long"></view>
-                <view class="report-line line-short"></view>
-              </view>
-              <view class="growth-badge">+1</view>
-            </view>
+      <view class="hero-stage">
+        <view class="growth-illustration">
+          <view class="hero-copy">
+            <text class="hero-kicker">GROW UP HAPPY</text>
+            <text class="hero-title">看见每一次</text>
+            <text class="hero-title hero-title-last">小小成长</text>
+            <text class="hero-subtitle">用科学评估，发现孩子的闪光点</text>
           </view>
 
-          <swiper
-            v-else
-            class="swiper-box"
-            @change="changeSwiper"
-            :current="current"
-            indicator-dots
-            indicator-color="rgba(255,255,255,.58)"
-            indicator-active-color="#ffffff"
-          >
-            <swiper-item v-for="(item, index) in data" :key="item._id">
-              <image
-                class="banner-image"
-                :src="item.bannerfile.url"
-                mode="aspectFill"
-                @click="clickBannerItem(item)"
-                :draggable="false"
-              />
-              <view class="banner-mask"></view>
-            </swiper-item>
-          </swiper>
-
-          <view class="hero-sticker">快乐成长</view>
-          <view class="hero-dot dot-left"></view>
-          <view class="hero-dot dot-right"></view>
+          <view class="hero-art">
+            <view class="art-sun"></view>
+            <view class="art-spark spark-one">+</view>
+            <view class="art-spark spark-two">✦</view>
+            <view class="report-card">
+              <view class="report-clip"></view>
+              <view class="report-face">
+                <view class="face-eye"></view>
+                <view class="face-eye"></view>
+                <view class="face-smile"></view>
+              </view>
+              <view class="report-line line-long"></view>
+              <view class="report-line line-short"></view>
+            </view>
+            <view class="growth-badge">+1</view>
+          </view>
         </view>
-      </unicloud-db>
+
+        <view class="hero-sticker">快乐成长</view>
+        <view class="hero-dot dot-left"></view>
+        <view class="hero-dot dot-right"></view>
+      </view>
     </view>
 
     <view class="enter-class-option">
@@ -183,13 +153,6 @@
     },
     data() {
       return {
-        current: 0,
-        bannerData: [],
-        bannerHeight: 0,
-        titleHeight: 0,
-        titleMarginTop: 0,
-        menuButtonInfoStyle: "",
-        sysconfigMap: {},
         xcxNameMarginTopStyle: "",
         show: false,
         modalOptionsList: ["我是老师"],
@@ -437,7 +400,7 @@
       box-shadow: 12rpx 14rpx 0 #ffcf46;
     }
 
-    .banner-fallback {
+    .growth-illustration {
       position: relative;
       display: flex;
       width: 100%;
@@ -447,7 +410,7 @@
       background: linear-gradient(135deg, #7657f6 0%, #986cfb 56%, #f479b4 100%);
     }
 
-    .banner-fallback::before {
+    .growth-illustration::before {
       content: "";
       position: absolute;
       width: 230rpx;
@@ -680,33 +643,6 @@
       background: #8ee3c2;
     }
 
-    .swiper-box {
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-      border-radius: 34rpx;
-
-      .banner-image {
-        width: 100%;
-        height: 100%;
-        border-radius: 34rpx;
-      }
-
-      .banner-mask {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 110rpx;
-        background: linear-gradient(
-          to top,
-          rgba(47, 40, 84, 0.24) 0%,
-          rgba(47, 40, 84, 0) 100%
-        );
-        z-index: 1;
-        pointer-events: none;
-      }
-    }
   }
 
   .enter-class-option {
