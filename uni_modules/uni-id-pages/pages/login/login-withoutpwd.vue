@@ -159,6 +159,10 @@ export default {
 		}
 	},
 	async onLoad(e) {
+		// #ifdef MP-WEIXIN
+		uni.showShareMenu({ menus: ["shareAppMessage"] });
+		// #endif
+
 		let type = e.type || config.loginTypes[0]
 		this.type = type
 
@@ -174,6 +178,12 @@ export default {
 		uni.$on('uni-id-pages-setLoginType', type => {
 			this.type = type
 		})
+	},
+	onShareAppMessage() {
+		return {
+			title: '知苗成长｜看见孩子的每一次进步',
+			path: '/pages/enter-class/index'
+		}
 	},
 	onShow() {
 		// #ifdef H5

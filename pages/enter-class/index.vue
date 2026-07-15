@@ -168,10 +168,20 @@
       };
     },
     onLoad() {
+      // #ifdef MP-WEIXIN
+      uni.showShareMenu({ menus: ["shareAppMessage"] });
+      // #endif
+
       const menuButtonInfo = uni.getMenuButtonBoundingClientRect();
       this.xcxNameMarginTopStyle = `top:${
         menuButtonInfo.top + menuButtonInfo.height / 2
       }px;`;
+    },
+    onShareAppMessage() {
+      return {
+        title: "知苗成长｜看见孩子的每一次进步",
+        path: "/pages/enter-class/index",
+      };
     },
     onShow() {
       // this.checkLoginStatus();
