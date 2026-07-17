@@ -7,9 +7,9 @@
   ],
   "permission": {
     "read": "auth.uid != null",
-    "create": false,
-    "update": false,
-    "delete": false
+    "create": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission",
+    "update": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission",
+    "delete": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission"
   },
   "properties": {
     "_id": {

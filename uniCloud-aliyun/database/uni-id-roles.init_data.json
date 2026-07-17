@@ -5,5 +5,26 @@
     "permission": [],
     "comment": "超级管理员拥有所有权限",
     "create_date": 0
+  },
+  {
+    "role_id": "diana-admin",
+    "role_name": "业务超级管理员",
+    "permission": ["business-all"],
+    "comment": "可管理所有学校、班级、儿童、报告与审批，不可管理系统配置",
+    "create_date": 0
+  },
+  {
+    "role_id": "school",
+    "role_name": "学校负责人",
+    "permission": ["read", "create-class", "edit-class"],
+    "comment": "管理自己负责学校范围内的业务",
+    "create_date": 0
+  },
+  {
+    "role_id": "member",
+    "role_name": "普通成员",
+    "permission": ["read"],
+    "comment": "保留的基础登录角色，班级教师与家长身份由班级成员表管理",
+    "create_date": 0
   }
 ]

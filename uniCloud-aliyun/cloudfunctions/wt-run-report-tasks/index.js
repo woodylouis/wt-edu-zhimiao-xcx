@@ -12,9 +12,9 @@ function compactId(value) {
 	return String(value)
 }
 
-function hasAdminRole(roles) {
+function hasGlobalBusinessRole(roles) {
 	const roleList = Array.isArray(roles) ? roles : [roles]
-	return roleList.filter(Boolean).some(role => String(role).toLowerCase().includes('admin'))
+	return roleList.includes('admin') || roleList.includes('diana-admin')
 }
 
 function getTaskAssessorId(task) {
@@ -29,7 +29,7 @@ function canRunTask(task, tokenRes) {
 	const runAuthorizedBy = compactId(task.metadata?.runAuthorizedBy)
 	return getTaskAssessorId(task) === uid ||
 		runAuthorizedBy === uid ||
-		hasAdminRole(tokenRes.role)
+		hasGlobalBusinessRole(tokenRes.role)
 }
 
 async function getTask(taskId) {

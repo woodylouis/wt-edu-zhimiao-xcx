@@ -7,10 +7,10 @@
     "code"
   ], // 新增必填字段
   "permission": {
-    "read": true,
-    "create": "'create-class' in auth.permission",
-    "update": "'edit-class' in auth.permission",
-    "delete": false
+    "read": "auth.uid != null",
+    "create": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission || 'create-class' in auth.permission",
+    "update": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission || 'edit-class' in auth.permission",
+    "delete": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission"
   },
   "properties": {
     "_id": {

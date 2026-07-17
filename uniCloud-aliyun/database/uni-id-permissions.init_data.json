@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "permission_id": "read",
+    "permission_name": "读取业务数据",
+    "comment": "基础业务数据读取权限",
+    "create_date": 0
+  },
+  {
+    "permission_id": "create-class",
+    "permission_name": "创建班级",
+    "comment": "创建业务班级",
+    "create_date": 0
+  },
+  {
+    "permission_id": "edit-class",
+    "permission_name": "编辑班级",
+    "comment": "编辑业务班级",
+    "create_date": 0
+  },
+  {
+    "permission_id": "user-manage",
+    "permission_name": "用户管理",
+    "comment": "保留的存量权限，不授予业务超级管理员",
+    "create_date": 0
+  },
+  {
+    "permission_id": "business-all",
+    "permission_name": "全部业务管理",
+    "comment": "全局管理学校、班级、儿童、报告与审批，不包含系统配置",
+    "create_date": 0
+  }
+]
