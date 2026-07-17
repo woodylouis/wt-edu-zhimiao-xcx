@@ -106,8 +106,21 @@
                                     <text class="avatar-text">{{ item.name.charAt(0) }}</text>
                                 </view>
                                 <view class="class-info">
-                                    <text class="class-name">{{ item.name }}</text>
-                                    <text class="class-role">{{ item.nickname }}</text>
+                                    <view class="class-name-row">
+                                        <text class="class-name">{{ item.name }}</text>
+                                        <view v-if="isCurrentClass(item)" class="current-class-badge">
+                                            <text>当前</text>
+                                        </view>
+                                    </view>
+                                    <view class="class-identity-row">
+                                        <view
+                                            class="class-identity-badge"
+                                            :class="{ 'class-identity-badge--parent': item.role === 'parent' }"
+                                        >
+                                            <view class="identity-dot"></view>
+                                            <text>{{ item.role === 'teacher' ? '任课老师' : '家长' }}</text>
+                                        </view>
+                                    </view>
                                 </view>
                                 <view class="class-check">
                                     <view v-if="isSelected(school.schoolId, classIndex)" class="check-circle">
@@ -221,6 +234,7 @@ export default {
             selectedSchoolId: null,
             selectedClassIndex: 0,
             expandedSchoolId: null,
+            currentClassCode: '',
             classes: {
                 parent: [],
                 teacher: []
@@ -304,7 +318,14 @@ export default {
                 })
                 
                 if (result.code === 200) {
-                    uni.setStorageSync('currentClass', result.data)
+                    const currentClass = {
+                        ...result.data,
+                        memberRole: this.selectedClass.role,
+                        memberNickname: this.selectedClass.nickname,
+                        schoolName: this.selectedSchoolName
+                    }
+                    this.currentClassCode = currentClass.code || ''
+                    uni.setStorageSync('currentClass', currentClass)
                     uni.redirectTo({
                         url: `/pages/dashboard/teacher/teacher?userNickname=${this.selectedClass.nickname}&role=${this.selectedClass.role}`
                     })
@@ -318,6 +339,10 @@ export default {
         
         isSelected(schoolId, classIndex) {
             return this.selectedSchoolId === schoolId && this.selectedClassIndex === classIndex
+        },
+
+        isCurrentClass(item) {
+            return !!this.currentClassCode && item.classCode === this.currentClassCode
         },
         
         getClassColor(index) {
@@ -500,6 +525,8 @@ export default {
     },
 
     onLoad() {
+        const currentClass = uni.getStorageSync('currentClass') || {}
+        this.currentClassCode = currentClass.code || ''
         this.getUserLocation()
         this.loadClasses()
     }
@@ -1229,9 +1256,64 @@ export default {
     font-weight: 900;
 }
 
-.class-info .class-role {
-    color: #746d88;
-    font-weight: 600;
+.class-name-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 12rpx;
+}
+
+.class-name-row .class-name {
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.current-class-badge {
+    flex-shrink: 0;
+    padding: 5rpx 11rpx;
+    color: #392f59;
+    font-size: 19rpx;
+    font-weight: 900;
+    line-height: 1;
+    border: 2rpx solid #392f59;
+    border-radius: 999rpx;
+    background: #ffd447;
+}
+
+.class-identity-row {
+    display: flex;
+    align-items: center;
+    margin-top: 10rpx;
+}
+
+.class-identity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8rpx;
+    height: 34rpx;
+    padding: 0 13rpx;
+    color: #4f4570;
+    font-size: 20rpx;
+    font-weight: 800;
+    line-height: 34rpx;
+    border-radius: 999rpx;
+    background: #eee9ff;
+}
+
+.class-identity-badge .identity-dot {
+    width: 10rpx;
+    height: 10rpx;
+    border-radius: 50%;
+    background: #7c63e8;
+}
+
+.class-identity-badge--parent {
+    color: #7a3f38;
+    background: #ffe5df;
+}
+
+.class-identity-badge--parent .identity-dot {
+    background: #ff765f;
 }
 
 .class-check .check-circle,

@@ -22,7 +22,13 @@
             </view>
           </view>
           <view class="info">
-            <text class="name">{{ displayName }}</text>
+            <view class="profile-name-row">
+              <text class="name">{{ displayName }}</text>
+              <view class="identity-badge">
+                <view class="identity-dot"></view>
+                <text>老师</text>
+              </view>
+            </view>
             <view class="class-row">
               <view class="class-tag" @click.stop="onClickInvite">
                 <text class="tag-text">{{ classDisplay }}</text>
@@ -215,7 +221,6 @@
       ? userNickname.value
       : userInfo.value.nickname || "小程序用户";
   });
-
   const navigateToLogin = () => {
     uni.reLaunch({
       url: "/uni_modules/uni-id-pages/pages/login/login-withoutpwd",
@@ -587,11 +592,46 @@
         flex-direction: column;
         gap: 6rpx;
 
+        .profile-name-row {
+          display: flex;
+          align-items: center;
+          min-width: 0;
+          gap: 12rpx;
+        }
+
         .name {
           color: #3D3D3D;
           font-size: 34rpx;
           font-weight: 700;
           line-height: 1.3;
+          min-width: 0;
+          max-width: 220rpx;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .identity-badge {
+          flex-shrink: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 7rpx;
+          height: 34rpx;
+          padding: 0 13rpx;
+          color: #4f4570;
+          font-size: 20rpx;
+          font-weight: 800;
+          line-height: 34rpx;
+          border-radius: 999rpx;
+          background: #e9e3ff;
+
+          .identity-dot {
+            width: 10rpx;
+            height: 10rpx;
+            border-radius: 50%;
+            background: #7c63e8;
+          }
+
         }
 
         .class-row {
