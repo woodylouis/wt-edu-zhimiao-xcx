@@ -117,6 +117,7 @@ export default {
     data() {
         return {
             show: false,  // 移动到顶层
+            submitting: false,
             showRelationship: false,  // 重命名为关系选择器状态
             showGenderPicker: false,   // 新增性别选择器状态
             showDatetimePicker: false,
@@ -271,82 +272,54 @@ export default {
         },
         // 模态框确认按钮点击事件
         async handleConfirm() {
-            const classId = uni.getStorageSync('tempFormData').classInfo._id;
-            const classCode = uni.getStorageSync('tempFormData').code;
+            if (this.submitting) return;
+            if (this.formData.role !== 'teacher') {
+                uni.showToast({ title: '家长入班功能敬请期待', icon: 'none' });
+                return;
+            }
 
-            if (this.formData.role === 'teacher') {
-                // 老师身份直接加入班级
-                const submitClassMemberData = {
-                    class_id: classId,
-                    role: 'teacher',
-                    nickname: this.formData.teacherData.user_name,
-                    code: classCode
-                };
-
-                const memberRes = await uniCloud.callFunction({
-                    name: 'wtdb-business-class-enter',
-                    data: submitClassMemberData
-                });
-
-                if (memberRes.result.code === 200) {
-                    this.handleJoinSuccess();
-                } else {
-                    uni.showToast({
-                        title: memberRes.result.msg || '加入班级失败',
-                        icon: 'none'
-                    });
-                }
-            } else {
-                // 家长身份需要先创建学生
-                const submitChildrenData = {
-                    class_id: classId,
-                    child_name: this.formData.parentData.childName,
-                    gender: this.formData.parentData.gender,
-                    birthdate: this.formData.parentData.birthdate,
-                    avatar: 'https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/girl.png',
-                };
-
-                const childrenRes = await uniCloud.callFunction({
-                    name: 'wtdb-business-children-edit',
-                    data: { submitChildrenData }
-                });
-
-                if (childrenRes.result.code === 200) {
-                    const submitClassMemberData = {
-                        class_id: classId,
-                        child_id: childrenRes.result.data.child_id,
-                        role: 'parent',
-                        nickname: this.formData.parentData.childName + this.formData.parentData.relationship,
-                        relationship: this.formData.parentData.relationship,
-                        code: classCode
-                    };
-
-                    const memberRes = await uniCloud.callFunction({
-                        name: 'wtdb-business-class-enter',
-                        data: submitClassMemberData
-                    });
-
-                    if (memberRes.result.code === 200) {
-                        this.handleJoinSuccess();
-                    } else {
-                        uni.showToast({
-                            title: memberRes.result.msg || '加入班级失败',
-                            icon: 'none'
-                        });
+            const cacheData = uni.getStorageSync('tempFormData') || {};
+            const classInfo = cacheData.classInfo || {};
+            this.submitting = true;
+            uni.showLoading({ title: '提交申请中...', mask: true });
+            try {
+                const { result } = await uniCloud.callFunction({
+                    name: 'wtdb-class-approval',
+                    data: {
+                        action: 'submit',
+                        classId: classInfo._id,
+                        classCode: cacheData.code,
+                        requestedRole: 'teacher',
+                        nickname: this.formData.teacherData.user_name,
+                        uniIdToken: uni.getStorageSync('uni_id_token')
                     }
+                });
+
+                if (result.code !== 200) {
+                    throw new Error(result.msg || '申请提交失败');
                 }
+                this.handleApplySuccess(result.data && result.data.existing);
+            } catch (error) {
+                uni.showToast({
+                    title: error.message || '申请提交失败',
+                    icon: 'none'
+                });
+            } finally {
+                uni.hideLoading();
+                this.submitting = false;
             }
         },
-        // 新增成功处理公共方法
-        handleJoinSuccess() {
+        // 申请提交后不直接入班，审批通过后才会生成教师成员记录
+        handleApplySuccess(existing) {
             this.show = false;
-            uni.showToast({ title: '加入班级成功', icon: 'none' });
-
-            uniCloud.callFunction({ name: 'wtdb-business-class-list' }).then(classRes => {
-                if (classRes.result.code === 200 && classRes.result.data.length > 0) {
-                    const newClass = classRes.result.data[classRes.result.data.length - 1];
-                    uni.setStorageSync('currentClass', newClass);
-                    uni.reLaunch({ url: '/pages/dashboard/teacher/teacher' });
+            uni.removeStorageSync('tempFormData');
+            uni.showModal({
+                title: existing ? '申请已在审批中' : '申请已提交',
+                content: '学校负责人通过后，该班级会自动出现在您的班级列表中。',
+                showCancel: false,
+                confirmText: '我知道了',
+                success: () => {
+                    uni.reLaunch({ url: '/pages/enter-class/index' });
                 }
             });
         },

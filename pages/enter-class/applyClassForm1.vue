@@ -128,7 +128,10 @@ export default {
 
                     const { result } = await uniCloud.callFunction({
                         name: 'wtdb-business-class-detail',
-                        data: { code: this.formData.code }
+                        data: {
+                            code: this.formData.code,
+                            uniIdToken: uni.getStorageSync('uni_id_token')
+                        }
                     });
 
                     // 关闭加载提示

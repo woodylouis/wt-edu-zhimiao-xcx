@@ -65,6 +65,14 @@
       }
     },
     {
+      "path": "pages/approval/list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "入班审批",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
       "path": "pages/list/list",
       "style": {
         // #ifndef APP

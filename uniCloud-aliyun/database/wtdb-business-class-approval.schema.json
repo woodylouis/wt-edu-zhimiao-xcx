@@ -1,0 +1,67 @@
+{
+  "bsonType": "object",
+  "required": [
+    "class_id",
+    "class_code",
+    "class_name",
+    "school_id",
+    "school_name",
+    "applicant_user_id",
+    "applicant_name",
+    "requested_role",
+    "status",
+    "apply_time"
+  ],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "审批记录ID" },
+    "class_id": { "bsonType": "string", "title": "班级记录ID" },
+    "class_code": { "bsonType": "string", "title": "班级码" },
+    "class_name": { "bsonType": "string", "title": "班级名称" },
+    "school_id": { "bsonType": "string", "title": "学校业务ID" },
+    "school_name": { "bsonType": "string", "title": "学校名称" },
+    "applicant_user_id": { "bsonType": "string", "title": "申请人用户ID" },
+    "applicant_name": { "bsonType": "string", "title": "申请人姓名" },
+    "applicant_mobile": { "bsonType": "string", "title": "申请人手机号" },
+    "requested_role": {
+      "bsonType": "string",
+      "enum": ["teacher", "parent"],
+      "title": "申请身份"
+    },
+    "nickname": { "bsonType": "string", "title": "班级内昵称" },
+    "status": {
+      "bsonType": "string",
+      "enum": ["pending", "approved", "rejected"],
+      "title": "审批状态"
+    },
+    "apply_time": { "bsonType": "timestamp", "title": "申请时间" },
+    "reviewer_user_id": { "bsonType": "string", "title": "审批人用户ID" },
+    "reviewer_name": { "bsonType": "string", "title": "审批人姓名" },
+    "review_remark": { "bsonType": "string", "title": "审批备注" },
+    "review_time": { "bsonType": "timestamp", "title": "审批时间" },
+    "update_time": { "bsonType": "timestamp", "title": "更新时间" }
+  },
+  "indexes": [
+    {
+      "name": "status_apply_time",
+      "key": { "status": 1, "apply_time": -1 }
+    },
+    {
+      "name": "school_status_apply_time",
+      "key": { "school_id": 1, "status": 1, "apply_time": -1 }
+    },
+    {
+      "name": "class_status_apply_time",
+      "key": { "class_id": 1, "status": 1, "apply_time": -1 }
+    },
+    {
+      "name": "applicant_class_status",
+      "key": { "applicant_user_id": 1, "class_id": 1, "status": 1 }
+    }
+  ]
+}

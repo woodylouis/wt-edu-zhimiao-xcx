@@ -18,6 +18,15 @@
                 <view class="form-title">选择班级</view>
                 <view class="form-description">请选择您要进入的班级</view>
             </view>
+
+            <view v-if="pendingApprovalCount > 0" class="approval-hint" @click="openApproval">
+                <view class="approval-hint-icon">✓</view>
+                <view class="approval-hint-copy">
+                    <text class="approval-hint-title">有 {{ pendingApprovalCount }} 条入班申请待审批</text>
+                    <text class="approval-hint-subtitle">点击前往处理</text>
+                </view>
+                <text class="approval-hint-arrow">›</text>
+            </view>
             
             <!-- 角色切换 -->
             <view class="role-tabs">
@@ -185,9 +194,6 @@ export default {
         DopamineLoading
     },
     computed: {
-        userInfo() {
-            return store.userInfo
-        },
         groupedClasses() {
             return {
                 parent: this.groupBySchool(this.classes.parent),
@@ -239,6 +245,7 @@ export default {
                 parent: [],
                 teacher: []
             },
+            pendingApprovalCount: 0,
             userLocation: null,
             schoolDistances: {},
             showEnterConfirm: false,
@@ -255,6 +262,33 @@ export default {
         };
     },
     methods: {
+        handleNavBack() {
+            uni.navigateBack({ delta: 1 })
+        },
+
+        async loadApprovalHint() {
+            const token = uni.getStorageSync('uni_id_token')
+            if (!token) return
+            try {
+                const { result } = await uniCloud.callFunction({
+                    name: 'wtdb-class-approval',
+                    data: {
+                        action: 'summary',
+                        uniIdToken: token
+                    }
+                })
+                this.pendingApprovalCount = result.code === 200 && result.data?.canReview
+                    ? Number(result.data.pending) || 0
+                    : 0
+            } catch (error) {
+                console.error('审批待办加载失败:', error)
+            }
+        },
+
+        openApproval() {
+            uni.navigateTo({ url: '/pages/approval/list' })
+        },
+
         groupBySchool(classList) {
             const schoolMap = new Map()
             
@@ -314,7 +348,10 @@ export default {
             try {
                 const { result } = await uniCloud.callFunction({
                     name: 'wtdb-business-class-detail',
-                    data: { code: this.selectedClass.classCode }
+                    data: {
+                        code: this.selectedClass.classCode,
+                        uniIdToken: uni.getStorageSync('uni_id_token')
+                    }
                 })
                 
                 if (result.code === 200) {
@@ -529,6 +566,10 @@ export default {
         this.currentClassCode = currentClass.code || ''
         this.getUserLocation()
         this.loadClasses()
+    },
+
+    onShow() {
+        this.loadApprovalHint()
     }
 }
 </script>
@@ -564,6 +605,59 @@ export default {
         font-size: 28rpx;
         color: #666;
     }
+}
+
+.approval-hint {
+    display: flex;
+    align-items: center;
+    margin-bottom: 28rpx;
+    padding: 22rpx 24rpx;
+    border: 3rpx solid #302852;
+    border-radius: 24rpx;
+    background: linear-gradient(135deg, #e0f8eb 0%, #fff2bd 100%);
+    box-shadow: 6rpx 7rpx 0 #7dddb5;
+}
+
+.approval-hint-icon {
+    display: flex;
+    width: 58rpx;
+    height: 58rpx;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 3rpx solid #302852;
+    border-radius: 18rpx;
+    background: #7b61ff;
+    color: #fff;
+    font-size: 28rpx;
+    font-weight: 900;
+}
+
+.approval-hint-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    margin-left: 18rpx;
+}
+
+.approval-hint-title {
+    color: #302852;
+    font-size: 26rpx;
+    font-weight: 800;
+}
+
+.approval-hint-subtitle {
+    margin-top: 5rpx;
+    color: #777082;
+    font-size: 20rpx;
+}
+
+.approval-hint-arrow {
+    margin-left: 12rpx;
+    color: #302852;
+    font-size: 43rpx;
+    line-height: 1;
 }
 
 // 角色切换Tab

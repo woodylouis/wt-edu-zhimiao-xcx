@@ -1,13 +1,15 @@
 {
   "bsonType": "object",
-  "required": [
-    "user_id",
-    "class_id",
-    "role"
-  ],
+  "required": ["user_id", "class_id", "role"],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
   "properties": {
     "_id": {
-      "description": "ID"
+      "description": "班级成员关系ID"
     },
     "user_id": {
       "bsonType": "string",
@@ -16,33 +18,39 @@
     },
     "class_id": {
       "bsonType": "string",
-      "foreignKey": "class._id",
+      "foreignKey": "wtdb-business-class-list._id",
       "title": "班级ID"
     },
     "role": {
       "bsonType": "string",
-      "enum": [
-        "teacher",
-        "parent"
-      ],
-      "title": "角色"
+      "enum": ["teacher", "parent"],
+      "title": "班级身份"
+    },
+    "nickname": {
+      "bsonType": "string",
+      "title": "班级内昵称"
     },
     "child_id": {
       "bsonType": "string",
-      "foreignKey": "child._id",
-      "title": "关联的儿童ID（仅家长角色必填）"
+      "foreignKey": "wtdb-business-children._id",
+      "title": "关联儿童ID"
     },
     "relationship": {
       "bsonType": "string",
-      "title": "家庭成员关系",
-      "enum": [
-        "father",
-        "mother",
-        "grandfather",
-        "grandmother",
-        "other"
-      ],
-      "description": "仅家长角色需要，枚举：父亲、母亲、爷爷、奶奶、其他"
+      "enum": ["father", "mother", "grandfather", "grandmother", "other"],
+      "title": "与儿童关系"
+    },
+    "join_time": {
+      "bsonType": "timestamp",
+      "title": "加入时间"
+    },
+    "approved_by": {
+      "bsonType": "string",
+      "title": "审批人用户ID"
+    },
+    "approval_id": {
+      "bsonType": "string",
+      "title": "入班审批记录ID"
     }
   },
   "validator": {
@@ -62,17 +70,27 @@
           },
           {
             "relationship": {
-              "$in": [
-                "father",
-                "mother",
-                "grandfather",
-                "grandmother",
-                "other"
-              ]
+              "$in": ["father", "mother", "grandfather", "grandmother", "other"]
             }
           }
         ]
       }
     ]
-  }
+  },
+  "indexes": [
+    {
+      "name": "user_class",
+      "key": {
+        "user_id": 1,
+        "class_id": 1
+      }
+    },
+    {
+      "name": "class_role",
+      "key": {
+        "class_id": 1,
+        "role": 1
+      }
+    }
+  ]
 }

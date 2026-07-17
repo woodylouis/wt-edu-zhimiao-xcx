@@ -1,0 +1,10 @@
+{
+  "name": "wtdb-class-approval",
+  "version": "1.0.0",
+  "dependencies": {
+    "business-auth": "file:../common/business-auth"
+  },
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

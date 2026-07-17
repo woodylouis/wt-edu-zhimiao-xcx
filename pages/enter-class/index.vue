@@ -59,6 +59,28 @@
         </view>
       </view>
 
+      <view
+        v-if="approvalSummary.canReview"
+        class="approval-entry"
+        hover-class="approval-entry--pressed"
+        :hover-stay-time="80"
+        @click="openApproval"
+      >
+        <view class="approval-entry-icon">
+          <text>✓</text>
+          <view v-if="approvalSummary.pending" class="approval-entry-count">
+            {{ approvalSummary.pending > 99 ? '99+' : approvalSummary.pending }}
+          </view>
+        </view>
+        <view class="approval-entry-copy">
+          <text class="approval-entry-title">入班审批</text>
+          <text class="approval-entry-subtitle">
+            {{ approvalEntrySubtitle }}
+          </text>
+        </view>
+        <view class="approval-entry-arrow">›</view>
+      </view>
+
       <!-- <view class="option" @click="onClickButton(0)">
         <view class="title">{{ $t("enterClassMethod.create") }}</view>
         <image class="image" src="../../static/enter-class/create.svg" />
@@ -156,6 +178,13 @@
       modalBoxMcq,
       DopamineModal,
     },
+    computed: {
+      approvalEntrySubtitle() {
+        return this.approvalSummary.pending
+          ? `有 ${this.approvalSummary.pending} 条老师申请待处理`
+          : "查看老师入班申请与审批记录";
+      },
+    },
     data() {
       return {
         xcxNameMarginTopStyle: "",
@@ -165,6 +194,10 @@
         confirmText: "立即创建",
         isJoinClass: false,
         showLoginPrompt: false,
+        approvalSummary: {
+          canReview: false,
+          pending: 0,
+        },
       };
     },
     onLoad() {
@@ -184,9 +217,34 @@
       };
     },
     onShow() {
-      // this.checkLoginStatus();
+      this.loadApprovalSummary();
     },
     methods: {
+      async loadApprovalSummary() {
+        const token = uni.getStorageSync("uni_id_token");
+        const tokenExpired = uni.getStorageSync("uni_id_token_expired");
+        if (!token || tokenExpired <= Date.now()) {
+          this.approvalSummary = { canReview: false, pending: 0 };
+          return;
+        }
+        try {
+          const { result } = await uniCloud.callFunction({
+            name: "wtdb-class-approval",
+            data: {
+              action: "summary",
+              uniIdToken: token,
+            },
+          });
+          if (result.code === 200) {
+            this.approvalSummary = result.data || { canReview: false, pending: 0 };
+          }
+        } catch (error) {
+          console.error("审批待办加载失败:", error);
+        }
+      },
+      openApproval() {
+        uni.navigateTo({ url: "/pages/approval/list" });
+      },
       onClickEnter() {
         this.checkLoginStatus().then(async (valid) => {
           // 改为 async
@@ -782,6 +840,90 @@
       color: #827a9d;
       font-size: 22rpx;
       line-height: 1.2;
+    }
+
+    .approval-entry {
+      display: flex;
+      align-items: center;
+      min-height: 116rpx;
+      box-sizing: border-box;
+      margin-bottom: 25rpx;
+      padding: 20rpx 24rpx;
+      border: 3rpx solid #2f2854;
+      border-radius: 27rpx;
+      background: linear-gradient(135deg, #d9f7e9 0%, #eefbe5 52%, #fff1ba 100%);
+      box-shadow: 7rpx 8rpx 0 #79dcb4;
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .approval-entry--pressed {
+      transform: translate(4rpx, 5rpx);
+      box-shadow: 3rpx 3rpx 0 #79dcb4;
+    }
+
+    .approval-entry-icon {
+      position: relative;
+      display: flex;
+      width: 70rpx;
+      height: 70rpx;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
+      border: 3rpx solid #2f2854;
+      border-radius: 22rpx;
+      background: #7b61ff;
+      color: #fff;
+      font-size: 34rpx;
+      font-weight: 900;
+      transform: rotate(-4deg);
+    }
+
+    .approval-entry-count {
+      position: absolute;
+      top: -17rpx;
+      right: -18rpx;
+      min-width: 31rpx;
+      padding: 3rpx 8rpx;
+      border: 2rpx solid #2f2854;
+      border-radius: 18rpx;
+      background: #ff706b;
+      color: #fff;
+      font-size: 17rpx;
+      line-height: 1.25;
+      text-align: center;
+      transform: rotate(4deg);
+    }
+
+    .approval-entry-copy {
+      display: flex;
+      min-width: 0;
+      flex: 1;
+      flex-direction: column;
+      margin-left: 21rpx;
+    }
+
+    .approval-entry-title {
+      color: #2f2854;
+      font-size: 29rpx;
+      font-weight: 850;
+    }
+
+    .approval-entry-subtitle {
+      margin-top: 7rpx;
+      overflow: hidden;
+      color: #6e687c;
+      font-size: 21rpx;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .approval-entry-arrow {
+      margin-left: 14rpx;
+      color: #2f2854;
+      font-size: 48rpx;
+      font-weight: 600;
+      line-height: 1;
     }
 
     .option {

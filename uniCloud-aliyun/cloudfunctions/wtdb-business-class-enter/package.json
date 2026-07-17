@@ -1,8 +1,6 @@
 {
   "name": "wtdb-business-class-enter",
-  "dependencies": {
-    "uni-id-common": "file:../../../uni_modules/uni-id-common/uniCloud/cloudfunctions/common/uni-id-common"
-  },
+  "dependencies": {},
   "extensions": {
     "uni-cloud-jql": {}
   }

@@ -191,8 +191,6 @@
         uni.showLoading({ title: "提交中...", mask: true });
         try {
           const cacheData = uni.getStorageSync("classFormData") || {};
-          // 新增用户信息获取
-          const userInfo = uni.getStorageSync("uni-id-pages-userInfo") || {};
 
           const postData = {
             grade: cacheData.grade,
@@ -201,7 +199,7 @@
             teacherName: this.formData.teacherName,
             remark: this.formData.remark,
             section: cacheData.section || "小学",
-            userId: userInfo._id, // 添加用户ID字段
+            uniIdToken: uni.getStorageSync("uni_id_token"),
           };
 
           // 调用云函数
