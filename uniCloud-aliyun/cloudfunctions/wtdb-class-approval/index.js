@@ -15,6 +15,7 @@ const SCHOOL_COLLECTION = 'wtdb-business-school-list'
 const MEMBER_COLLECTION = 'wtdb-business-class-member'
 const USER_COLLECTION = 'uni-id-users'
 const REVIEW_STATUSES = ['pending', 'approved', 'rejected']
+const QUERY_BATCH_SIZE = 100
 
 function sanitizeText(value, maxLength = 100) {
 	return String(value || '').trim().slice(0, maxLength)
@@ -22,6 +23,27 @@ function sanitizeText(value, maxLength = 100) {
 
 function throwBusinessError(code, message) {
 	throw new businessAuth.AuthError(code, message)
+}
+
+async function findRecordByCompactId(source, collectionName, recordId) {
+	if (!recordId) return null
+	try {
+		const directRes = await source.collection(collectionName).doc(recordId).get()
+		if (directRes.data && directRes.data[0]) return directRes.data[0]
+	} catch (lookupError) {
+		console.warn(`按ID查询${collectionName}失败，尝试兼容旧数据:`, lookupError.message)
+	}
+
+	for (let skip = 0; ; skip += QUERY_BATCH_SIZE) {
+		const res = await source.collection(collectionName)
+			.skip(skip)
+			.limit(QUERY_BATCH_SIZE)
+			.get()
+		const rows = res.data || []
+		const record = rows.find(item => businessAuth.compactId(item._id) === recordId)
+		if (record) return record
+		if (rows.length < QUERY_BATCH_SIZE) return null
+	}
 }
 
 async function getUserProfile(uid, source = db) {
@@ -39,19 +61,19 @@ async function getUserProfile(uid, source = db) {
 }
 
 async function getClassInfo({ classId, classCode }, source = db) {
-	let res
+	let classInfo
 	if (classId) {
-		res = await source.collection(CLASS_COLLECTION).doc(classId).get()
+		classInfo = await findRecordByCompactId(source, CLASS_COLLECTION, classId)
 	} else if (classCode) {
-		res = await source.collection(CLASS_COLLECTION)
+		const res = await source.collection(CLASS_COLLECTION)
 			.where({ code: classCode })
 			.limit(1)
 			.get()
+		classInfo = res.data && res.data[0]
 	} else {
 		throwBusinessError(400, '缺少班级信息')
 	}
 
-	const classInfo = res.data && res.data[0]
 	if (!classInfo) throwBusinessError(404, '班级不存在')
 	if (classCode && classInfo.code !== classCode) {
 		throwBusinessError(400, '班级信息不匹配')
@@ -60,6 +82,29 @@ async function getClassInfo({ classId, classCode }, source = db) {
 		throwBusinessError(409, '班级尚未关联学校，无法提交审批')
 	}
 	return classInfo
+}
+
+async function findClassMember(classId, userId, role) {
+	const directRes = await db.collection(MEMBER_COLLECTION)
+		.where({ class_id: classId, user_id: userId, role })
+		.limit(1)
+		.get()
+	if (directRes.data && directRes.data[0]) return directRes.data[0]
+
+	for (let skip = 0; ; skip += QUERY_BATCH_SIZE) {
+		const res = await db.collection(MEMBER_COLLECTION)
+			.where({ role })
+			.skip(skip)
+			.limit(QUERY_BATCH_SIZE)
+			.get()
+		const rows = res.data || []
+		const member = rows.find(item =>
+			businessAuth.compactId(item.class_id) === classId &&
+			businessAuth.compactId(item.user_id) === userId
+		)
+		if (member) return member
+		if (rows.length < QUERY_BATCH_SIZE) return null
+	}
 }
 
 async function getSchoolByBusinessId(schoolId, source = db) {
@@ -324,68 +369,69 @@ async function reviewApproval(event, scope) {
 		reviewerProfile && (reviewerProfile.nickname || reviewerProfile.username),
 		30
 	) || '管理员'
-	const transaction = await db.startTransaction()
+
+	const request = await findRecordByCompactId(db, APPROVAL_COLLECTION, approvalId)
+	if (!request) throwBusinessError(404, '审批记录不存在')
+	if (request.status !== 'pending') {
+		throwBusinessError(409, '该申请已处理，请刷新列表')
+	}
+	if (request.requested_role !== 'teacher') {
+		throwBusinessError(400, '当前仅支持审批老师入班申请')
+	}
+
+	const classInfo = await getClassInfo({
+		classId: businessAuth.compactId(request.class_id),
+		classCode: request.class_code
+	})
+	const school = await getSchoolByBusinessId(classInfo.school_id)
+	businessAuth.assertClassReviewAccess(scope, classInfo, school, '您无权审批该班级的入班申请')
+
+	const classId = businessAuth.compactId(classInfo._id)
+	const applicantUserId = businessAuth.compactId(request.applicant_user_id)
+	let existingMember = null
+	if (decision === 'approve') {
+		existingMember = await findClassMember(classId, applicantUserId, request.requested_role)
+	}
+
+	const now = Date.now()
+	const nextStatus = decision === 'approve' ? 'approved' : 'rejected'
+	let approvalUpdated = false
+	let addedMemberId = ''
+	let memberId = existingMember ? businessAuth.compactId(existingMember._id) : ''
+	const memberAlreadyExists = Boolean(existingMember)
 
 	try {
-		const requestRes = await transaction.collection(APPROVAL_COLLECTION).doc(approvalId).get()
-		const request = requestRes.data && requestRes.data[0]
-		if (!request) throwBusinessError(404, '审批记录不存在')
-		if (request.status !== 'pending') {
+		// 用原始 _id 兼容旧 BSON/ObjectId 数据；状态条件同时防止重复审批。
+		const updateRes = await db.collection(APPROVAL_COLLECTION)
+			.where({ _id: request._id, status: 'pending' })
+			.update({
+				status: nextStatus,
+				reviewer_user_id: scope.uid,
+				reviewer_name: reviewerName,
+				review_remark: remark,
+				review_time: now,
+				update_time: now,
+				school_id: school.school_id,
+				school_name: school.name || school.school_id
+			})
+		if (!updateRes || Number(updateRes.updated) < 1) {
 			throwBusinessError(409, '该申请已处理，请刷新列表')
 		}
-		if (request.requested_role !== 'teacher') {
-			throwBusinessError(400, '当前仅支持审批老师入班申请')
+		approvalUpdated = true
+
+		if (decision === 'approve' && !existingMember) {
+			const addRes = await db.collection(MEMBER_COLLECTION).add({
+				class_id: classId,
+				user_id: applicantUserId,
+				role: request.requested_role,
+				nickname: request.nickname || request.applicant_name,
+				join_time: now,
+				approved_by: scope.uid,
+				approval_id: approvalId
+			})
+			addedMemberId = addRes.id
+			memberId = addRes.id
 		}
-
-		const classInfo = await getClassInfo({
-			classId: businessAuth.compactId(request.class_id),
-			classCode: request.class_code
-		}, transaction)
-		const school = await getSchoolByBusinessId(classInfo.school_id, transaction)
-		businessAuth.assertClassReviewAccess(scope, classInfo, school, '您无权审批该班级的入班申请')
-
-		let memberId = ''
-		let memberAlreadyExists = false
-		if (decision === 'approve') {
-			const memberRes = await transaction.collection(MEMBER_COLLECTION)
-				.where({
-					class_id: businessAuth.compactId(classInfo._id),
-					user_id: request.applicant_user_id
-				})
-				.limit(1)
-				.get()
-			const existingMember = memberRes.data && memberRes.data[0]
-			if (existingMember) {
-				memberId = businessAuth.compactId(existingMember._id)
-				memberAlreadyExists = true
-			} else {
-				const memberData = {
-					class_id: businessAuth.compactId(classInfo._id),
-					user_id: request.applicant_user_id,
-					role: request.requested_role,
-					nickname: request.nickname || request.applicant_name,
-					join_time: Date.now(),
-					approved_by: scope.uid,
-					approval_id: approvalId
-				}
-				const addRes = await transaction.collection(MEMBER_COLLECTION).add(memberData)
-				memberId = addRes.id
-			}
-		}
-
-		const now = Date.now()
-		const nextStatus = decision === 'approve' ? 'approved' : 'rejected'
-		await transaction.collection(APPROVAL_COLLECTION).doc(approvalId).update({
-			status: nextStatus,
-			reviewer_user_id: scope.uid,
-			reviewer_name: reviewerName,
-			review_remark: remark,
-			review_time: now,
-			update_time: now,
-			school_id: school.school_id,
-			school_name: school.name || school.school_id
-		})
-		await transaction.commit()
 
 		return {
 			code: 200,
@@ -398,10 +444,33 @@ async function reviewApproval(event, scope) {
 			}
 		}
 	} catch (error) {
-		try {
-			await transaction.rollback()
-		} catch (rollbackError) {
-			console.error('审批事务回滚失败:', rollbackError)
+		if (addedMemberId) {
+			try {
+				await db.collection(MEMBER_COLLECTION).doc(addedMemberId).remove()
+			} catch (rollbackError) {
+				console.error('审批新增成员回滚失败:', rollbackError)
+			}
+		}
+		if (approvalUpdated) {
+			try {
+				await db.collection(APPROVAL_COLLECTION)
+					.where({
+						_id: request._id,
+						status: nextStatus,
+						reviewer_user_id: scope.uid,
+						review_time: now
+					})
+					.update({
+						status: 'pending',
+						reviewer_user_id: dbCmd.remove(),
+						reviewer_name: dbCmd.remove(),
+						review_remark: dbCmd.remove(),
+						review_time: dbCmd.remove(),
+						update_time: Date.now()
+					})
+			} catch (rollbackError) {
+				console.error('审批状态回滚失败:', rollbackError)
+			}
 		}
 		throw error
 	}

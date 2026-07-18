@@ -313,6 +313,8 @@ export default {
         const result = await this.callTeacherManagement({
           action: 'remove',
           memberId: item.memberId,
+          userId: item.userId,
+          classId: item.classId,
           reason
         })
         if (result.code !== 200) throw new Error(result.msg || '移出失败')

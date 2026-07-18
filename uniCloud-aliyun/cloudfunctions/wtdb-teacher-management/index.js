@@ -288,47 +288,86 @@ async function listTeachers(event, scope) {
 	}
 }
 
+async function findLegacyTeacherMember(source, memberId, userId, classId) {
+	if (userId && classId) {
+		const directRes = await source.collection(MEMBER_COLLECTION)
+			.where({ user_id: userId, class_id: classId, role: 'teacher' })
+			.limit(1)
+			.get()
+		if (directRes.data && directRes.data[0]) return directRes.data[0]
+	}
+	for (let skip = 0; ; skip += QUERY_BATCH_SIZE) {
+		const res = await source.collection(MEMBER_COLLECTION)
+			.where({ role: 'teacher' })
+			.skip(skip)
+			.limit(QUERY_BATCH_SIZE)
+			.get()
+		const rows = res.data || []
+		const member = rows.find(item => {
+			const matchesMemberId = memberId && businessAuth.compactId(item._id) === memberId
+			const matchesAssignment = userId && classId &&
+				businessAuth.compactId(item.user_id) === userId &&
+				businessAuth.compactId(item.class_id) === classId
+			return matchesMemberId || matchesAssignment
+		})
+		if (member) return member
+		if (rows.length < QUERY_BATCH_SIZE) return null
+	}
+}
+
 async function removeTeacher(event, scope) {
 	const memberId = businessAuth.compactId(event.memberId || event.member_id)
+	const requestedUserId = businessAuth.compactId(event.userId || event.user_id)
+	const requestedClassId = businessAuth.compactId(event.classId || event.class_id)
 	const reason = clean(event.reason, 200)
 	if (!memberId) throwBusinessError(400, '缺少老师任教关系ID')
 	if (!reason) throwBusinessError(400, '请填写移出原因')
 
-	const operatorRes = await db.collection(USER_COLLECTION)
-		.where({ _id: scope.uid })
-		.field({ nickname: true, username: true })
-		.limit(1)
-		.get()
-	const operator = operatorRes.data && operatorRes.data[0] || {}
-	const operatorName = clean(operator.nickname || operator.username, 60) || '管理员'
-	const transaction = await db.startTransaction()
-
+	let member = null
 	try {
-		const memberRes = await transaction.collection(MEMBER_COLLECTION).doc(memberId).get()
-		const member = memberRes.data && memberRes.data[0]
-		if (!member) throwBusinessError(404, '老师任教关系不存在，请刷新列表')
-		if (member.role !== 'teacher') throwBusinessError(400, '只能管理老师任教关系')
+		const memberRes = await db.collection(MEMBER_COLLECTION).doc(memberId).get()
+		member = memberRes.data && memberRes.data[0]
+	} catch (lookupError) {
+		console.warn('按任教关系ID查询失败，尝试兼容旧数据:', lookupError.message)
+	}
+	if (!member) {
+		member = await findLegacyTeacherMember(db, memberId, requestedUserId, requestedClassId)
+	}
+	if (!member) throwBusinessError(404, '老师任教关系不存在，请刷新列表')
+	if (member.role !== 'teacher') throwBusinessError(400, '只能管理老师任教关系')
 
-		const classInfo = await getClassById(businessAuth.compactId(member.class_id), transaction)
-		const school = await getSchoolByBusinessId(classInfo.school_id, transaction)
-		businessAuth.assertSchoolAccess(scope, school, '无权移出该学校的老师')
-		if (businessAuth.compactId(classInfo.head_teacher_user_id) === businessAuth.compactId(member.user_id)) {
-			throwBusinessError(409, '该老师是当前班主任，请先在班级管理中更换或取消班主任')
-		}
+	const resolvedMemberId = businessAuth.compactId(member._id)
+	const classInfo = await getClassById(businessAuth.compactId(member.class_id))
+	const school = await getSchoolByBusinessId(classInfo.school_id)
+	businessAuth.assertSchoolAccess(scope, school, '无权移出该学校的老师')
+	if (businessAuth.compactId(classInfo.head_teacher_user_id) === businessAuth.compactId(member.user_id)) {
+		throwBusinessError(409, '该老师是当前班主任，请先在班级管理中更换或取消班主任')
+	}
 
-		const teacherRes = await transaction.collection(USER_COLLECTION)
+	const [operatorRes, teacherRes] = await Promise.all([
+		db.collection(USER_COLLECTION)
+			.where({ _id: scope.uid })
+			.field({ nickname: true, username: true })
+			.limit(1)
+			.get(),
+		db.collection(USER_COLLECTION)
 			.where({ _id: member.user_id })
 			.field({ nickname: true, username: true, mobile: true })
 			.limit(1)
 			.get()
-		const teacher = teacherRes.data && teacherRes.data[0] || {}
-		const now = Date.now()
-		await transaction.collection(ACTION_LOG_COLLECTION).add({
+	])
+	const operator = operatorRes.data && operatorRes.data[0] || {}
+	const teacher = teacherRes.data && teacherRes.data[0] || {}
+	const operatorName = clean(operator.nickname || operator.username, 60) || '管理员'
+	const now = Date.now()
+	let actionLogId = ''
+	try {
+		const logRes = await db.collection(ACTION_LOG_COLLECTION).add({
 			action: 'remove_from_class',
 			teacher_user_id: businessAuth.compactId(member.user_id),
 			teacher_name: clean(member.nickname || teacher.nickname || teacher.username, 60) || '未命名老师',
 			teacher_mobile: teacher.mobile || '',
-			member_id: memberId,
+			member_id: resolvedMemberId,
 			class_id: businessAuth.compactId(classInfo._id),
 			class_name: classDisplayName(classInfo),
 			class_code: classInfo.code || '',
@@ -339,19 +378,24 @@ async function removeTeacher(event, scope) {
 			reason,
 			action_time: now
 		})
-		await transaction.collection(MEMBER_COLLECTION).doc(memberId).remove()
-		await transaction.commit()
+		actionLogId = logRes.id
+		const removeRes = await db.collection(MEMBER_COLLECTION).where({ _id: member._id }).remove()
+		if (!removeRes || Number(removeRes.deleted) < 1) {
+			throwBusinessError(409, '任教关系已被移除，请刷新列表')
+		}
 
 		return {
 			code: 200,
 			msg: '已将老师移出班级',
-			data: { memberId }
+			data: { memberId: resolvedMemberId }
 		}
 	} catch (error) {
-		try {
-			await transaction.rollback()
-		} catch (rollbackError) {
-			console.error('老师管理事务回滚失败:', rollbackError)
+		if (actionLogId) {
+			try {
+				await db.collection(ACTION_LOG_COLLECTION).doc(actionLogId).remove()
+			} catch (rollbackError) {
+				console.error('老师移出日志回滚失败:', rollbackError)
+			}
 		}
 		throw error
 	}
