@@ -245,7 +245,10 @@
     try {
       const res = await uniCloud.callFunction({
         name: "wt-fetch-child-report-history",
-        data: { childId },
+        data: {
+          childId,
+          uniIdToken: uni.getStorageSync("uni_id_token"),
+        },
       });
       if (res.result.data.length > 0) {
         return true;
@@ -355,7 +358,8 @@
       const res = await uniCloud.callFunction({
         name: "wt-fetch-report-history",
         data: {
-          classId
+          classId,
+          uniIdToken: uni.getStorageSync("uni_id_token"),
         },
       });
 
@@ -385,6 +389,9 @@
     try {
       const classRes = await uniCloud.callFunction({
         name: "wtdb-business-class-list",
+        data: {
+          uniIdToken: uni.getStorageSync("uni_id_token"),
+        },
       });
 
       if (classRes.result.code == 200 && classRes.result.data.length == 0) {

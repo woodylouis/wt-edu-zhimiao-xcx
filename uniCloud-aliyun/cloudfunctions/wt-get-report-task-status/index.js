@@ -1,6 +1,6 @@
 'use strict';
 
-const uniID = require('uni-id-common');
+const subjectAuth = require('business-subject-auth');
 const db = uniCloud.database();
 
 const STATUS_TEXT = {
@@ -154,15 +154,7 @@ exports.main = async (event = {}, context) => {
   }
 
   try {
-    const tokenRes = await uniID.createInstance({ context }).checkToken(event.uniIdToken);
-    if (!tokenRes || tokenRes.errCode || !tokenRes.uid) {
-      return {
-        code: 401,
-        msg: '登录状态已失效，请重新登录'
-      };
-    }
-
-    const uid = compactId(tokenRes.uid);
+    const scope = await subjectAuth.getAuthScope(event, context);
     const task = await getTask({ taskId, recordId, childId });
     const resolvedRecordId = getTaskRecordId(task) || recordId;
     const report = await getReportByRecordId(resolvedRecordId);
@@ -174,11 +166,15 @@ exports.main = async (event = {}, context) => {
       };
     }
 
-    if (task && getTaskAssessorId(task) && getTaskAssessorId(task) !== uid) {
-      return {
-        code: 403,
-        msg: '无权查看该报告任务'
-      };
+    const resourceChildId = compactId(task && task.childId || report && report.childId || childId);
+    if (!resourceChildId) {
+      throw new subjectAuth.AuthError(403, '报告任务缺少儿童归属，无法授权访问');
+    }
+    await subjectAuth.assertChildReadAccess(scope, resourceChildId);
+
+    const taskAssessorId = task && getTaskAssessorId(task);
+    if (taskAssessorId && !scope.isGlobalBusinessAdmin && !scope.userIds.includes(taskAssessorId)) {
+      throw new subjectAuth.AuthError(403, '无权查看该报告任务');
     }
 
     const analysisProgress = task
@@ -192,9 +188,6 @@ exports.main = async (event = {}, context) => {
     };
   } catch (error) {
     console.error('获取报告任务状态失败:', error);
-    return {
-      code: 500,
-      msg: `获取报告任务状态失败: ${error.message}`
-    };
+    return subjectAuth.toErrorResponse(error, '获取报告任务状态失败');
   }
 };

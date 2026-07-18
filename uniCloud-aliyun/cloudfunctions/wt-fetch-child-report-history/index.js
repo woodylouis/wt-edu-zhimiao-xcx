@@ -2,6 +2,12 @@
 
 const db = uniCloud.database();
 const dbCmd = db.command;
+let subjectAuth;
+try {
+  subjectAuth = require('business-subject-auth');
+} catch (_) {
+  subjectAuth = require('../common/business-subject-auth');
+}
 
 function normalizeId(value) {
   if (!value) return '';
@@ -40,7 +46,7 @@ async function getAssessmentTitleMap(reports) {
   return titleMap;
 }
 
-exports.main = async (event) => {
+exports.main = async (event = {}, context) => {
   try {
     const {
       childId = '',
@@ -54,6 +60,11 @@ exports.main = async (event) => {
         code: 400,
         msg: '缺少必要参数: childId、reportId、recordId 或 documentId'
       };
+    }
+
+    const scope = await subjectAuth.getAuthScope(event, context);
+    if (childId) {
+      await subjectAuth.assertChildReadAccess(scope, childId);
     }
 
     let res;
@@ -74,7 +85,24 @@ exports.main = async (event) => {
       res = await db.collection('wtdb-business-assess-report')
         .where(query)
         .orderBy('completionTime', 'desc')
+        .limit(100)
         .get();
+    }
+
+    // reportId/recordId/documentId 都是客户端可控参数，查到文档后必须再按儿童做资源级授权。
+    const authorizedChildIds = new Set();
+    for (const report of res.data || []) {
+      const reportChildId = subjectAuth.compactId(report.childId || report.child_id);
+      if (!reportChildId) {
+        throw new subjectAuth.AuthError(403, '报告缺少儿童归属，无法授权访问');
+      }
+      if (childId && reportChildId !== subjectAuth.compactId(childId)) {
+        throw new subjectAuth.AuthError(400, '报告与儿童信息不匹配');
+      }
+      if (!authorizedChildIds.has(reportChildId)) {
+        await subjectAuth.assertChildReadAccess(scope, reportChildId);
+        authorizedChildIds.add(reportChildId);
+      }
     }
 
     let assessmentTitleMap = new Map();
@@ -106,9 +134,6 @@ exports.main = async (event) => {
     };
   } catch (error) {
     console.error('查询失败:', error);
-    return {
-      code: 500,
-      msg: `查询失败: ${error.message}`
-    };
+    return subjectAuth.toErrorResponse(error, '查询报告失败');
   }
 };

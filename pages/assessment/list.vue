@@ -302,8 +302,8 @@ const checkUserLocation = () => {
         
         // 如果班级没有关联学校，直接允许
         if (!schoolId) {
-            console.log('班级未关联学校，跳过位置检查');
-            resolve({ canProceed: true });
+            uni.showToast({ title: '班级未关联学校，请联系管理员', icon: 'none' });
+            resolve({ canProceed: false });
             return;
         }
         
@@ -344,8 +344,7 @@ const checkUserLocation = () => {
                     });
                     resolve({ canProceed: false });
                 } else {
-                    // 其他错误，不阻止用户
-                    resolve({ canProceed: true });
+                    resolve({ canProceed: false });
                 }
             }
         });
@@ -363,7 +362,8 @@ const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
                 latitude,
                 longitude,
                 schoolId,
-                radius: 1500 // 1500米范围
+                radius: 1500, // 1500米范围
+                uniIdToken: uni.getStorageSync('uni_id_token')
             }
         });
         
@@ -386,12 +386,12 @@ const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
             }
         } else {
             console.error('位置检查失败:', checkRes.result.message);
-            resolve({ canProceed: true });
+            resolve({ canProceed: false });
         }
     } catch (e) {
         uni.hideLoading();
         console.error('云函数调用失败:', e);
-        resolve({ canProceed: true });
+        resolve({ canProceed: false });
     }
 };
 

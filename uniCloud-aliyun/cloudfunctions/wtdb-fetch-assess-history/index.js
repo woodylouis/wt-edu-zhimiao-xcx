@@ -1,50 +1,28 @@
-'use strict';
-const uniID = require('uni-id-common')
-const dbName = 'wtdb-business-assess-history';
-const db = uniCloud.database();
-const collection = db.collection(dbName);
+'use strict'
 
-exports.main = async (event, context) => {
-	const uniIdInstance = uniID.createInstance({ context });
-	const { uid } = await uniIdInstance.checkToken(event.uniIdToken);
+const subjectAuth = require('business-subject-auth')
+const db = uniCloud.database()
+const collection = db.collection('wtdb-business-assess-history')
 
+exports.main = async (event = {}, context) => {
 	try {
-		const { recordId, sectionId, assessorId, childId } = event;
-
-		// 参数校验
-		if (!recordId || !sectionId || !assessorId || !childId) {
-			return {
-				code: 400,
-				message: '缺少必要参数: recordId, sectionId, assessorId, childId'
-			};
+		const { recordId, sectionId, childId } = event
+		if (!recordId || !sectionId || !childId) {
+			return { code: 400, message: '缺少必要参数: recordId, sectionId, childId' }
 		}
-
-		// 查询历史记录
-		const res = await collection.where({
-			recordId,
-			sectionId,
-			assessorId: uid,
-			childId
-		}).get();
-
-		if (res.data && res.data.length > 0) {
-			return {
-				code: 200,
-				data: res.data, // 返回第一条匹配的记录
-				message: '报告生成中'
-			};
-		} else {
-			return {
-				code: 200,
-				data: [], // 无记录返回0
-				message: '无历史记录'
-			};
+		const scope = await subjectAuth.getAuthScope(event, context)
+		const record = await subjectAuth.assertOwnedAssessmentRecord(scope, { recordId, childId })
+		if (!(record.modulesStatus || []).some(module => module.sectionId === sectionId)) {
+			return { code: 400, message: '该模块不属于当前评估记录' }
 		}
-	} catch (e) {
-		console.error('查询失败:', e);
+		const res = await collection.where({ recordId, sectionId, assessorId: record.assessorId, childId }).get()
 		return {
-			code: 500,
-			message: '查询失败: ' + e.message
-		};
+			code: 200,
+			data: res.data || [],
+			message: res.data?.length ? '查询成功' : '无历史记录'
+		}
+	} catch (error) {
+		console.error('评估历史查询失败:', error)
+		return subjectAuth.toErrorResponse(error, '评估历史查询失败')
 	}
-};
+}

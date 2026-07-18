@@ -98,7 +98,10 @@ const fetchChildReportHistory = async (childId) => {
         // 1. 查询学生报告数据
         const res = await uniCloud.callFunction({
             name: 'wt-fetch-child-report-history',
-            data: { childId }
+            data: {
+                childId,
+                uniIdToken: uni.getStorageSync('uni_id_token')
+            }
         });
 
         if (res.result.code !== 200 || !res.result.data.length) {

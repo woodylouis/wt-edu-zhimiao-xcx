@@ -7,9 +7,9 @@
     "code"
   ], // 新增必填字段
   "permission": {
-    "read": "auth.uid != null",
-    "create": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission || 'create-class' in auth.permission",
-    "update": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission || 'edit-class' in auth.permission",
+    "read": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission || doc.created_by == auth.uid",
+    "create": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission",
+    "update": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission",
     "delete": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission"
   },
   "properties": {

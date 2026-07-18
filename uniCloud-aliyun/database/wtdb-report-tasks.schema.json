@@ -7,10 +7,10 @@
 		"createTime"
 	],
 	"permission": {
-		"read": "auth.uid != null",
-		"create": "auth.uid != null",
-		"update": "auth.uid != null",
-		"delete": "auth.uid != null"
+		"read": false,
+		"create": false,
+		"update": false,
+		"delete": false
 	},
 	"properties": {
 		"_id": {

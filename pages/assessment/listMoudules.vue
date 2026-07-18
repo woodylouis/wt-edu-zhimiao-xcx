@@ -452,7 +452,11 @@ const fetchAssessmentRecordData = async (childId, assessmentSections) => {
     try {
         const res = await uniCloud.callFunction({
             name: 'wt-upload-assess-record',
-            data: { childId, data }
+            data: {
+                childId,
+                data,
+                uniIdToken: uni.getStorageSync('uni_id_token')
+            }
         });
         if (res.result.code == 200) {
             const temp = res.result.result;

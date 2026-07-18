@@ -1,22 +1,13 @@
 'use strict'
 
-const uniID = require('uni-id-common')
 const deepseek = require('deepseek-client')
+const subjectAuth = require('business-subject-auth')
 const db = uniCloud.database()
 const dbCmd = db.command
 const dbHistory = db.collection('wtdb-business-assess-history')
-const dbRecord = db.collection('wtdb-business-assess-record')
 const dbTask = db.collection('wtdb-report-tasks')
 
 const ACTIVE_STATUSES = ['pending', 'processing', 'waiting_merge', 'pending_save']
-
-async function getCurrentUser(event, context) {
-	const tokenRes = await uniID.createInstance({ context }).checkToken(event.uniIdToken)
-	if (!tokenRes || tokenRes.errCode || !tokenRes.uid) {
-		return null
-	}
-	return tokenRes.uid
-}
 
 async function getActiveTask(recordId, assessorId) {
 	const res = await dbTask.where({
@@ -76,14 +67,6 @@ function buildTaskResponse(result, taskId, status, message) {
 
 exports.main = async (event = {}, context) => {
 	try {
-		const assessorId = await getCurrentUser(event, context)
-		if (!assessorId) {
-			return {
-				code: 401,
-				message: '登录状态已失效，请重新登录'
-			}
-		}
-
 		const { recordId, assessmentId, childId, confirmToGenerateReport = false } = event
 		if (!recordId || !assessmentId || !childId) {
 			return {
@@ -91,23 +74,15 @@ exports.main = async (event = {}, context) => {
 				message: '缺少必要参数: recordId, assessmentId, childId'
 			}
 		}
+		const scope = await subjectAuth.getAuthScope(event, context)
+		const ownedRecord = await subjectAuth.assertOwnedAssessmentRecord(scope, { recordId, assessmentId, childId })
+		const assessorId = ownedRecord.assessorId
 
 		const query = { recordId, assessmentId, assessorId, childId }
-		const [historyRes, recordRes] = await Promise.all([
-			dbHistory.where(query).get(),
-			dbRecord.where(query).limit(1).get()
-		])
-
-		if (!recordRes.data?.length) {
-			return {
-				code: 404,
-				data: null,
-				message: '未找到评估记录'
-			}
-		}
+		const historyRes = await dbHistory.where(query).get()
 
 		const { result, completedSectionList } = buildAssessmentResult(
-			recordRes.data[0].modulesStatus || [],
+			ownedRecord.modulesStatus || [],
 			historyRes.data || [],
 			confirmToGenerateReport
 		)
@@ -165,7 +140,8 @@ exports.main = async (event = {}, context) => {
 			metadata: {
 				provider: 'deepseek-official',
 				model: deepseek.DEFAULT_MODEL,
-				source: 'mini-program-submit'
+				source: 'mini-program-submit',
+				runAuthorizedBy: scope.uid
 			}
 		})
 
@@ -176,9 +152,6 @@ exports.main = async (event = {}, context) => {
 		}
 	} catch (error) {
 		console.error('创建报告任务失败:', error)
-		return {
-			code: 500,
-			message: `创建报告任务失败: ${error.message}`
-		}
+		return subjectAuth.toErrorResponse(error, '创建报告任务失败')
 	}
 }

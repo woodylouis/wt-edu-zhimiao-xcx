@@ -6,7 +6,7 @@
     "birthdate"
   ],
   "permission": {
-    "read": "auth.uid != null",
+    "read": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission || doc.created_by == auth.uid",
     "create": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission",
     "update": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission",
     "delete": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission"
@@ -53,6 +53,10 @@
     "avatar": {
       "bsonType": "string",
       "title": "头像URL"
+    },
+    "created_by": {
+      "bsonType": "string",
+      "title": "创建者ID"
     }
   }
 }

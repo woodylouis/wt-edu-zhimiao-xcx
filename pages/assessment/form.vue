@@ -432,7 +432,10 @@
     try {
       const result = await uniCloud.callFunction({
         name: "wt-fetch-assess-id",
-        data: { childId },
+        data: {
+          childId,
+          uniIdToken: uni.getStorageSync("uni_id_token"),
+        },
       });
       // console.log('上传成功:', result);
     } catch (error) {
@@ -884,6 +887,7 @@
           sectionId,
           assessorId,
           childId,
+          uniIdToken: uni.getStorageSync("uni_id_token"),
         },
       });
 

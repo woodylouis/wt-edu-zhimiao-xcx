@@ -6,23 +6,10 @@ const dbTask = db.collection('wtdb-report-tasks')
 const dbAnalysis = db.collection('wtdb-section-analysis-tasks')
 const dbPending = db.collection('wtdb-report-save-pending')
 const dbLog = db.collection('wtdb-debug-logs')
+const taskAuth = require('report-task-auth')
 
 const MAX_LOOPS = 20
 const MAX_RUN_TIME = 7 * 60 * 1000
-
-function compactId(value) {
-	if (!value) return ''
-	if (typeof value === 'string') return value
-	if (value.$oid) return value.$oid
-	if (value._id) return compactId(value._id)
-	return String(value)
-}
-
-async function hasRunAccess(taskId, runToken) {
-	if (!runToken) return false
-	const res = await dbTask.where({ taskId }).field({ _id: true }).limit(1).get()
-	return compactId(res.data?.[0]?._id) === compactId(runToken)
-}
 
 async function log(tag, data = null, { taskId = '', level = 'info' } = {}) {
 	const now = Date.now()
@@ -176,7 +163,7 @@ exports.main = async (event = {}) => {
 	}
 
 	try {
-		if (!await hasRunAccess(taskId, runToken)) {
+		if (!await taskAuth.hasRunAccess(taskId, runToken)) {
 			return { code: 403, message: '无权执行该报告任务' }
 		}
 
@@ -218,6 +205,12 @@ exports.main = async (event = {}) => {
 		return {
 			code: 500,
 			message: error.message
+		}
+	} finally {
+		if (taskId && runToken) {
+			try {
+				await taskAuth.revokeRunToken(taskId, runToken)
+			} catch (_) { }
 		}
 	}
 }

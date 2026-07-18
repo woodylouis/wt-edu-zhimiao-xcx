@@ -287,7 +287,10 @@
         try {
           const childrenRes = await uniCloud.callFunction({
             name: "wtdb-business-children-edit",
-            data: { submitChildrenData: this.formData },
+            data: {
+              submitChildrenData: this.formData,
+              uniIdToken: uni.getStorageSync("uni_id_token"),
+            },
           });
 
         if (childrenRes.result.code === 200) {

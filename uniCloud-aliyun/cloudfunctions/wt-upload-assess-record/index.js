@@ -1,173 +1,147 @@
-'use strict';
-const uniID = require('uni-id-common')
-const dbName = 'wtdb-business-assess-record';
-const db = uniCloud.database();
-const collection = db.collection(dbName);
+'use strict'
 
-exports.main = async (event, context) => {
-	const uniIdInstance = uniID.createInstance({ context });
+const subjectAuth = require('business-subject-auth')
+const db = uniCloud.database()
+const collection = db.collection('wtdb-business-assess-record')
 
-	// 获取用户UID
-	const { uid } = await uniIdInstance.checkToken(event.uniIdToken);
-
-	console.log('uid:', uid);
-	const assessorId = uid;
-
+exports.main = async (event = {}, context) => {
 	try {
-		// 从前端获取评估记录数据
-		const { childId, data } = event;
-		console.log('childId:', childId);
-		console.log('data:', data);
-
-		if (!childId) {
-			return {
-				code: 400,
-				message: '缺少必要参数: childId或recordData'
-			};
+		const { childId, data = {} } = event
+		if (!childId || !data || typeof data !== 'object' || Array.isArray(data)) {
+			return { code: 400, message: '缺少必要参数: childId 或 data' }
 		}
 
-		// 查询该学生的评估记录
-		const existingRecord = await collection.where({ childId, assessorId: uid }).get();
-		console.log('existingRecord:', existingRecord)
-
-		// 从同一批评估记录中获取最近完成时间。兼容旧数据中的
-		// reportStatus=completed，以及缺少 lastCompletedTime 的记录。
+		const scope = await subjectAuth.getAuthScope(event, context)
+		const { child, classInfo } = await subjectAuth.assertChildAssessmentAccess(scope, childId)
+		const assessment = await getAssessmentDefinition(data)
+		const assessorId = scope.uid
+		const existingRecord = await collection.where({
+			childId: child._id,
+			assessorId,
+			assessmentId: assessment._id
+		}).get()
 		const latestCompletedRecord = (existingRecord.data || [])
 			.filter(record => record.isCompleted === true || record.reportStatus === 'completed')
-			.sort((a, b) => getCompletedTime(b) - getCompletedTime(a))[0];
-		const lastCompletedTime = latestCompletedRecord
-			? getCompletedTime(latestCompletedRecord)
-			: null;
+			.sort((a, b) => getCompletedTime(b) - getCompletedTime(a))[0]
+		const lastCompletedTime = latestCompletedRecord ? getCompletedTime(latestCompletedRecord) : null
+		const unfinishedRecord = (existingRecord.data || []).find(record =>
+			(record.modulesStatus || []).some(module => module.status !== 1)
+		)
 
-		if (existingRecord.data && existingRecord.data.length > 0) {
-			// 在 existingRecord.data 中找到第一条有未完成模块的记录
-			const unfinishedRecord = existingRecord.data.find(record => {
-				const modulesStatus = record.modulesStatus || [];
-				return modulesStatus.some(module => module.status !== 1);
-			});
-
-			if (unfinishedRecord) {
-				// 找到了未完成的评估记录
-				// 计算上次做到的模块信息
-				const modulesStatus = unfinishedRecord.modulesStatus || [];
-				let lastSectionId = unfinishedRecord.lastSectionId || '';
-				let lastSectionIndex = 0;
-
-				// 如果没有保存lastSectionId，找第一个未完成的模块
-				if (!lastSectionId) {
-					for (let i = 0; i < modulesStatus.length; i++) {
-						if (modulesStatus[i].status !== 1) {
-							lastSectionId = modulesStatus[i].sectionId;
-							lastSectionIndex = i;
-							break;
-						}
-					}
-				} else {
-					lastSectionIndex = modulesStatus.findIndex(m => m.sectionId === lastSectionId);
-					if (lastSectionIndex < 0) lastSectionIndex = 0;
-				}
-
-				return {
-					code: 200,
-					result: {
-						...unfinishedRecord,
-						lastSectionId,
-						lastSectionIndex,
-						lastCompletedTime, // 上次完成的评估时间
-					},
-					isContinue: true, // 标记这是继续评估
-					message: `查到${data.childName}的评估记录，请继续完成。`,
-				};
+		if (unfinishedRecord) {
+			const modulesStatus = unfinishedRecord.modulesStatus || []
+			let lastSectionId = unfinishedRecord.lastSectionId || ''
+			let lastSectionIndex = 0
+			if (!lastSectionId) {
+				lastSectionIndex = modulesStatus.findIndex(module => module.status !== 1)
+				if (lastSectionIndex < 0) lastSectionIndex = 0
+				lastSectionId = modulesStatus[lastSectionIndex]?.sectionId || ''
 			} else {
-				// 所有记录的 modulesStatus 都是完成的
-				console.log('所有记录都已完成，准备创建新的评估记录');
-				const newRecordRes = await createNewAssessmentRecord(childId, data, uid);
-
-				if (newRecordRes && newRecordRes.code === 200) {
-					return {
-						code: 200,
-						result: {
-							...newRecordRes.result,
-							lastCompletedTime, // 上次完成的评估时间
-						},
-						isContinue: false, // 这是新的评估
-						message: `所有模块已完成，已为${data.childName}创建新的评估记录。`,
-					};
-				} else {
-					return {
-						code: 500,
-						message: `为${data.childName}创建新的评估记录失败。`,
-					};
-				}
+				lastSectionIndex = modulesStatus.findIndex(module => module.sectionId === lastSectionId)
+				if (lastSectionIndex < 0) lastSectionIndex = 0
 			}
-		} else {
-			// 没有任何记录
-			const newRecordRes = await createNewAssessmentRecord(childId, data, uid);
-			if (newRecordRes && newRecordRes.code === 200) {
-				return {
-					code: 200,
-					result: {
-						...newRecordRes.result,
-						lastCompletedTime: null,
-					},
-					isContinue: false, // 第一次评估
-					isFirstTime: true,
-					message: `这是${data.childName}的第一次评估。`,
-				};
-			} else {
-				return {
-					code: 500,
-					message: `为${data.childName}创建新的评估记录失败。`,
-				};
+			return {
+				code: 200,
+				result: { ...unfinishedRecord, lastSectionId, lastSectionIndex, lastCompletedTime },
+				isContinue: true,
+				message: `查到${child.name}的评估记录，请继续完成。`
 			}
 		}
 
-	} catch (e) {
-		console.error('操作失败:', e);
+		const newRecord = await createNewAssessmentRecord({ child, classInfo, assessment, data, assessorId })
 		return {
-			code: 500,
-			message: '操作失败: ' + e.message
-		};
+			code: 200,
+			result: { ...newRecord, lastCompletedTime },
+			isContinue: false,
+			isFirstTime: !existingRecord.data?.length,
+			message: existingRecord.data?.length
+				? `所有模块已完成，已为${child.name}创建新的评估记录。`
+				: `这是${child.name}的第一次评估。`
+		}
+	} catch (error) {
+		console.error('评估记录处理失败:', error)
+		return subjectAuth.toErrorResponse(error, '评估记录处理失败')
 	}
-};
+}
 
-const getCompletedTime = (record = {}) => {
-	return record.lastCompletedTime || record.lastSaveTime || record.updateTime || record.createTime || 0;
-};
+function getCompletedTime(record = {}) {
+	return record.lastCompletedTime || record.lastSaveTime || record.updateTime || record.createTime || 0
+}
 
-const createNewAssessmentRecord = async (childId, data, assessorId) => {
-	const recordId = `ablls_${childId}_${Date.now()}`;
-	const recordIdSuffix = `${childId}_${Date.now()}`;
-	const createTime = Date.now();
-
-	if (data && data.modulesStatus) {
-		data.modulesStatus.forEach(item => {
-			item.sectionRecordId = `${item.sectionId}_${recordIdSuffix}`;
-			item.completedSubSections = 0; // 初始化已完成子模块数
-			item.lastSubSectionIndex = 0; // 初始化上次做到的子模块索引
-		});
+async function getAssessmentDefinition(data) {
+	const assessmentId = subjectAuth.compactId(data.assessmentId || data.assessment_id)
+	if (!assessmentId) throw new subjectAuth.AuthError(400, '缺少评估量表ID')
+	const [assessmentRes, sectionRes] = await Promise.all([
+		db.collection('wtdb-business-assessment-list').doc(assessmentId).get(),
+		db.collection('wtdb-business-assess-section').where({ assessment_id: assessmentId }).get()
+	])
+	const assessment = assessmentRes.data?.[0]
+	if (!assessment || assessment.is_active === false) {
+		throw new subjectAuth.AuthError(400, '评估量表不存在或已停用')
 	}
+	const sections = new Map((sectionRes.data || []).map(section => [section.section_id, section]))
+	if (!sections.size) throw new subjectAuth.AuthError(400, '评估量表未配置模块')
+	return { ...assessment, _id: assessmentId, sections }
+}
+
+function sanitizeModulesStatus(modulesStatus, assessment) {
+	if (!Array.isArray(modulesStatus) || !modulesStatus.length || modulesStatus.length > 100) {
+		throw new subjectAuth.AuthError(400, '评估模块数据无效')
+	}
+	const recordSuffix = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+	const seenSectionIds = new Set()
+	return modulesStatus.map((module, index) => {
+		const sectionId = String(module?.sectionId || '').trim()
+		if (!sectionId) throw new subjectAuth.AuthError(400, `第 ${index + 1} 个评估模块缺少 sectionId`)
+		if (seenSectionIds.has(sectionId)) throw new subjectAuth.AuthError(400, `评估模块 ${sectionId} 重复`)
+		seenSectionIds.add(sectionId)
+		const section = assessment.sections.get(sectionId)
+		if (!section) throw new subjectAuth.AuthError(400, `评估模块 ${sectionId} 不属于当前量表`)
+		return {
+			sectionId,
+			sectionName: String(section.section || section.name || module.sectionName || '').slice(0, 100),
+			sectionRecordId: `${sectionId}_${recordSuffix}`,
+			status: 0,
+			totalSubSections: Math.max(0, Number(module.totalSubSections) || 0),
+			completedSubSections: 0,
+			lastSubSectionIndex: 0,
+			hasStarted: false
+		}
+	})
+}
+
+async function createNewAssessmentRecord({ child, classInfo, assessment, data, assessorId }) {
+	const now = Date.now()
+	const recordIdSuffix = `${child._id}_${now}`
+	const recordId = `ablls_${recordIdSuffix}`
+	const modulesStatus = sanitizeModulesStatus(data.modulesStatus, assessment)
+	const safeData = { ...data }
+	for (const key of [
+		'_id', 'recordId', 'recordIdSuffix', 'assessmentId', 'assessment_id', 'assessmentTitle',
+		'assessorId', 'childId', 'child_id', 'childName',
+		'classId', 'class_id', 'className', 'modulesStatus', 'createTime', 'updateTime',
+		'lastSaveTime', 'lastCompletedTime', 'lastSectionId', 'lastSectionIndex',
+		'isCompleted', 'reportStatus'
+	]) delete safeData[key]
 
 	const params = {
-		...data,
+		...safeData,
 		recordId,
 		recordIdSuffix,
+		assessmentId: assessment._id,
+		assessmentTitle: assessment.title || '',
 		assessorId,
-		createTime,
-		lastSaveTime: createTime,
-		lastSectionId: data.modulesStatus?.[0]?.sectionId || '', // 默认从第一个模块开始
+		childId: child._id,
+		childName: child.name,
+		classId: classInfo._id,
+		className: classInfo.nickname || '',
+		modulesStatus,
+		createTime: now,
+		lastSaveTime: now,
+		lastSectionId: modulesStatus[0]?.sectionId || '',
 		lastSectionIndex: 0,
-		isCompleted: false,
-	};
-
-	const addRes = await collection.add(params);
-
-	return {
-		code: 200,
-		message: `创建${data.childName}的新的评估记录成功`,
-		result: {
-			...params,
-			_id: addRes.id,
-		}
-	};
-};
+		isCompleted: false
+	}
+	const addRes = await collection.add(params)
+	return { ...params, _id: addRes.id }
+}

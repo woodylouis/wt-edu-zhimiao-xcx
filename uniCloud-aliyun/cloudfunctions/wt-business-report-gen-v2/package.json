@@ -2,7 +2,8 @@
   "name": "wt-assess-report-gen",
   "dependencies": {
     "uni-id-common": "file:../../../uni_modules/uni-id-common/uniCloud/cloudfunctions/common/uni-id-common",
-    "deepseek-client": "file:../common/deepseek-client"
+    "deepseek-client": "file:../common/deepseek-client",
+    "business-subject-auth": "file:../common/business-subject-auth"
   },
   "cloudfunction-config": {
     "concurrency": 1,

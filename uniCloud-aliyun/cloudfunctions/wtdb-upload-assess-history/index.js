@@ -1,161 +1,105 @@
-'use strict';
-const uniID = require('uni-id-common')
-const dbName = 'wtdb-business-assess-history';
-const dbRecordName = 'wtdb-business-assess-record';
-const db = uniCloud.database();
-const collection = db.collection(dbName);
-const recordCollection = db.collection(dbRecordName);
+'use strict'
 
-exports.main = async (event, context) => {
-	const uniIdInstance = uniID.createInstance({ context });
-	const { uid } = await uniIdInstance.checkToken(event.uniIdToken);
+const subjectAuth = require('business-subject-auth')
+const db = uniCloud.database()
+const collection = db.collection('wtdb-business-assess-history')
+const recordCollection = db.collection('wtdb-business-assess-record')
 
+exports.main = async (event = {}, context) => {
 	try {
-		const {
-			recordId,
-			assessmentId,
-			assessorId,
-			childId,
-			sectionId,
-			data,
-			// 新增子模块信息
-			currentSubSectionId,
-			currentSubSectionName,
-			currentSubSectionIndex
-		} = event;
-
-		// 检查必填字段
+		const { recordId, assessmentId, childId, sectionId, data = {} } = event
 		if (!recordId || !assessmentId || !childId || !sectionId) {
-			return { code: 400, message: '缺少必要参数' };
+			return { code: 400, message: '缺少必要参数' }
+		}
+		if (!data || typeof data !== 'object' || Array.isArray(data)) {
+			return { code: 400, message: '评估数据格式无效' }
 		}
 
-		// 查询是否存在记录
-		const query = {
-			recordId,
-			assessmentId,
-			assessorId: uid,
-			childId,
-			sectionId
-		};
+		const scope = await subjectAuth.getAuthScope(event, context)
+		const record = await subjectAuth.assertOwnedAssessmentRecord(scope, { recordId, childId, assessmentId })
+		if (!(record.modulesStatus || []).some(module => module.sectionId === sectionId)) {
+			return { code: 400, message: '该模块不属于当前评估记录' }
+		}
 
-		const existingRecord = await collection.where(query).count();
-		const now = Date.now();
-
+		const assessorId = record.assessorId
+		const query = { recordId, assessmentId, assessorId, childId, sectionId }
+		const safeData = sanitizeHistoryData(data)
+		const existingRecord = await collection.where(query).count()
+		const now = Date.now()
+		let result
 		if (existingRecord.total > 0) {
-			// 更新记录
-			const updateRes = await collection.where(query).update({
-				...data,
-				updateTime: now
-			});
-
-			// 同时更新 record 表的 lastSaveTime 和 lastSectionId
-			await updateRecordSaveTime(recordId, uid, sectionId, data, now, currentSubSectionId, currentSubSectionName, currentSubSectionIndex);
-
-			return {
-				code: 200,
-				message: '记录更新成功',
-				data: updateRes
-			};
+			result = await collection.where(query).update({ ...safeData, updateTime: now })
 		} else {
-			// 新增记录
-			const addRes = await collection.add({
-				...data,
-				...query,
-				createTime: now,
-				updateTime: now
-			});
-
-			// 同时更新 record 表的 lastSaveTime 和 lastSectionId
-			await updateRecordSaveTime(recordId, uid, sectionId, data, now, currentSubSectionId, currentSubSectionName, currentSubSectionIndex);
-
-			return {
-				code: 200,
-				message: '记录创建成功',
-				data: addRes
-			};
+			result = await collection.add({ ...safeData, ...query, createTime: now, updateTime: now })
 		}
-	} catch (e) {
-		console.error('操作失败:', e);
+
+		await updateRecordSaveTime({
+			record,
+			sectionId,
+			data: safeData,
+			now,
+			currentSubSectionId: event.currentSubSectionId,
+			currentSubSectionName: event.currentSubSectionName,
+			currentSubSectionIndex: event.currentSubSectionIndex
+		})
+		return { code: 200, message: existingRecord.total > 0 ? '记录更新成功' : '记录创建成功', data: result }
+	} catch (error) {
+		console.error('评估历史保存失败:', error)
+		return subjectAuth.toErrorResponse(error, '评估历史保存失败')
+	}
+}
+
+function sanitizeHistoryData(data) {
+	const safeData = { ...data }
+	for (const key of [
+		'_id', 'recordId', 'assessmentId', 'assessorId', 'childId', 'sectionId',
+		'createTime', 'updateTime', 'taskId', 'reportId'
+	]) delete safeData[key]
+	if (safeData.assessmentRecords && !Array.isArray(safeData.assessmentRecords)) {
+		throw new subjectAuth.AuthError(400, 'assessmentRecords 格式无效')
+	}
+	if (safeData.assessmentRecords?.length > 500) {
+		throw new subjectAuth.AuthError(400, '单次保存的评估子项过多')
+	}
+	return safeData
+}
+
+async function updateRecordSaveTime({ record, sectionId, data, now, currentSubSectionId, currentSubSectionName, currentSubSectionIndex }) {
+	const modulesStatus = record.modulesStatus || []
+	const assessmentRecords = data.assessmentRecords || []
+	const completedSubSections = assessmentRecords.filter(item => item.allQuestionsCompleted).length
+	const currentModule = modulesStatus.find(module => module.sectionId === sectionId)
+	const totalSubSections = assessmentRecords.length || currentModule?.totalSubSections || 0
+	const isModuleComplete = totalSubSections > 0 && completedSubSections >= totalSubSections
+	const subSectionsProgress = assessmentRecords.map(item => {
+		const questions = item.questions || []
 		return {
-			code: 500,
-			message: '操作失败: ' + e.message
-		};
-	}
-};
-
-// 更新 record 表的保存时间和进度信息
-const updateRecordSaveTime = async (recordId, assessorId, sectionId, data, now, currentSubSectionId, currentSubSectionName, currentSubSectionIndex) => {
-	try {
-		// 查询当前 record
-		const recordRes = await recordCollection.where({ recordId, assessorId }).get();
-		if (!recordRes.data || recordRes.data.length === 0) {
-			console.log('Record not found:', recordId);
-			return;
+			subSectionId: item.alphabet,
+			subSectionName: item.sectioName || item.sectionName,
+			completedQuestions: questions.filter(question => question.options?.some(option => option.selected)).length,
+			totalQuestions: item.totalQuestions || questions.length,
+			isCompleted: item.allQuestionsCompleted || false
 		}
+	})
 
-		const record = recordRes.data[0];
-		const modulesStatus = record.modulesStatus || [];
-
-		// 计算当前 section 的完成情况
-		const assessmentRecords = data.assessmentRecords || [];
-		const completedSubSections = assessmentRecords.filter(r => r.allQuestionsCompleted).length;
-		const totalSubSections = assessmentRecords.length || modulesStatus.find(m => m.sectionId === sectionId)?.totalSubSections || 0;
-		const isModuleComplete = totalSubSections > 0 && completedSubSections >= totalSubSections;
-
-		// 构建每个子模块的进度信息
-		const subSectionsProgress = assessmentRecords.map(record => {
-			// 注意字段名称：questions 而不是 answers，alphabet 而不是 abllsSectionAlphabet
-			const questions = record.questions || [];
-			const completedQuestions = questions.filter(q => q.options && q.options.some(opt => opt.selected)).length;
-			const totalQuestions = record.totalQuestions || questions.length;
-			return {
-				subSectionId: record.alphabet, // 字段名是 alphabet
-				subSectionName: record.sectioName || record.sectionName, // 注意拼写错误 sectioName
-				completedQuestions: completedQuestions,
-				totalQuestions: totalQuestions,
-				isCompleted: record.allQuestionsCompleted || false
-			};
-		});
-
-		// 更新 modulesStatus 中对应 section 的状态
-		const updatedModulesStatus = modulesStatus.map(m => {
-			if (m.sectionId === sectionId) {
-				return {
-					...m,
-					status: isModuleComplete ? 1 : 0,
-					completedSubSections: completedSubSections,
-					totalSubSections: totalSubSections > 0 ? totalSubSections : m.totalSubSections,
-					hasStarted: true,
-					// 记录最后访问的子模块信息
-					lastSubSectionId: currentSubSectionId || m.lastSubSectionId,
-					lastSubSectionName: currentSubSectionName || m.lastSubSectionName,
-					lastSubSectionIndex: currentSubSectionIndex !== undefined ? currentSubSectionIndex : m.lastSubSectionIndex,
-					// 保存每个子模块的进度
-					subSectionsProgress: subSectionsProgress
-				};
-			}
-			return m;
-		});
-
-		// 检查是否所有模块都完成
-		const allModulesCompleted = updatedModulesStatus.every(m => m.status === 1);
-
-		// 更新数据
-		const updateData = {
-			lastSaveTime: now,
-			lastSectionId: sectionId,
-			modulesStatus: updatedModulesStatus,
-			isCompleted: allModulesCompleted
-		};
-
-		// 如果所有模块都完成，记录完成时间
-		if (allModulesCompleted && !record.lastCompletedTime) {
-			updateData.lastCompletedTime = now;
-		}
-
-		await recordCollection.where({ recordId, assessorId }).update(updateData);
-		console.log('Record updated with lastSaveTime:', now, 'sectionId:', sectionId, 'subSection:', currentSubSectionName);
-	} catch (e) {
-		console.error('updateRecordSaveTime failed:', e);
+	const updatedModulesStatus = modulesStatus.map(module => module.sectionId === sectionId ? {
+		...module,
+		status: isModuleComplete ? 1 : 0,
+		completedSubSections,
+		totalSubSections: totalSubSections > 0 ? totalSubSections : module.totalSubSections,
+		hasStarted: true,
+		lastSubSectionId: currentSubSectionId || module.lastSubSectionId,
+		lastSubSectionName: currentSubSectionName || module.lastSubSectionName,
+		lastSubSectionIndex: currentSubSectionIndex !== undefined ? currentSubSectionIndex : module.lastSubSectionIndex,
+		subSectionsProgress
+	} : module)
+	const allModulesCompleted = updatedModulesStatus.length > 0 && updatedModulesStatus.every(module => module.status === 1)
+	const updateData = {
+		lastSaveTime: now,
+		lastSectionId: sectionId,
+		modulesStatus: updatedModulesStatus,
+		isCompleted: allModulesCompleted
 	}
-};
+	if (allModulesCompleted && !record.lastCompletedTime) updateData.lastCompletedTime = now
+	await recordCollection.doc(record._id).update(updateData)
+}

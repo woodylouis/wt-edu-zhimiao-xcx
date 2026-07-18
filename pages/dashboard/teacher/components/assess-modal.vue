@@ -207,8 +207,8 @@ const checkLocationPermission = () => {
         
         // 如果班级没有关联学校，直接允许
         if (!schoolId) {
-            console.log('班级未关联学校，跳过位置检查')
-            resolve({ canProceed: true })
+            uni.showToast({ title: '班级未关联学校，请联系管理员', icon: 'none' })
+            resolve({ canProceed: false })
             return
         }
         
@@ -292,7 +292,8 @@ const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
                 latitude,
                 longitude,
                 schoolId,
-                radius: TOTAL_RADIUS // 考虑模糊定位误差后的总范围
+                radius: TOTAL_RADIUS, // 考虑模糊定位误差后的总范围
+                uniIdToken: uni.getStorageSync('uni_id_token')
             }
         })
         
@@ -313,13 +314,11 @@ const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
             }
         } else {
             console.error('位置检查失败:', checkRes.result.message)
-            // 位置检查失败时，允许继续（容错处理）
-            resolve({ canProceed: true })
+            resolve({ canProceed: false })
         }
     } catch (e) {
         console.error('云函数调用失败:', e)
-        // 云函数调用失败时，允许继续（容错处理）
-        resolve({ canProceed: true })
+        resolve({ canProceed: false })
     } finally {
         locationLoading.value = false
     }

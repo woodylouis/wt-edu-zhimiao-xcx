@@ -1,26 +1,66 @@
-'use strict';
-const db = uniCloud.database();
-exports.main = async (event, context) => {
-	try {
-		// 插入儿童数据到集合
-		const collection = db.collection('wtdb-business-children');
-		const result = await collection.add(event.submitChildrenData);
+'use strict'
 
-		// 返回包含新儿童_id的响应
+let subjectAuth
+try {
+	subjectAuth = require('business-subject-auth')
+} catch (_) {
+	subjectAuth = require('../common/business-subject-auth')
+}
+
+const db = uniCloud.database()
+
+function clean(value, maxLength) {
+	return String(value == null ? '' : value).trim().slice(0, maxLength)
+}
+
+function buildAge(birthdate) {
+	const birth = new Date(birthdate)
+	const today = new Date()
+	let years = today.getFullYear() - birth.getFullYear()
+	let months = today.getMonth() - birth.getMonth()
+	if (today.getDate() < birth.getDate()) months--
+	if (months < 0) {
+		years--
+		months += 12
+	}
+	return { age: `${years}岁${months}个月`, ageInt: years }
+}
+
+exports.main = async (event = {}, context) => {
+	try {
+		const scope = await subjectAuth.getAuthScope(event, context)
+		const input = event.submitChildrenData || {}
+		const classId = subjectAuth.compactId(input.class_id || event.classId)
+		await subjectAuth.assertClassTeacherAccess(scope, classId)
+
+		const name = clean(input.name, 40)
+		const birthdate = Number(input.birthdate)
+		if (!name) throw new subjectAuth.AuthError(400, '请填写儿童姓名')
+		if (!Number.isFinite(birthdate) || birthdate <= 0 || birthdate > Date.now()) {
+			throw new subjectAuth.AuthError(400, '出生日期不正确')
+		}
+
+		const calculatedAge = buildAge(birthdate)
+		const childData = {
+			name,
+			class_id: classId,
+			birthdate,
+			gender: clean(input.gender || 'unknown', 20),
+			avatar: clean(input.avatar, 500),
+			age: calculatedAge.age,
+			ageInt: calculatedAge.ageInt,
+			created_by: scope.uid,
+			create_time: Date.now(),
+			update_time: Date.now()
+		}
+		const result = await db.collection('wtdb-business-children').add(childData)
 		return {
 			code: 200,
 			message: '儿童数据创建成功',
-			data: {
-				child_id: result.id // 返回新创建的儿童记录ID
-			}
-		};
-	} catch (e) {
-		// 错误处理
-		console.error('云函数执行失败:', e);
-		return {
-			code: 500,
-			message: '服务器内部错误',
-			data: null
-		};
+			data: { child_id: result.id }
+		}
+	} catch (error) {
+		console.error('创建儿童失败:', error)
+		return subjectAuth.toErrorResponse(error, '创建儿童失败')
 	}
-};
+}

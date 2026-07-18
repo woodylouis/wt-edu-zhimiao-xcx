@@ -77,7 +77,8 @@ const loadStudents = async () => {
             name: 'wtdb-business-children-list',
             data: {
                 classId: classId.value,
-                keyword: searchKeyword.value
+                keyword: searchKeyword.value,
+                uniIdToken: uni.getStorageSync('uni_id_token')
             }
         })
 

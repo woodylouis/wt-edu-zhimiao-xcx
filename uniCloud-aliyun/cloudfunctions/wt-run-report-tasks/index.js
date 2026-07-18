@@ -1,6 +1,7 @@
 'use strict'
 
 const uniID = require('uni-id-common')
+const taskAuth = require('report-task-auth')
 const db = uniCloud.database()
 const dbTask = db.collection('wtdb-report-tasks')
 
@@ -12,9 +13,10 @@ function compactId(value) {
 	return String(value)
 }
 
-function hasGlobalBusinessRole(roles) {
+function hasGlobalBusinessRole(roles, permissions) {
 	const roleList = Array.isArray(roles) ? roles : [roles]
-	return roleList.includes('admin') || roleList.includes('diana-admin')
+	const permissionList = Array.isArray(permissions) ? permissions : [permissions]
+	return roleList.includes('admin') || roleList.includes('diana-admin') || permissionList.includes('business-all')
 }
 
 function getTaskAssessorId(task) {
@@ -29,7 +31,7 @@ function canRunTask(task, tokenRes) {
 	const runAuthorizedBy = compactId(task.metadata?.runAuthorizedBy)
 	return getTaskAssessorId(task) === uid ||
 		runAuthorizedBy === uid ||
-		hasGlobalBusinessRole(tokenRes.role)
+		hasGlobalBusinessRole(tokenRes.role, tokenRes.permission)
 }
 
 async function getTask(taskId) {
@@ -100,11 +102,12 @@ exports.main = async (event = {}, context) => {
 			}
 		}
 
+		const runToken = await taskAuth.issueRunToken(taskId, compactId(tokenRes.uid))
 		const invocation = await uniCloud.callFunction({
 			name: 'wt-report-task-orchestrator',
 			data: {
 				taskId,
-				runToken: compactId(task._id),
+				runToken,
 				source: event.source || 'on-demand',
 				triggeredBy: compactId(tokenRes.uid)
 			}

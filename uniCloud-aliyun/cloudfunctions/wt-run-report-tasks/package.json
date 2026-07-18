@@ -1,7 +1,8 @@
 {
   "name": "wt-run-report-tasks",
   "dependencies": {
-    "uni-id-common": "file:../../../uni_modules/uni-id-common/uniCloud/cloudfunctions/common/uni-id-common"
+    "uni-id-common": "file:../../../uni_modules/uni-id-common/uniCloud/cloudfunctions/common/uni-id-common",
+    "report-task-auth": "file:../common/report-task-auth"
   },
   "cloudfunction-config": {
     "concurrency": 10,
