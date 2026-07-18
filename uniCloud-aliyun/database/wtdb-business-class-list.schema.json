@@ -60,6 +60,12 @@
       "bsonType": "string",
       "title": "创建者老师名字"
     },
+    "head_teacher_user_id": {
+      "bsonType": "string",
+      "foreignKey": "uni-id-users._id",
+      "title": "班主任用户ID",
+      "description": "班主任的 uni-id 用户ID，可暂不指定"
+    },
     "created_by": {
       "bsonType": "string",
       "foreignKey": "uni-id-users._id",
@@ -78,6 +84,12 @@
       "name": "code_1", // 唯一索引（已通过unique:true自动创建）
       "key": {
         "code": 1
+      }
+    },
+    {
+      "name": "head_teacher_user_id_1",
+      "key": {
+        "head_teacher_user_id": 1
       }
     }
   ]

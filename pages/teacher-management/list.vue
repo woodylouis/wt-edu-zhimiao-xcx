@@ -85,6 +85,7 @@
             <view class="teacher-copy">
               <view class="teacher-name-row">
                 <text class="teacher-name">{{ item.teacherName }}</text>
+                <view v-if="item.isHeadTeacher" class="head-teacher-chip">班主任</view>
                 <view class="source-chip" :class="'source-chip--' + item.joinSource">
                   {{ item.joinSource === 'approval' ? '审批加入' : '历史成员' }}
                 </view>
@@ -113,10 +114,10 @@
             <button
               class="remove-button"
               :loading="processingId === item.memberId"
-              :disabled="processingId === item.memberId"
+              :disabled="processingId === item.memberId || item.isHeadTeacher"
               @click="confirmRemove(item)"
             >
-              移出班级
+              {{ item.isHeadTeacher ? '需先更换班主任' : '移出班级' }}
             </button>
           </view>
         </view>
@@ -606,6 +607,17 @@ export default {
   font-weight: 850;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.head-teacher-chip {
+  flex-shrink: 0;
+  margin-left: 10rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 10rpx;
+  background: #fff0bd;
+  color: #8a5a00;
+  font-size: 18rpx;
+  font-weight: 750;
 }
 
 .source-chip {

@@ -22,6 +22,7 @@ try {
 }
 
 const db = uniCloud.database()
+const CLASS_COLLECTION = 'wtdb-business-class-list'
 
 class AuthError extends Error {
 	constructor(code, message) {
@@ -89,6 +90,15 @@ async function getDirectedSchools(userIds) {
 	return res.data || []
 }
 
+async function getHeadTeacherClasses(userIds) {
+	if (!userIds.length) return []
+	const res = await db.collection(CLASS_COLLECTION)
+		.where({ head_teacher_user_id: db.command.in(userIds) })
+		.field({ _id: true, school_id: true, head_teacher_user_id: true })
+		.get()
+	return res.data || []
+}
+
 async function getBusinessAuthScope(event, context) {
 	const token = event && event.uniIdToken
 	if (!token) throw new AuthError(401, '请先登录')
@@ -109,7 +119,12 @@ async function getBusinessAuthScope(event, context) {
 	const isBusinessAdmin = hasRole(roles, 'diana-admin')
 	const isGlobalBusinessAdmin = hasGlobalBusinessAccess(roles)
 	const userIds = isGlobalBusinessAdmin ? [uid] : await getLinkedUserIds(uid)
-	const schools = isGlobalBusinessAdmin ? [] : await getDirectedSchools(userIds)
+	const [schools, headTeacherClasses] = isGlobalBusinessAdmin
+		? [[], []]
+		: await Promise.all([
+			getDirectedSchools(userIds),
+			getHeadTeacherClasses(userIds)
+		])
 
 	return {
 		uid,
@@ -120,7 +135,11 @@ async function getBusinessAuthScope(event, context) {
 		isGlobalBusinessAdmin,
 		userIds,
 		schools,
-		schoolIds: schools.map(item => item.school_id).filter(Boolean)
+		schoolIds: schools.map(item => item.school_id).filter(Boolean),
+		headTeacherClasses,
+		headTeacherClassIds: headTeacherClasses
+			.map(item => compactId(item._id))
+			.filter(Boolean)
 	}
 }
 
@@ -133,6 +152,18 @@ function canAccessSchool(scope, school) {
 
 function assertSchoolAccess(scope, school, message = '无权管理该学校的业务') {
 	if (!canAccessSchool(scope, school)) throw new AuthError(403, message)
+}
+
+function canReviewClass(scope, classInfo, school) {
+	if (!scope || !classInfo) return false
+	if (scope.isGlobalBusinessAdmin) return true
+	const classId = compactId(classInfo._id)
+	if (classId && normalizeArray(scope.headTeacherClassIds).includes(classId)) return true
+	return canAccessSchool(scope, school)
+}
+
+function assertClassReviewAccess(scope, classInfo, school, message = '无权审批该班级的入班申请') {
+	if (!canReviewClass(scope, classInfo, school)) throw new AuthError(403, message)
 }
 
 function toErrorResponse(error, fallbackMessage = '请求处理失败') {
@@ -154,5 +185,7 @@ module.exports = {
 	getBusinessAuthScope,
 	canAccessSchool,
 	assertSchoolAccess,
+	canReviewClass,
+	assertClassReviewAccess,
 	toErrorResponse
 }

@@ -81,9 +81,30 @@ async function getClassIdsBySchoolIds(schoolIds) {
 	return (classRes.data || []).map(item => businessAuth.compactId(item._id)).filter(Boolean)
 }
 
+async function getReviewableClassIds(scope, requestedSchoolId = '') {
+	if (scope.isGlobalBusinessAdmin) {
+		return requestedSchoolId ? getClassIdsBySchoolIds([requestedSchoolId]) : null
+	}
+
+	const headTeacherClassIds = (scope.headTeacherClasses || [])
+		.filter(item => !requestedSchoolId || item.school_id === requestedSchoolId)
+		.map(item => businessAuth.compactId(item._id))
+		.filter(Boolean)
+	const directedSchoolIds = requestedSchoolId
+		? (scope.schoolIds.includes(requestedSchoolId) ? [requestedSchoolId] : [])
+		: scope.schoolIds
+
+	if (requestedSchoolId && !directedSchoolIds.length && !headTeacherClassIds.length) {
+		throwBusinessError(403, '无权查看该学校审批')
+	}
+
+	const directedClassIds = await getClassIdsBySchoolIds(directedSchoolIds)
+	return [...new Set([...directedClassIds, ...headTeacherClassIds])]
+}
+
 async function buildScopeWhere(scope, status, requestedSchoolId = '') {
-	if (!scope.isGlobalBusinessAdmin && !scope.schoolIds.length) {
-		throwBusinessError(403, '您不是学校负责人，无权查看审批')
+	if (!scope.isGlobalBusinessAdmin && !scope.schoolIds.length && !scope.headTeacherClassIds.length) {
+		throwBusinessError(403, '您不是班主任或学校负责人，无权查看审批')
 	}
 
 	const conditions = []
@@ -94,18 +115,8 @@ async function buildScopeWhere(scope, status, requestedSchoolId = '') {
 		conditions.push({ status })
 	}
 
-	if (scope.isGlobalBusinessAdmin) {
-		if (requestedSchoolId) {
-			const classIds = await getClassIdsBySchoolIds([requestedSchoolId])
-			conditions.push({ class_id: dbCmd.in(classIds.length ? classIds : ['__no_accessible_class__']) })
-		}
-	} else {
-		if (requestedSchoolId && !scope.schoolIds.includes(requestedSchoolId)) {
-			throwBusinessError(403, '无权查看该学校审批')
-		}
-		const classIds = await getClassIdsBySchoolIds(
-			requestedSchoolId ? [requestedSchoolId] : scope.schoolIds
-		)
+	const classIds = await getReviewableClassIds(scope, requestedSchoolId)
+	if (classIds !== null) {
 		conditions.push({ class_id: dbCmd.in(classIds.length ? classIds : ['__no_accessible_class__']) })
 	}
 
@@ -158,7 +169,7 @@ async function submitApproval(event, scope) {
 	if (pendingRes.data && pendingRes.data[0]) {
 		return {
 			code: 200,
-			msg: '申请已提交，请等待学校负责人审批',
+			msg: '申请已提交，请等待班主任或学校负责人审批',
 			data: {
 				approvalId: businessAuth.compactId(pendingRes.data[0]._id),
 				status: 'pending',
@@ -186,7 +197,7 @@ async function submitApproval(event, scope) {
 
 	return {
 		code: 200,
-		msg: '申请已提交，请等待学校负责人审批',
+		msg: '申请已提交，请等待班主任或学校负责人审批',
 		data: {
 			approvalId: addRes.id,
 			status: 'pending',
@@ -196,7 +207,7 @@ async function submitApproval(event, scope) {
 }
 
 async function getApprovalSummary(scope) {
-	const canReview = scope.isGlobalBusinessAdmin || scope.schoolIds.length > 0
+	const canReview = scope.isGlobalBusinessAdmin || scope.schoolIds.length > 0 || scope.headTeacherClassIds.length > 0
 	if (!canReview) {
 		return {
 			code: 200,
@@ -231,6 +242,19 @@ async function getApprovalSummary(scope) {
 			.orderBy('name', 'asc')
 			.get()
 		availableSchools = schoolRes.data || []
+	} else {
+		const schoolIds = [...new Set([
+			...scope.schoolIds,
+			...(scope.headTeacherClasses || []).map(item => item.school_id).filter(Boolean)
+		])]
+		const schoolRes = schoolIds.length
+			? await db.collection(SCHOOL_COLLECTION)
+				.where({ school_id: dbCmd.in(schoolIds) })
+				.field({ school_id: true, name: true })
+				.orderBy('name', 'asc')
+				.get()
+			: { data: [] }
+		availableSchools = schoolRes.data || []
 	}
 
 	return {
@@ -241,7 +265,11 @@ async function getApprovalSummary(scope) {
 			pending: pendingRes.total || 0,
 			approved: approvedRes.total || 0,
 			rejected: rejectedRes.total || 0,
-			scopeType: scope.isGlobalBusinessAdmin ? 'global' : 'school',
+			scopeType: scope.isGlobalBusinessAdmin
+				? 'global'
+				: scope.schoolIds.length
+					? (scope.headTeacherClassIds.length ? 'mixed' : 'school')
+					: 'class',
 			schools: availableSchools.map(item => ({
 				schoolId: item.school_id,
 				schoolName: item.name || item.school_id
@@ -314,7 +342,7 @@ async function reviewApproval(event, scope) {
 			classCode: request.class_code
 		}, transaction)
 		const school = await getSchoolByBusinessId(classInfo.school_id, transaction)
-		businessAuth.assertSchoolAccess(scope, school, '您无权审批该学校的入班申请')
+		businessAuth.assertClassReviewAccess(scope, classInfo, school, '您无权审批该班级的入班申请')
 
 		let memberId = ''
 		let memberAlreadyExists = false

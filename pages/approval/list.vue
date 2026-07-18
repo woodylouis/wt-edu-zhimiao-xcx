@@ -17,7 +17,7 @@
         <view>
           <text class="hero-kicker">SCHOOL APPROVAL</text>
           <text class="hero-title">老师入班申请</text>
-          <text class="hero-subtitle">仅处理您负责学校下的班级申请</text>
+          <text class="hero-subtitle">班主任处理本班，学校负责人处理本校申请</text>
         </view>
         <view class="pending-bubble">
           <text class="bubble-count">{{ summary.pending || 0 }}</text>
@@ -41,7 +41,7 @@
       <view v-if="!loading && !canReview" class="empty-state">
         <view class="empty-icon">🔒</view>
         <text class="empty-title">暂无审批权限</text>
-        <text class="empty-copy">只有学校负责人可以处理本校入班申请</text>
+        <text class="empty-copy">只有班主任或学校负责人可以处理入班申请</text>
       </view>
 
       <view v-else-if="!loading && approvals.length === 0" class="empty-state">
@@ -613,4 +613,3 @@ export default {
   text-align: center;
 }
 </style>
-

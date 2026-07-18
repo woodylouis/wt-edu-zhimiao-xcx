@@ -108,7 +108,8 @@ async function getClassesForScope(scope, requestedSchoolId = '', requestedClassI
 			nickname: true,
 			section: true,
 			grade: true,
-			class: true
+			class: true,
+			head_teacher_user_id: true
 		},
 		'nickname'
 	)
@@ -270,7 +271,8 @@ async function listTeachers(event, scope) {
 			schoolName: school.name || classInfo.school_id || '',
 			joinTime: member.join_time || null,
 			approvalId: businessAuth.compactId(member.approval_id),
-			joinSource: member.approval_id ? 'approval' : 'legacy'
+			joinSource: member.approval_id ? 'approval' : 'legacy',
+			isHeadTeacher: businessAuth.compactId(classInfo.head_teacher_user_id) === userId
 		}
 	})
 
@@ -310,6 +312,9 @@ async function removeTeacher(event, scope) {
 		const classInfo = await getClassById(businessAuth.compactId(member.class_id), transaction)
 		const school = await getSchoolByBusinessId(classInfo.school_id, transaction)
 		businessAuth.assertSchoolAccess(scope, school, '无权移出该学校的老师')
+		if (businessAuth.compactId(classInfo.head_teacher_user_id) === businessAuth.compactId(member.user_id)) {
+			throwBusinessError(409, '该老师是当前班主任，请先在班级管理中更换或取消班主任')
+		}
 
 		const teacherRes = await transaction.collection(USER_COLLECTION)
 			.where({ _id: member.user_id })

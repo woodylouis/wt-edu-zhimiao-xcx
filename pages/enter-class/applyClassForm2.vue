@@ -315,7 +315,7 @@ export default {
             uni.removeStorageSync('tempFormData');
             uni.showModal({
                 title: existing ? '申请已在审批中' : '申请已提交',
-                content: '学校负责人通过后，该班级会自动出现在您的班级列表中。',
+                content: '班主任或学校负责人通过后，该班级会自动出现在您的班级列表中。',
                 showCancel: false,
                 confirmText: '我知道了',
                 success: () => {
