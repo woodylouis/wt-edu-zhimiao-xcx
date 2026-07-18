@@ -1,0 +1,50 @@
+{
+  "bsonType": "object",
+  "required": [
+    "action",
+    "teacher_user_id",
+    "member_id",
+    "class_id",
+    "school_id",
+    "operator_user_id",
+    "reason",
+    "action_time"
+  ],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "老师管理操作日志ID" },
+    "action": {
+      "bsonType": "string",
+      "enum": ["remove_from_class"],
+      "title": "操作类型"
+    },
+    "teacher_user_id": { "bsonType": "string", "title": "老师用户ID" },
+    "teacher_name": { "bsonType": "string", "title": "老师姓名快照" },
+    "teacher_mobile": { "bsonType": "string", "title": "老师手机号快照" },
+    "member_id": { "bsonType": "string", "title": "原任教关系ID" },
+    "class_id": { "bsonType": "string", "title": "班级ID" },
+    "class_name": { "bsonType": "string", "title": "班级名称快照" },
+    "class_code": { "bsonType": "string", "title": "班级码快照" },
+    "school_id": { "bsonType": "string", "title": "学校业务ID" },
+    "school_name": { "bsonType": "string", "title": "学校名称快照" },
+    "operator_user_id": { "bsonType": "string", "title": "操作人用户ID" },
+    "operator_name": { "bsonType": "string", "title": "操作人姓名" },
+    "reason": { "bsonType": "string", "title": "操作原因" },
+    "action_time": { "bsonType": "timestamp", "title": "操作时间" }
+  },
+  "indexes": [
+    {
+      "name": "school_action_time",
+      "key": { "school_id": 1, "action_time": -1 }
+    },
+    {
+      "name": "teacher_action_time",
+      "key": { "teacher_user_id": 1, "action_time": -1 }
+    }
+  ]
+}

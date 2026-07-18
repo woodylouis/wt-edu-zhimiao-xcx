@@ -81,6 +81,25 @@
         <view class="approval-entry-arrow">›</view>
       </view>
 
+      <view
+        v-if="teacherSummary.canManage"
+        class="approval-entry teacher-entry"
+        hover-class="approval-entry--pressed"
+        :hover-stay-time="80"
+        @click="openTeacherManagement"
+      >
+        <view class="approval-entry-icon teacher-entry-icon">
+          <text>师</text>
+        </view>
+        <view class="approval-entry-copy">
+          <text class="approval-entry-title">老师管理</text>
+          <text class="approval-entry-subtitle">
+            {{ teacherManagementSubtitle }}
+          </text>
+        </view>
+        <view class="approval-entry-arrow">›</view>
+      </view>
+
       <!-- <view class="option" @click="onClickButton(0)">
         <view class="title">{{ $t("enterClassMethod.create") }}</view>
         <image class="image" src="../../static/enter-class/create.svg" />
@@ -184,6 +203,9 @@
           ? `有 ${this.approvalSummary.pending} 条老师申请待处理`
           : "查看老师入班申请与审批记录";
       },
+      teacherManagementSubtitle() {
+        return `${this.teacherSummary.teacherCount || 0} 位老师 · ${this.teacherSummary.assignmentCount || 0} 条任教关系`;
+      },
     },
     data() {
       return {
@@ -197,6 +219,11 @@
         approvalSummary: {
           canReview: false,
           pending: 0,
+        },
+        teacherSummary: {
+          canManage: false,
+          teacherCount: 0,
+          assignmentCount: 0,
         },
       };
     },
@@ -218,6 +245,7 @@
     },
     onShow() {
       this.loadApprovalSummary();
+      this.loadTeacherSummary();
     },
     methods: {
       async loadApprovalSummary() {
@@ -244,6 +272,31 @@
       },
       openApproval() {
         uni.navigateTo({ url: "/pages/approval/list" });
+      },
+      async loadTeacherSummary() {
+        const token = uni.getStorageSync("uni_id_token");
+        const tokenExpired = uni.getStorageSync("uni_id_token_expired");
+        if (!token || tokenExpired <= Date.now()) {
+          this.teacherSummary = { canManage: false, teacherCount: 0, assignmentCount: 0 };
+          return;
+        }
+        try {
+          const { result } = await uniCloud.callFunction({
+            name: "wtdb-teacher-management",
+            data: {
+              action: "summary",
+              uniIdToken: token,
+            },
+          });
+          if (result.code === 200) {
+            this.teacherSummary = result.data || this.teacherSummary;
+          }
+        } catch (error) {
+          console.error("老师管理统计加载失败:", error);
+        }
+      },
+      openTeacherManagement() {
+        uni.navigateTo({ url: "/pages/teacher-management/list" });
       },
       onClickEnter() {
         this.checkLoginStatus().then(async (valid) => {
@@ -924,6 +977,21 @@
       font-size: 48rpx;
       font-weight: 600;
       line-height: 1;
+    }
+
+    .teacher-entry {
+      background: linear-gradient(135deg, #e6efff 0%, #eff5ff 52%, #e4f9f0 100%);
+      box-shadow: 7rpx 8rpx 0 #8cb8f4;
+    }
+
+    .teacher-entry.approval-entry--pressed {
+      box-shadow: 3rpx 3rpx 0 #8cb8f4;
+    }
+
+    .teacher-entry-icon {
+      background: #4e87e8;
+      font-size: 26rpx;
+      transform: rotate(3deg);
     }
 
     .option {

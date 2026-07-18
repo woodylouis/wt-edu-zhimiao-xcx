@@ -73,6 +73,14 @@
       }
     },
     {
+      "path": "pages/teacher-management/list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "老师管理",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
       "path": "pages/list/list",
       "style": {
         // #ifndef APP
