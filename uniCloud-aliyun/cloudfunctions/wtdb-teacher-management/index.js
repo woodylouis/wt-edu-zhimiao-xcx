@@ -16,6 +16,8 @@ const USER_COLLECTION = 'uni-id-users'
 const ACTION_LOG_COLLECTION = 'wtdb-business-teacher-action-log'
 const EMPTY_ID = '__no_accessible_teacher_class__'
 const QUERY_BATCH_SIZE = 500
+const ADMIN_APP_ID = '__UNI__B9C18F8'
+const MINI_PROGRAM_APP_ID = '__UNI__0FAB82A'
 
 function clean(value, maxLength = 100) {
 	return String(value || '').trim().slice(0, maxLength)
@@ -23,6 +25,40 @@ function clean(value, maxLength = 100) {
 
 function throwBusinessError(code, message) {
 	throw new businessAuth.AuthError(code, message)
+}
+
+function normalizeArray(value) {
+	if (!value) return []
+	return Array.isArray(value) ? value : [value]
+}
+
+function normalizeRoles(value) {
+	return normalizeArray(value)
+		.map(item => typeof item === 'object' && item ? item.role_id : item)
+		.map(item => clean(item, 60))
+		.filter(Boolean)
+}
+
+function hasIdentityValue(value) {
+	if (!value) return false
+	if (typeof value === 'string') return Boolean(value.trim())
+	if (Array.isArray(value)) return value.some(hasIdentityValue)
+	if (typeof value === 'object') return Object.values(value).some(hasIdentityValue)
+	return true
+}
+
+function getAccountSource(user) {
+	const appIds = normalizeArray(user.dcloud_appid).map(item => String(item || ''))
+	const isWechat = appIds.includes(MINI_PROGRAM_APP_ID) || hasIdentityValue(user.wx_openid)
+	const isAdmin = appIds.includes(ADMIN_APP_ID) || (!isWechat && Boolean(clean(user.username, 100)))
+	if (isWechat && isAdmin) return { value: 'both', label: '微信/后台用户', isWechat: true }
+	if (isWechat) return { value: 'wechat', label: '微信用户', isWechat: true }
+	if (isAdmin) return { value: 'admin', label: '后台用户', isWechat: false }
+	return { value: 'unknown', label: '来源未知', isWechat: false }
+}
+
+function userDisplayName(user) {
+	return clean(user.nickname || user.username, 60) || '未命名用户'
 }
 
 function assertCanManage(scope) {
@@ -213,6 +249,209 @@ async function getSummary(scope) {
 			classes: safeClassOptions(classes)
 		}
 	}
+}
+
+async function getManagerAccessList(event, scope) {
+	assertCanManage(scope)
+	const keyword = clean(event.keyword, 80).toLowerCase()
+	const visibility = clean(event.visibility, 20)
+	const moduleFilter = clean(event.module, 20)
+	const accessType = clean(event.accessType || event.access_type, 20)
+	const accountSourceFilter = clean(event.accountSource || event.account_source, 20)
+	const page = Math.max(1, Number(event.page) || 1)
+	const pageSize = Math.min(100, Math.max(1, Number(event.pageSize) || 20))
+	const [schools, classes] = await Promise.all([
+		getAvailableSchools(scope),
+		getClassesForScope(scope)
+	])
+	const directorIds = [...new Set(schools
+		.map(item => businessAuth.compactId(item.director_user_id))
+		.filter(Boolean))]
+	const headTeacherIds = [...new Set(classes
+		.map(item => businessAuth.compactId(item.head_teacher_user_id))
+		.filter(Boolean))]
+	const assignedUserIds = [...new Set([...directorIds, ...headTeacherIds])]
+	const userFields = {
+		_id: true,
+		nickname: true,
+		username: true,
+		mobile: true,
+		role: true,
+		status: true,
+		dcloud_appid: true,
+		wx_openid: true,
+		avatar_file: true
+	}
+
+	const assignedUsers = assignedUserIds.length
+		? await fetchAll(USER_COLLECTION, { _id: dbCmd.in(assignedUserIds) }, userFields)
+		: []
+	const assignedMobiles = [...new Set(assignedUsers.map(item => clean(item.mobile, 30)).filter(Boolean))]
+	const linkedUsers = assignedMobiles.length
+		? await fetchAll(USER_COLLECTION, { mobile: dbCmd.in(assignedMobiles) }, userFields)
+		: []
+	const globalUsers = scope.isGlobalBusinessAdmin
+		? await fetchAll(USER_COLLECTION, { role: dbCmd.in(['admin', 'diana-admin']) }, userFields)
+		: []
+	const userMap = new Map()
+	;[...assignedUsers, ...linkedUsers, ...globalUsers].forEach(user => {
+		const userId = businessAuth.compactId(user._id)
+		if (userId) userMap.set(userId, user)
+	})
+
+	const usersByMobile = new Map()
+	userMap.forEach(user => {
+		const mobile = clean(user.mobile, 30)
+		if (!mobile) return
+		if (!usersByMobile.has(mobile)) usersByMobile.set(mobile, [])
+		usersByMobile.get(mobile).push(user)
+	})
+	const assignedUserMap = new Map(assignedUsers.map(user => [businessAuth.compactId(user._id), user]))
+	const schoolAccessMap = new Map()
+	const addSchoolAccess = (userId, school, relation) => {
+		if (!userId) return
+		if (!schoolAccessMap.has(userId)) schoolAccessMap.set(userId, new Map())
+		schoolAccessMap.get(userId).set(school.school_id, {
+			recordId: businessAuth.compactId(school._id),
+			schoolId: school.school_id,
+			schoolName: school.name || school.school_id,
+			directorUserId: businessAuth.compactId(school.director_user_id),
+			relation
+		})
+	}
+	schools.forEach(school => {
+		const directorUserId = businessAuth.compactId(school.director_user_id)
+		if (!directorUserId) return
+		addSchoolAccess(directorUserId, school, 'direct')
+		const director = assignedUserMap.get(directorUserId)
+		const mobile = clean(director && director.mobile, 30)
+		if (!mobile) return
+		;(usersByMobile.get(mobile) || []).forEach(user => {
+			const userId = businessAuth.compactId(user._id)
+			addSchoolAccess(userId, school, userId === directorUserId ? 'direct' : 'linked')
+		})
+	})
+	const schoolMap = new Map(schools.map(school => [school.school_id, school]))
+	const headTeacherClassMap = new Map()
+	const addHeadTeacherClass = (userId, classInfo, relation) => {
+		if (!userId) return
+		if (!headTeacherClassMap.has(userId)) headTeacherClassMap.set(userId, new Map())
+		const classId = businessAuth.compactId(classInfo._id)
+		const school = schoolMap.get(classInfo.school_id) || {}
+		headTeacherClassMap.get(userId).set(classId, {
+			classId,
+			className: classDisplayName(classInfo),
+			classCode: classInfo.code || '',
+			schoolId: classInfo.school_id,
+			schoolName: school.name || classInfo.school_id || '',
+			headTeacherUserId: businessAuth.compactId(classInfo.head_teacher_user_id),
+			relation
+		})
+	}
+	classes.forEach(classInfo => {
+		const headTeacherUserId = businessAuth.compactId(classInfo.head_teacher_user_id)
+		if (!headTeacherUserId) return
+		addHeadTeacherClass(headTeacherUserId, classInfo, 'direct')
+		const headTeacher = assignedUserMap.get(headTeacherUserId)
+		const mobile = clean(headTeacher && headTeacher.mobile, 30)
+		if (!mobile) return
+		;(usersByMobile.get(mobile) || []).forEach(user => {
+			const userId = businessAuth.compactId(user._id)
+			addHeadTeacherClass(userId, classInfo, userId === headTeacherUserId ? 'direct' : 'linked')
+		})
+	})
+
+	let rows = [...userMap.values()].map(user => {
+		const userId = businessAuth.compactId(user._id)
+		const roles = normalizeRoles(user.role)
+		const globalRoleIds = scope.isGlobalBusinessAdmin
+			? roles.filter(roleId => roleId === 'admin' || roleId === 'diana-admin')
+			: []
+		const managedSchools = [...(schoolAccessMap.get(userId) || new Map()).values()]
+		const headTeacherClasses = [...(headTeacherClassMap.get(userId) || new Map()).values()]
+		const source = getAccountSource(user)
+		const status = Number(user.status || 0)
+		const isEnabled = status === 0
+		const canUseMiniProgram = isEnabled && source.isWechat
+		const teacherManagementAuthorized = Boolean(globalRoleIds.length || managedSchools.length)
+		const approvalAuthorized = Boolean(teacherManagementAuthorized || headTeacherClasses.length)
+		const moduleState = (authorized, unauthorizedReason) => {
+			if (!authorized) return { authorized: false, willShow: false, reason: unauthorizedReason }
+			if (!isEnabled) return { authorized: true, willShow: false, reason: '账号当前不是正常状态' }
+			if (!source.isWechat) return { authorized: true, willShow: false, reason: '未绑定微信小程序账号' }
+			return { authorized: true, willShow: true, reason: '登录小程序后显示' }
+		}
+		const avatarFile = user.avatar_file || {}
+		return {
+			userId,
+			displayName: userDisplayName(user),
+			username: clean(user.username, 80),
+			mobile: clean(user.mobile, 30),
+			avatarUrl: typeof avatarFile === 'string' ? avatarFile : (avatarFile.url || ''),
+			status,
+			statusLabel: ['正常', '禁用', '审核中', '审核拒绝'][status] || '未知',
+			accountSource: source.value,
+			accountSourceLabel: source.label,
+			globalRoles: globalRoleIds.map(roleId => ({
+				roleId,
+				roleName: roleId === 'admin' ? '超级管理员' : '业务超级管理员'
+			})),
+			managedSchools,
+			headTeacherClasses,
+			canUseMiniProgram,
+			teacherManagement: moduleState(teacherManagementAuthorized, '仅管理员或学校负责人显示'),
+			approval: moduleState(approvalAuthorized, '仅管理员、学校负责人或班主任显示')
+		}
+	}).filter(item => item.globalRoles.length || item.managedSchools.length || item.headTeacherClasses.length)
+
+	const allRows = rows
+	const summary = {
+		total: allRows.length,
+		teacherManagementCount: allRows.filter(item => item.teacherManagement.willShow).length,
+		approvalCount: allRows.filter(item => item.approval.willShow).length,
+		issueCount: allRows.filter(item => !item.canUseMiniProgram).length,
+		globalCount: allRows.filter(item => item.globalRoles.length).length,
+		schoolCount: allRows.filter(item => item.managedSchools.length).length,
+		headTeacherCount: allRows.filter(item => item.headTeacherClasses.length).length
+	}
+	if (keyword) {
+		rows = rows.filter(item => [
+			item.displayName,
+			item.username,
+			item.mobile,
+			item.userId,
+			...item.globalRoles.map(role => role.roleName),
+			...item.managedSchools.map(school => school.schoolName),
+			...item.headTeacherClasses.flatMap(classInfo => [classInfo.schoolName, classInfo.className, classInfo.classCode])
+		].some(value => String(value || '').toLowerCase().includes(keyword)))
+	}
+	if (moduleFilter === 'teacher-management') rows = rows.filter(item => item.teacherManagement.authorized)
+	if (moduleFilter === 'approval') rows = rows.filter(item => item.approval.authorized)
+	const isVisibleForFilter = item => {
+		if (moduleFilter === 'teacher-management') return item.teacherManagement.willShow
+		if (moduleFilter === 'approval') return item.approval.willShow
+		return item.teacherManagement.willShow || item.approval.willShow
+	}
+	if (visibility === 'visible') rows = rows.filter(isVisibleForFilter)
+	if (visibility === 'hidden') rows = rows.filter(item => !isVisibleForFilter(item))
+	if (accessType === 'global') rows = rows.filter(item => item.globalRoles.length)
+	if (accessType === 'school') rows = rows.filter(item => item.managedSchools.length)
+	if (accessType === 'head-teacher') rows = rows.filter(item => item.headTeacherClasses.length)
+	if (accessType === 'linked') {
+		rows = rows.filter(item =>
+			item.managedSchools.some(school => school.relation === 'linked') ||
+			item.headTeacherClasses.some(classInfo => classInfo.relation === 'linked')
+		)
+	}
+	if (accountSourceFilter) rows = rows.filter(item => item.accountSource === accountSourceFilter)
+	rows.sort((left, right) => {
+		return Number(right.approval.willShow || right.teacherManagement.willShow) -
+			Number(left.approval.willShow || left.teacherManagement.willShow) ||
+			left.displayName.localeCompare(right.displayName, 'zh-CN')
+	})
+	const total = rows.length
+	const list = rows.slice((page - 1) * pageSize, page * pageSize)
+	return { code: 200, msg: 'success', data: { list, total, page, pageSize, summary } }
 }
 
 async function listTeachers(event, scope) {
@@ -407,6 +646,7 @@ exports.main = async (event = {}, context) => {
 		const scope = await businessAuth.getBusinessAuthScope(event, context)
 		if (action === 'summary') return getSummary(scope)
 		if (action === 'list') return listTeachers(event, scope)
+		if (action === 'manager-access-list') return getManagerAccessList(event, scope)
 		if (action === 'remove') return removeTeacher(event, scope)
 		return { code: 400, msg: '未知操作' }
 	} catch (error) {
