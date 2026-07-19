@@ -28,6 +28,12 @@
       "description": "唯一班级码（6位数字）",
       "unique": true // 强制全局唯一
     },
+    "year": {
+      "bsonType": "string",
+      "title": "年份",
+      "pattern": "^\\d{4}$",
+      "description": "班级所属年份，例如2025"
+    },
     "section": {
       "bsonType": "string",
       "title": "学段"

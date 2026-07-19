@@ -23,6 +23,7 @@ exports.main = async (event = {}, context) => {
 			.field({
 				_id: true,
 				code: true,
+				year: true,
 				nickname: true,
 				teacherName: true,
 				class_creator_teacher: true,

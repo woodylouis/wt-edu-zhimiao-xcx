@@ -6,6 +6,15 @@
         </u-sticky>
         <!-- <view class="assessment-header">成长评估</view> -->
         <view class="selection-container">
+            <!-- Year Selection -->
+            <view class="section-group">
+                <view class="section-header">
+                    <view class="indicator-bar"></view>
+                    <text class="section-title">选择年份</text>
+                </view>
+                <year-only-picker v-model="selectedYear" @change="updateLocalStorage" />
+            </view>
+
             <!-- School Section -->
             <view class="section-group">
                 <view class="section-header">
@@ -55,12 +64,19 @@
 </template>
 
 <script>
+import YearOnlyPicker from "../../components/year-only-picker/year-only-picker.vue";
+
 export default {
+    components: {
+        YearOnlyPicker,
+    },
     data() {
+        const currentYear = new Date().getFullYear();
         return {
             schoolSections: ["幼儿园"],
             grades: ["幼托", "小小班", "小班", "中班", "大班"],
             classes: Array.from({ length: 18 }, (_, i) => i + 1),
+            selectedYear: String(currentYear),
             selectedSection: "",
             selectedGrade: "",
             selectedClass: "",
@@ -71,6 +87,7 @@ export default {
         // 新增缓存初始化逻辑
         const cacheData = uni.getStorageSync('classFormData');
         if (cacheData) {
+            this.selectedYear = cacheData.year || this.selectedYear;
             this.selectedSection = cacheData.section;
             this.selectedGrade = cacheData.grade;
             this.selectedClass = cacheData.class;
@@ -95,6 +112,7 @@ export default {
             const currentCache = uni.getStorageSync('classFormData') || {};
             const newData = {
                 ...currentCache,  // 保留已有字段
+                year: this.selectedYear,
                 section: this.selectedSection,
                 grade: this.selectedGrade,
                 class: this.selectedClass
@@ -104,7 +122,7 @@ export default {
         handleConfirm() {
             if (this.loading) return;
             console.log("确认按钮被点击");
-            if (!this.selectedSection || !this.selectedGrade || !this.selectedClass) {
+            if (!this.selectedYear || !this.selectedSection || !this.selectedGrade || !this.selectedClass) {
                 uni.showToast({
                     title: "请完成所有选择",
                     icon: "none",
@@ -116,6 +134,7 @@ export default {
             const currentCache = uni.getStorageSync('classFormData') || {};  // 新增获取当前缓存
             const result = {
                 ...currentCache,  // 合并已有缓存
+                year: this.selectedYear,
                 section: this.selectedSection,
                 grade: this.selectedGrade,
                 class: this.selectedClass
@@ -128,6 +147,9 @@ export default {
                     this.loading = false;
                 }
             });
+        },
+        handleCancel() {
+            this.handleCustomBack();
         },
         // 新增自定义返回处理
         handleCustomBack() {
@@ -159,6 +181,7 @@ export default {
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
     border-radius: 48rpx 48rpx 0 0;
     background-color: rgba(255, 255, 255, 1);
     /* padding: 38rpx 40rpx; */
@@ -226,8 +249,12 @@ export default {
 .action-buttons {
     margin-top: auto;
     display: flex;
+    flex-shrink: 0;
     gap: 24rpx;
     padding: 40rpx 0 60rpx;
+    position: sticky;
+    bottom: 0;
+    background: #ffffff;
     box-shadow: 0px -7px 24px 0px rgba(103, 11, 3, 0.06);
 }
 

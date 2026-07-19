@@ -193,6 +193,7 @@
           const cacheData = uni.getStorageSync("classFormData") || {};
 
           const postData = {
+            year: cacheData.year || String(new Date().getFullYear()),
             grade: cacheData.grade,
             class: cacheData.class,
             nickname: this.formData.nickname,
@@ -213,6 +214,7 @@
             uni.setStorageSync("currentClass", {
               id: result.data.classId,
               code: result.data.classCode,
+              year: cacheData.year || String(new Date().getFullYear()),
               grade: cacheData.grade,
               class: cacheData.class,
               nickname: this.formData.nickname,

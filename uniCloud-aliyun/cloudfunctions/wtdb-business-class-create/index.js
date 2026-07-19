@@ -8,8 +8,11 @@ try {
 }
 
 const db = uniCloud.database()
+const dbCmd = db.command
 const classCollection = db.collection('wtdb-business-class-list')
 const schoolCollection = db.collection('wtdb-business-school-list')
+const memberCollection = db.collection('wtdb-business-class-member')
+const userCollection = db.collection('uni-id-users')
 
 function clean(value, maxLength = 100) {
 	return String(value || '').trim().slice(0, maxLength)
@@ -35,16 +38,49 @@ async function resolveSchool(event, scope) {
 	return school
 }
 
+async function assertHeadTeacherCandidate(userId, schoolId) {
+	const userRes = await userCollection.where({ _id: userId }).limit(1).get()
+	if (!userRes.data || !userRes.data[0]) {
+		throw new businessAuth.AuthError(400, '选择的班主任账号不存在')
+	}
+
+	const memberRes = await memberCollection
+		.where({ user_id: userId, role: 'teacher' })
+		.field({ class_id: true })
+		.limit(100)
+		.get()
+	const classIds = (memberRes.data || [])
+		.map(item => businessAuth.compactId(item.class_id))
+		.filter(Boolean)
+	if (!classIds.length) {
+		throw new businessAuth.AuthError(400, '班主任必须是该学校已入班的老师')
+	}
+
+	const classRes = await classCollection
+		.where({ _id: dbCmd.in(classIds), school_id: schoolId })
+		.field({ _id: true })
+		.limit(1)
+		.get()
+	if (!classRes.data || !classRes.data[0]) {
+		throw new businessAuth.AuthError(400, '班主任必须是该学校已入班的老师')
+	}
+}
+
 exports.main = async (event = {}, context) => {
 	let createdClassId = ''
 	try {
 		const scope = await businessAuth.getBusinessAuthScope(event, context)
 		const school = await resolveSchool(event, scope)
 		const nickname = clean(event.nickname, 40)
+		const year = clean(event.year || new Date().getFullYear(), 4)
+		const headTeacherUserId = businessAuth.compactId(event.head_teacher_user_id)
 		if (!nickname) throw new businessAuth.AuthError(400, '请填写班级名称')
+		if (!/^\d{4}$/.test(year)) throw new businessAuth.AuthError(400, '年份应为4位数字')
+		if (headTeacherUserId) await assertHeadTeacherCandidate(headTeacherUserId, school.school_id)
 
 		const classData = {
 			school_id: school.school_id,
+			year,
 			section: clean(event.section, 20),
 			grade: clean(event.grade, 20),
 			class: clean(event.class, 20),
@@ -57,6 +93,7 @@ exports.main = async (event = {}, context) => {
 			create_time: Date.now(),
 			code: generateClassCode()
 		}
+		if (headTeacherUserId) classData.head_teacher_user_id = headTeacherUserId
 		const addRes = await classCollection.add(classData)
 		createdClassId = addRes.id
 
@@ -66,12 +103,20 @@ exports.main = async (event = {}, context) => {
 			userId: scope.uid,
 			role: 'teacher'
 		})
+		if (headTeacherUserId && headTeacherUserId !== scope.uid) {
+			await joinClass({
+				classId: createdClassId,
+				userId: headTeacherUserId,
+				role: 'teacher'
+			})
+		}
 
 		return {
 			code: 200,
 			data: {
 				classId: createdClassId,
 				classCode: classData.code,
+				year: classData.year,
 				joinStatus: 'success'
 			},
 			msg: '班级创建成功'
@@ -79,9 +124,14 @@ exports.main = async (event = {}, context) => {
 	} catch (error) {
 		if (createdClassId) {
 			try {
+				await memberCollection.where({ class_id: createdClassId }).remove()
+			} catch (rollbackError) {
+				console.error('班级成员关系回滚失败:', rollbackError)
+			}
+			try {
 				await classCollection.doc(createdClassId).remove()
 			} catch (rollbackError) {
-				console.error('班级创建回滚失败:', rollbackError)
+				console.error('班级记录回滚失败:', rollbackError)
 			}
 		}
 		console.error('班级创建失败:', error)
