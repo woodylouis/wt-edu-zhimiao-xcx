@@ -2,12 +2,17 @@
     <view class="student-card">
         <view class="student-summary">
             <!-- 头像区域 -->
-            <view class="avatar-area">
+            <view
+                class="avatar-area"
+                hover-class="avatar-area--pressed"
+                :hover-stay-time="80"
+                @click.stop="handleAvatarClick"
+            >
                 <view class="avatar-ring">
-                    <image class="avatar" :src="student.avatar" mode="aspectFill" />
+                    <image class="avatar" :src="avatarUrl" mode="aspectFill" />
                 </view>
                 <view class="star-badge">
-                    <text class="star">⭐</text>
+                    <text class="star">✎</text>
                 </view>
             </view>
 
@@ -78,6 +83,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { DEFAULT_AVATAR_BOY, DEFAULT_AVATAR_GIRL } from '@/lib/types/local_storage.js'
 
 const props = defineProps({
     student: {
@@ -99,6 +105,14 @@ const assessmentCount = computed(() => {
     if (typeof rawValue === 'number') return Math.max(0, rawValue)
     const matchedValue = String(rawValue).match(/\d+/)
     return matchedValue ? Number(matchedValue[0]) : 0
+})
+
+const avatarUrl = computed(() => {
+    if (props.student.avatar) return props.student.avatar
+    const gender = String(props.student.gender || '').toLowerCase()
+    return ['女孩', '女', 'female', 'girl'].includes(gender)
+        ? DEFAULT_AVATAR_GIRL
+        : DEFAULT_AVATAR_BOY
 })
 
 const hasAssessments = computed(() => {
@@ -125,7 +139,12 @@ const lastAssessmentText = computed(() => {
     return value && value !== '暂无评估记录' ? value : '尚未评估'
 })
 
-const emit = defineEmits(['reportClick', 'assessClick']);
+const emit = defineEmits(['reportClick', 'assessClick', 'avatarClick']);
+
+const handleAvatarClick = () => {
+    console.log('student-card: 点击编辑学生资料');
+    emit('avatarClick');
+};
 
 const handleReportClick = () => {
     console.log('student-card: 点击查看报告');
@@ -155,6 +174,11 @@ const handleAssessClick = () => {
 .avatar-area {
     position: relative;
     flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.avatar-area--pressed {
+    transform: scale(0.94) rotate(-2deg);
 }
 
 .avatar-ring {
@@ -189,6 +213,8 @@ const handleAssessClick = () => {
 
 .star {
     font-size: 18rpx;
+    color: #392f59;
+    font-weight: 900;
 }
 
 // 信息区域

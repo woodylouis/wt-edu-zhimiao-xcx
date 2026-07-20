@@ -109,6 +109,7 @@
         :studentList="filteredStudentList"
         @handleStudentClick="handleStudentClick"
         @handleAssessClick="handleAssessClick"
+        @handleStudentEdit="handleStudentEdit"
       />
       
       <!-- 底部创建学生入口 -->
@@ -338,6 +339,17 @@
     console.log("开始评估 - 学生:", student);
     selectedStudent.value = student;
     showAssessModal.value = true;
+  };
+
+  const handleStudentEdit = (student) => {
+    const childId = student?._id || student?.id;
+    if (!childId) {
+      uni.showToast({ title: "暂无学生资料", icon: "none" });
+      return;
+    }
+    uni.navigateTo({
+      url: `/pages/dashboard/teacher/student-profile?childId=${encodeURIComponent(childId)}`,
+    });
   };
   
   // 评估确认回调

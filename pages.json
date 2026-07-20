@@ -24,6 +24,13 @@
       }
     },
     {
+      "path": "pages/dashboard/teacher/student-profile",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "学生资料"
+      }
+    },
+    {
       "path": "pages/enter-class/createClassForm1",
       "style": {
         "navigationStyle": "custom",

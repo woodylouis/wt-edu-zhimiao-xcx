@@ -11,89 +11,22 @@
     </u-sticky>
     <dopamine-flow-header eyebrow="ADD A LITTLE STAR" title="添加成长档案" subtitle="填写孩子的基础信息，开始记录成长" badge="星" tone="mint" :step="1" :total-steps="1" />
     <view class="form-container">
-      <view class="form-description"
-        >正在加入<span style="font-weight: bold"
-          >【{{ formData.className }}】</span
-        >，请填写以下信息</view
+      <student-profile-form
+        ref="profileForm"
+        v-model="formData"
+        :class-name="formData.className"
+        mode="create"
+        @uploading="avatarUploading = $event"
+      />
+      <button
+        class="submit-button"
+        :disabled="loading || avatarUploading"
+        hover-class="submit-button--pressed"
+        @click="handleSubmit"
       >
-      <u--form
-        :model="formData"
-        :rules="rules"
-        ref="uForm"
-        errorType="message"
-        :borderBottom="false"
-      >
-        <view class="form-content">
-          <view>
-            <view class="input-group">
-              <text class="input-label">孩子称呼</text>
-              <u-form-item prop="name" :borderBottom="false">
-                <u--input
-                  v-model="formData.name"
-                  placeholder="请输入孩子的真实名字"
-                  border="false"
-                  :custom-style="inputStyle"
-                  clearable
-                />
-              </u-form-item>
-            </view>
-            <view class="input-group">
-              <text class="input-label">孩子性别</text>
-              <u-form-item prop="gender" :borderBottom="false">
-                <view @click="onChooseGender">
-                  <u--input
-                    v-model="formData.gender"
-                    placeholder="请选择孩子的性别"
-                    border="false"
-                    :custom-style="inputStyle"
-                    disabled
-                  />
-                </view>
-                <u--picker
-                  :show="showGenderPicker"
-                  :columns="genderColumns"
-                  @confirm="onConfirmGender"
-                  @cancel="onCancel"
-                  :closeOnClickOverlay="true"
-                  @close="onCancel"
-                ></u--picker>
-              </u-form-item>
-            </view>
-            <view class="input-group">
-              <text class="input-label">出生年月</text>
-              <u-form-item :borderBottom="false" prop="birthday">
-                <view @click="onClickDatetime">
-                  <u--input
-                    v-model="showDateStr"
-                    placeholder="请输入孩子的生日"
-                    border="false"
-                    :custom-style="inputStyle"
-                    disabled
-                    clearable
-                  />
-                </view>
-                <u-datetime-picker
-                  v-model="formData.birthdate"
-                  :show="showDatetimePicker"
-                  :closeOnClickOverlay="true"
-                  @close="onCancel"
-                  @cancel="onCancel"
-                  @confirm="onConfirmDate"
-                  @change="onChangeDatechange"
-                  :minDate="minDate"
-                  :maxDate="maxDate"
-                  mode="date"
-                ></u-datetime-picker>
-              </u-form-item>
-            </view>
-          </view>
-          <u-button @click="handleSubmit" :custom-style="buttonStyle"
-            >下一步</u-button
-          >
-
-          <!-- <text class="help-link" @click="handleHelp">遇到问题？查看帮助</text> -->
-        </view>
-      </u--form>
+        <text>{{ avatarUploading ? '正在上传头像' : '确认创建档案' }}</text>
+        <text class="submit-arrow">→</text>
+      </button>
     </view>
     <up-overlay :show="show" :opacity="0.52">
       <view class="warp">
@@ -122,11 +55,11 @@
 </template>
 
 <script>
-  // 导入modlBox组件
   import modalBox from "../../components/modalBox-v2/modalBox";
   import DopamineFlowHeader from "./components/dopamineFlowHeader.vue";
   import DopamineLoading from "../../components/dopamine-loading/index.vue";
   import DopamineModal from "../../components/dopamine-modal/index.vue";
+  import StudentProfileForm from "@/components/student-profile-form/student-profile-form.vue";
   import {
     CURRENT_CLASS,
     DEFAULT_AVATAR_BOY,
@@ -134,24 +67,19 @@
   } from "@/lib/types/local_storage.js";
 
   let currentClass = uni.getStorageSync(CURRENT_CLASS) || {};
-  import { store, mutations } from "@/uni_modules/uni-id-pages/common/store.js";
   export default {
-    computed: {
-      userInfo() {
-        return store.userInfo;
-      },
-    },
     components: {
       modalBox,
       DopamineFlowHeader,
       DopamineLoading,
       DopamineModal,
+      StudentProfileForm,
     },
-    // 在data中修正show定义位置
     data() {
       return {
-        show: false, // 移动到顶层
-        loading: false, // 提交状态锁
+        show: false,
+        loading: false,
+        avatarUploading: false,
         assessmentRedirectUrl: "",
         promptDialog: {
           show: false,
@@ -163,132 +91,25 @@
           cancelText: "取消",
           showCancel: true,
         },
-        showRelationship: false, // 重命名为关系选择器状态
-        showGenderPicker: false, // 新增性别选择器状态
-        showDatetimePicker: false,
-        showDateStr: "",
         formData: {
           className: currentClass.nickname || "",
           name: "",
           gender: "",
+          avatar: "",
           birthdate: Number(
             new Date().setFullYear(new Date().getFullYear() - 4)
           ),
         },
-        minDate: Number(
-          new Date(new Date().setFullYear(new Date().getFullYear() - 10))
-        ),
-        maxDate: Number(
-          new Date(new Date().setFullYear(new Date().getFullYear() - 1))
-        ),
         assessmentId: "",
         assessmentTitle: "",
-        // role: [{
-        //     name: '家长',
-        //     role: 'parent'
-        // },
-        // {
-        //     name: '老师',
-        //     role: 'teacher'
-        // }],
-        role: [
-          {
-            name: "老师",
-            role: "teacher",
-          },
-        ],
-        genderColumns: [["男孩", "女孩"]],
-        columns: [["老师"]],
-        rules: {
-          "teacherData.user_name": [
-            {
-              required: true,
-              message: "请输入您的名字",
-              trigger: ["change", "blur"],
-            },
-            {
-              min: 1,
-              max: 10,
-              message: "姓名长度在1-10个字符之间",
-              trigger: ["change", "blur"],
-            },
-            {
-              pattern: /^(?!.*(老师|小朋友|儿童|学生)).+$/,
-              message: "姓名不能包含老师、小朋友、儿童、学生等词语",
-              trigger: ["change", "blur"],
-            },
-          ],
-          name: [
-            {
-              required: true,
-              message: "请输入孩子名字",
-              trigger: ["change", "blur"],
-            },
-            {
-              min: 1,
-              max: 10,
-              message: "姓名长度在1-10个字符之间",
-              trigger: ["change", "blur"],
-            },
-            {
-              pattern: /^(?!.*(老师|小朋友|儿童|学生)).+$/,
-              message: "姓名不能包含老师、小朋友、儿童、学生等词语",
-              trigger: ["change", "blur"],
-            },
-          ],
-          gender: [
-            {
-              required: true,
-              message: "请选择孩子性别",
-              trigger: ["change", "blur"],
-            },
-          ],
-        },
-        inputStyle: {
-          backgroundColor: "#FFFDF8",
-          borderRadius: "24rpx",
-          border: "3rpx solid #2F2854",
-          padding: "26rpx 28rpx",
-          fontSize: "28rpx",
-          color: "#2F2854",
-        },
-        buttonStyle: {
-          backgroundColor: "#7657F6",
-          color: "#FFFFFF",
-          borderRadius: "26rpx",
-          border: "4rpx solid #2F2854",
-          boxShadow: "7rpx 8rpx 0 #2F2854",
-          fontWeight: "800",
-          fontSize: "32rpx",
-          padding: "26rpx 0",
-          height: "48px",
-          marginTop: "40rpx",
-        },
-        confirmInfo: [
-          {
-            label: "您正在申请加入：",
-            name: "【小班12班】",
-          },
-          {
-            label: "班级码：",
-            name: "329083",
-          },
-          {
-            label: "创建者：",
-            name: "丽丽妈妈",
-          },
-        ],
+        confirmInfo: [],
       };
     },
-    // 修正handleSubmit中的逻辑
     methods: {
-      handleCodeBlur(e) {
-        console.log("handleCodeBlur", e);
-        this.$forceUpdate();
-      },
       // 模态框确认按钮点击事件
       async handleConfirm() {
         if (this.loading) return;
+        this.show = false;
         this.loading = true;
 
         // 1. 计算并添加年龄相关信息
@@ -308,10 +129,10 @@
         this.formData.age = ageStr;
         this.formData.ageInt = ageInt;
 
-        if (this.formData.gender === "男孩") {
-          this.formData.avatar = DEFAULT_AVATAR_BOY;
-        } else {
-          this.formData.avatar = DEFAULT_AVATAR_GIRL;
+        if (!this.formData.avatar) {
+          this.formData.avatar = this.formData.gender === "女孩"
+            ? DEFAULT_AVATAR_GIRL
+            : DEFAULT_AVATAR_BOY;
         }
 
         try {
@@ -323,78 +144,76 @@
             },
           });
 
-        if (childrenRes.result.code === 200) {
-          // 记录新创建的学生ID，优先在教师端显示
-          const app = getApp();
-          if (app && app.globalData) {
-            if (!app.globalData.newlyCreatedStudentIds) {
-              app.globalData.newlyCreatedStudentIds = [];
+          if (childrenRes.result.code === 200) {
+            // 记录新创建的学生ID，优先在教师端显示
+            const app = getApp();
+            if (app && app.globalData) {
+              if (!app.globalData.newlyCreatedStudentIds) {
+                app.globalData.newlyCreatedStudentIds = [];
+              }
+              app.globalData.newlyCreatedStudentIds.push(
+                childrenRes.result.data.child_id
+              );
             }
-            app.globalData.newlyCreatedStudentIds.push(
-              childrenRes.result.data.child_id
-            );
-          }
 
-          if (this.assessmentId && this.assessmentTitle) {
-            this.assessmentRedirectUrl =
-              `/pages/assessment/listMoudules?classId=${currentClass._id}` +
-              `&className=${currentClass.nickname}` +
-              `&childId=${childrenRes.result.data.child_id}` +
-              `&avatar=${this.formData.avatar}` +
-              `&childName=${this.formData.name}` +
-              `&childAge=${ageStr}` +
-              `&ageInt=${ageInt}` +
-              `&assessmentId=${this.assessmentId}` +
-              `&assessmentTitle=${this.assessmentTitle}`;
-            this.promptDialog = {
-              show: true,
-              type: "assessment",
-              eyebrow: "成长档案创建成功",
-              title: "现在开始评估吗？",
-              content: "孩子的档案已经准备好，可以直接进入 ABLLS 评估。",
-              confirmText: "开始评估",
-              cancelText: "稍后再说",
-              showCancel: true,
-            };
+            if (this.assessmentId && this.assessmentTitle) {
+              const assessmentParams = {
+                classId: currentClass._id,
+                className: currentClass.nickname,
+                childId: childrenRes.result.data.child_id,
+                avatar: this.formData.avatar,
+                childName: this.formData.name,
+                childAge: ageStr,
+                ageInt,
+                assessmentId: this.assessmentId,
+                assessmentTitle: this.assessmentTitle,
+              };
+              const assessmentQuery = Object.entries(assessmentParams)
+                .map(([key, value]) => `${key}=${encodeURIComponent(value || "")}`)
+                .join("&");
+              this.assessmentRedirectUrl = `/pages/assessment/listMoudules?${assessmentQuery}`;
+              this.promptDialog = {
+                show: true,
+                type: "assessment",
+                eyebrow: "成长档案创建成功",
+                title: "现在开始评估吗？",
+                content: "孩子的档案已经准备好，可以直接进入 ABLLS 评估。",
+                confirmText: "开始评估",
+                cancelText: "稍后再说",
+                showCancel: true,
+              };
+            } else {
+              uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
+            }
           } else {
-            uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
-          }
-        } else {
-          uni.showToast({
-            title: `创建失败，请重试`,
-            icon: "none",
-          });
-        }
-      } catch (error) {
-        uni.showToast({
-          title: `系统错误，请重试`,
-          icon: "none",
-        });
-      } finally {
-        this.loading = false;
-      }
-    },
-      async handleSubmit() {
-        try {
-          const valid = await this.$refs.uForm.validate();
-          if (valid) {
-            console.log("表单数据校验 teacher", valid);
-            this.show = true;
-            this.confirmInfo = [
-              { label: "正在加入：", name: this.formData.className },
-              { label: "学生名字：", name: this.formData.name },
-              { label: "学生性别：", name: this.formData.gender },
-              { label: "学生出生年月：", name: this.showDateStr },
-            ];
+            uni.showToast({
+              title: childrenRes.result.message || `创建失败，请重试`,
+              icon: "none",
+            });
           }
         } catch (error) {
-          // 处理数组类型的错误对象
-          console.log("error", error);
           uni.showToast({
-            title: `请输入必要的信息2`,
+            title: `系统错误，请重试`,
             icon: "none",
           });
+        } finally {
+          this.loading = false;
         }
+      },
+      async handleSubmit() {
+        const value = await this.$refs.profileForm.validate();
+        if (!value) return;
+        this.formData = { ...this.formData, ...value };
+        this.show = true;
+        this.confirmInfo = [
+          { label: "正在加入：", name: this.formData.className },
+          { label: "学生名字：", name: this.formData.name },
+          { label: "学生性别：", name: this.formData.gender },
+          {
+            label: "出生日期：",
+            name: this.$refs.profileForm.formatBirthday(this.formData.birthdate),
+          },
+        ];
       },
       handleNavBack() {
         this.promptDialog = {
@@ -424,122 +243,27 @@
           uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
         }
       },
-      onClickDatetime() {
-        this.showDatetimePicker = true;
-      },
-      // 性别选择方法
-      onChooseGender() {
-        this.showGenderPicker = true;
-      },
-      onChooseRelationship() {
-        // console.log('点击了选择关系');
-        this.showRelationship = true;
-      },
-      // 性别确认回调
-      onConfirmGender(e) {
-        this.showGenderPicker = false;
-        this.formData.gender = e.value[0];
-        // 新增性别字段验证触发
-        this.$refs.uForm.validateField("gender");
-      },
-      onCancel() {
-        this.showRelationship = false;
-        this.showDatetimePicker = false;
-        this.showGenderPicker = false; // 关闭性别选择器
-        this.$refs.uForm.validateField("gender");
-        this.$refs.uForm.validateField("relationship");
-      },
-
-      // onCloseDate() {
-      //     this.showDatetimePicker = false;
-      // },
-      onConfirmDate(e) {
-        this.showDatetimePicker = false;
-        this.formData.birthdate = e.value;
-        const date = new Date(this.formData.birthdate);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        this.showDateStr = `${year}-${month}-${day}`;
-        this.$refs.uForm.validateField("birthdate");
-        // 新增验证触发
-      },
-      onChangeDatechange(e) {
-        console.log("onChangeDatechange", e);
-        this.formData.birthdate = e.value;
-      },
     },
 
     onLoad(options) {
-      console.log(options);
-      // 新增：初始化时立即格式化日期
-      const initDate = new Date(this.formData.birthdate);
-      const year = initDate.getFullYear();
-      const month = String(initDate.getMonth() + 1).padStart(2, "0");
-      const day = String(initDate.getDate()).padStart(2, "0");
-      this.assessmentId = options.assessmentId;
-      this.assessmentTitle = options.assessmentTitle;
-      this.showDateStr = `${year}-${month}-${day}`;
-      currentClass = uni.getStorageSync(CURRENT_CLASS);
+      this.assessmentId = options.assessmentId || "";
+      this.assessmentTitle = options.assessmentTitle || "";
+      currentClass = uni.getStorageSync(CURRENT_CLASS) || {};
       this.formData.className = currentClass.nickname || "";
-    }, // methods结束
-    watch: {
-      // 这里需要监听formData的变化
-      formData: {
-        handler(newVal) {
-          // 确保每次birthdate变化都更新showDateStr
-          const date = new Date(newVal.birthdate);
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-          this.showDateStr = `${year}-${month}-${day}`;
-        },
-        deep: true,
-        immediate: true,
-      },
-    },
-    onReady() {
-      //如果需要兼容微信小程序，并且校验规则中含有方法等，只能通过setRules方法设置规则。
-      this.$refs.uForm.setRules(this.rules);
     },
   };
 </script>
 
 <style lang="scss" scoped>
   .form-container {
-    background-color: #ffffff;
-    border-radius: 48rpx 48rpx 0 0;
+    position: relative;
     min-height: 80vh;
-    padding: 32rpx 40rpx;
+    padding: 34rpx 32rpx 90rpx;
     display: flex;
     flex-direction: column;
-  }
-
-  .form-description {
-    color: #3d464a;
-    font-size: 24rpx;
-    line-height: 1;
-    margin-bottom: 32rpx;
-  }
-
-  .form-content {
-    display: flex;
-    flex-direction: column;
-    gap: 32rpx;
-  }
-
-  .input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 24rpx;
-    margin-bottom: 10rpx;
-  }
-
-  .input-label {
-    color: rgba(0, 33, 77, 1);
-    font-size: 32rpx;
-    font-weight: 600;
-    font-family: PingFang SC;
+    background:
+      radial-gradient(circle at 94% 14%, rgba(165, 139, 255, 0.2) 0 92rpx, transparent 94rpx),
+      linear-gradient(180deg, #fff8df 0%, #fff4ed 48%, #f4efff 100%);
   }
 
   .warp {
@@ -549,12 +273,43 @@
     height: 100%;
   }
 
-  .help-link {
-    color: rgba(111, 115, 116, 1);
-    font-size: 28rpx;
-    text-decoration: underline;
-    text-align: center;
-    margin-top: 32rpx;
+  .submit-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16rpx;
+    width: 100%;
+    height: 96rpx;
+    margin: 42rpx 0 0;
+    padding: 0;
+    color: #fff;
+    border: 4rpx solid #392f59;
+    border-radius: 28rpx;
+    background: #7c63e8;
+    box-shadow: 8rpx 8rpx 0 #ffd447;
+    font-size: 31rpx;
+    font-weight: 900;
+
+    &::after {
+      border: 0;
+    }
+
+    &[disabled] {
+      color: #827b94;
+      border-color: #827b94;
+      background: #ded9e9;
+      box-shadow: 6rpx 6rpx 0 #c7c0d5;
+    }
+  }
+
+  .submit-button--pressed {
+    transform: translate(4rpx, 4rpx);
+    box-shadow: 3rpx 3rpx 0 #ffd447;
+  }
+
+  .submit-arrow {
+    font-size: 38rpx;
+    font-weight: 900;
   }
 
   @import "./dopamine-flow.scss";

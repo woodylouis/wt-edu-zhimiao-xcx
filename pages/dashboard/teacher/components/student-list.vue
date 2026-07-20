@@ -6,6 +6,7 @@
                     :student="student" 
                     @reportClick="onReportClick(student)"
                     @assessClick="onAssessClick(student)"
+                    @avatarClick="onAvatarClick(student)"
                 />
             </view>
         </view>
@@ -25,7 +26,11 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['handleStudentClick', 'handleAssessClick'])
+const emit = defineEmits(['handleStudentClick', 'handleAssessClick', 'handleStudentEdit'])
+
+const onAvatarClick = (student) => {
+    emit('handleStudentEdit', student)
+}
 
 // 查看报告
 const onReportClick = (student) => {
