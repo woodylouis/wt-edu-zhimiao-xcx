@@ -26,8 +26,7 @@
     "school_id": { "bsonType": "string", "title": "学校业务ID" },
     "school_name": { "bsonType": "string", "title": "学校名称" },
     "applicant_user_id": { "bsonType": "string", "title": "申请人用户ID" },
-    "applicant_person_id": { "bsonType": "string", "title": "申请人业务人员ID" },
-    "applicant_name": { "bsonType": "string", "title": "申请人姓名" },
+    "applicant_name": { "bsonType": "string", "title": "申请时昵称快照" },
     "applicant_mobile": { "bsonType": "string", "title": "申请人手机号" },
     "requested_role": {
       "bsonType": "string",
@@ -42,7 +41,7 @@
     },
     "apply_time": { "bsonType": "timestamp", "title": "申请时间" },
     "reviewer_user_id": { "bsonType": "string", "title": "审批人用户ID" },
-    "reviewer_name": { "bsonType": "string", "title": "审批人姓名" },
+    "reviewer_name": { "bsonType": "string", "title": "审批人昵称" },
     "review_remark": { "bsonType": "string", "title": "审批备注" },
     "review_time": { "bsonType": "timestamp", "title": "审批时间" },
     "update_time": { "bsonType": "timestamp", "title": "更新时间" }

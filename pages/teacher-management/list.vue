@@ -33,7 +33,7 @@
             class="search-input"
             type="text"
             confirm-type="search"
-            placeholder="搜索老师姓名或手机号"
+            placeholder="搜索老师昵称或手机号"
             @confirm="search"
           />
           <text v-if="keyword" class="clear-search" @click="clearSearch">×</text>

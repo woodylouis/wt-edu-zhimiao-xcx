@@ -1,11 +1,5 @@
 'use strict';
 const uniID = require('uni-id-common')
-let businessPerson
-try {
-	businessPerson = require('business-person')
-} catch (error) {
-	businessPerson = require('../common/business-person')
-}
 const db = uniCloud.database()
 
 exports.main = async (event, context) => {
@@ -43,8 +37,6 @@ exports.main = async (event, context) => {
 			.project({
 				_id: 1,
 				role: 1,
-				person_id: 1,
-				display_name_override: 1,
 				relationship: 1,
 				join_time: 1,
 				nickname: 1,
@@ -69,26 +61,15 @@ exports.main = async (event, context) => {
 			.end()
 
 		const rows = res.data || []
-		const legacyTeacherName = rows
-			.filter(item => item.role === 'teacher')
-			.map(item => String(item.nickname || '').trim())
-			.find(Boolean) || ''
-		let personProfile = await businessPerson.resolveProfile(payload.uid, legacyTeacherName)
-		if (!personProfile.personId) {
-			personProfile = await businessPerson.ensurePersonForUser(payload.uid, {
-				displayName: legacyTeacherName,
-				nameSource: legacyTeacherName ? 'legacy_class_member' : 'legacy_account'
-			})
-		}
-		await db.collection('wtdb-business-class-member')
-			.where({ user_id: payload.uid, role: 'teacher' })
-			.update({ person_id: personProfile.personId })
+		const userRes = await db.collection('uni-id-users')
+			.where({ _id: payload.uid })
+			.field({ nickname: true })
+			.limit(1)
+			.get()
+		const accountNickname = String(userRes.data?.[0]?.nickname || '').trim()
 		const data = rows.map(item => ({
 			...item,
-			personId: item.role === 'teacher' ? personProfile.personId : '',
-			displayName: item.role === 'teacher'
-				? String(item.display_name_override || personProfile.displayName || item.nickname || '').trim()
-				: String(item.display_name_override || item.nickname || '').trim()
+			nickname: accountNickname || String(item.nickname || '').trim()
 		}))
 
 		return {

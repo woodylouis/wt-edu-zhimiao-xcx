@@ -320,8 +320,8 @@
     assessmentId: accessStudentInfo.assessmentId,
 	...accessStudentInfo,
     assessorId: uni.getStorageSync("uni-id-pages-userInfo")._id,
-	assessorName: (uni.getStorageSync("currentClass") || {}).memberDisplayName ||
-		(uni.getStorageSync("uni-id-pages-userInfo") || {}).nickname || "未设置姓名",
+	assessorName: (uni.getStorageSync("uni-id-pages-userInfo") || {}).nickname ||
+		(uni.getStorageSync("currentClass") || {}).memberNickname || "未设置昵称",
     startTimestamp: Date.now(),
     completionTime: 0,
     duration: 0,

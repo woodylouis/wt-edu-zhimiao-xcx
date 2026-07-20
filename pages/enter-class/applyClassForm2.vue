@@ -64,10 +64,10 @@
                     </view> -->
                     <view v-if="formData.role === 'teacher'">
                         <view class="input-group">
-                            <text class="input-label">业务姓名</text>
+                            <text class="input-label">昵称</text>
                             <u-form-item prop="teacherData.user_name" :borderBottom="false">
-                                <u--input v-model="formData.teacherData.user_name" placeholder="用于班级和评估报告" border="false"
-                                    :custom-style="inputStyle" />
+                                <u--input v-model="formData.teacherData.user_name" placeholder="请先在个人资料中设置昵称" border="false"
+                                    :custom-style="{ ...inputStyle, backgroundColor: '#F5F5F5', color: '#999999' }" disabled />
                             </u-form-item>
                         </view>
                     </view>
@@ -168,20 +168,9 @@ export default {
                 'teacherData.user_name': [
                     {
                         required: true,
-                        message: "请输入您的名字",
+                        message: "请先设置昵称",
                         trigger: ["change", "blur"],
                     },
-                    {
-                        min: 1,
-                        max: 10,
-                        message: "姓名长度在1-10个字符之间",
-                        trigger: ["change", "blur"],
-                    },
-                    {
-                        pattern: /^(?!.*(老师|小朋友|儿童|学生)).+$/,
-                        message: "姓名不能包含老师、小朋友、儿童、学生等词语",
-                        trigger: ["change", "blur"],
-                    }
                 ],
                 'parentData.childName': [
                     {
@@ -265,23 +254,6 @@ export default {
     },
     // 修正handleSubmit中的逻辑
     methods: {
-		async loadBusinessProfile() {
-			const token = uni.getStorageSync('uni_id_token');
-			if (!token) return;
-			try {
-				const { result } = await uniCloud.callFunction({
-					name: 'wtdb-business-person-profile',
-					data: { action: 'get', uniIdToken: token }
-				});
-				if (result && result.code === 200 && result.data?.displayName) {
-					this.formData.teacherData.user_name = result.data.displayName;
-					uni.setStorageSync('businessPersonProfile', result.data);
-				}
-			} catch (error) {
-				console.warn('业务姓名加载失败，使用本地资料:', error);
-			}
-		},
-
         handleCodeBlur(e) {
             console.log('handleCodeBlur', e);
             this.$forceUpdate()
@@ -306,7 +278,6 @@ export default {
                         classId: classInfo._id,
                         classCode: cacheData.code,
                         requestedRole: 'teacher',
-                        displayName: this.formData.teacherData.user_name,
                         uniIdToken: uni.getStorageSync('uni_id_token')
                     }
                 });
@@ -314,12 +285,7 @@ export default {
                 if (result.code !== 200) {
                     throw new Error(result.msg || '申请提交失败');
                 }
-				const profile = result.data || {};
-				uni.setStorageSync('businessPersonProfile', {
-					personId: profile.personId || '',
-					displayName: profile.displayName || this.formData.teacherData.user_name
-				});
-                this.handleApplySuccess(profile.existing);
+                this.handleApplySuccess(result.data?.existing);
             } catch (error) {
                 uni.showToast({
                     title: error.message || '申请提交失败',
@@ -379,7 +345,7 @@ export default {
                         this.show = true;
                         this.confirmInfo = [
                             { label: "您正在申请加入：", name: this.formData.className },
-                            { label: "我的姓名：", name: `${this.formData.teacherData.user_name}` },
+                            { label: "我的昵称：", name: `${this.formData.teacherData.user_name}` },
                             { label: "我的手机号码：", name: this.userInfo.mobile }
                         ];
                     }
@@ -509,10 +475,8 @@ export default {
             class_id: cacheData.classInfo._id,
             role: cacheData.role || 'parent'
         };
-		const businessProfile = uni.getStorageSync('businessPersonProfile') || {};
 		const accountInfo = uni.getStorageSync('uni-id-pages-userInfo') || {};
-		this.formData.teacherData.user_name = businessProfile.displayName || accountInfo.nickname || '';
-		await this.loadBusinessProfile();
+		this.formData.teacherData.user_name = accountInfo.nickname || '';
         console.log('初始化表单数据:', this.formData);
 
         // 新增：初始化时立即格式化日期

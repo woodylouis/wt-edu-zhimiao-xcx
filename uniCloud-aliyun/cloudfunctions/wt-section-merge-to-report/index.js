@@ -7,7 +7,19 @@ const dbRecord = db.collection('wtdb-business-assess-record')
 const dbLog = db.collection('wtdb-debug-logs')
 const deepseek = require('deepseek-client')
 const taskAuth = require('report-task-auth')
-const businessPerson = require('business-person')
+
+async function resolveAssessorNickname(userId, fallback = '') {
+	if (userId) {
+		const res = await db.collection('uni-id-users')
+			.where({ _id: userId })
+			.field({ nickname: true })
+			.limit(1)
+			.get()
+		const nickname = String(res.data?.[0]?.nickname || '').trim()
+		if (nickname) return nickname
+	}
+	return String(fallback || '').trim() || '未设置昵称'
+}
 
 async function log(tag, data = null, { taskId = '', recordId = '', level = 'info' } = {}) {
 	const now = Date.now()
@@ -194,8 +206,7 @@ exports.main = async (event = {}) => {
 			}
 			const record = recordRes.data[0]
 			console.log('recordt', record)
-			const assessorProfile = await businessPerson.resolveProfile(assessorId, originalParams.query?.assessorName)
-			const assessorName = assessorProfile.displayName
+			const assessorName = await resolveAssessorNickname(assessorId, originalParams.query?.assessorName)
 
 			let reachCount = 0, belowCount = 0
 			const allSkillBelowStandard = []
@@ -239,7 +250,6 @@ exports.main = async (event = {}) => {
 				recordId,
 				assessmentId,
 				assessorId,
-				assessorPersonId: assessorProfile.personId,
 				assessorName,
 				classId: record.classId,
 				className: record.className,

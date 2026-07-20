@@ -48,9 +48,9 @@
       <view class="profile-copy">
         <text class="profile-greeting">{{ greetingText }}</text>
         <text class="profile-name">{{ profileName }}</text>
-        <view v-if="hasLogin" class="business-name-pill">
-          <view class="business-name-dot"></view>
-          <text>业务姓名 · {{ businessDisplayName }}</text>
+        <view v-if="hasLogin" class="nickname-pill">
+          <view class="nickname-dot"></view>
+          <text>昵称用于班级与报告</text>
         </view>
         <text v-else class="login-hint">登录后查看班级与成长记录</text>
       </view>
@@ -141,7 +141,7 @@
           <view class="icon-ring"></view>
         </view>
         <text class="action-title">个人资料</text>
-        <text class="action-desc">姓名、头像与手机号</text>
+        <text class="action-desc">昵称、头像与手机号</text>
         <view class="action-arrow">↗</view>
       </view>
 
@@ -270,11 +270,6 @@ export default {
   data() {
     return {
       sessionValid: false,
-      businessProfile: {
-        personId: "",
-        displayName: "",
-        nameConfirmed: false,
-      },
       memberships: [],
       membershipsLoaded: false,
       currentClass: {},
@@ -304,17 +299,9 @@ export default {
     profileName() {
       if (!this.hasLogin) return "欢迎来到知苗成长";
       return (
-        this.businessProfile.displayName ||
         this.userInfo.nickname ||
         this.userInfo.username ||
-        "未设置姓名"
-      );
-    },
-    businessDisplayName() {
-      return (
-        this.businessProfile.displayName ||
-        this.userInfo.nickname ||
-        "待完善"
+        "未设置昵称"
       );
     },
     greetingText() {
@@ -392,11 +379,6 @@ export default {
       this.currentClass = uni.getStorageSync("currentClass") || {};
 
       if (!this.hasLogin) {
-        this.businessProfile = {
-          personId: "",
-          displayName: "",
-          nameConfirmed: false,
-        };
         this.memberships = [];
         this.membershipsLoaded = false;
         this.approvalSummary = { canReview: false, pending: 0 };
@@ -409,38 +391,12 @@ export default {
       }
 
       Promise.all([
-        this.loadBusinessProfile(),
         this.loadMemberships(),
         this.loadApprovalSummary(),
         this.loadTeacherSummary(),
       ]).catch((error) => {
         console.warn("我的页面数据加载未完全成功:", error);
       });
-    },
-    async loadBusinessProfile() {
-      const cachedProfile =
-        uni.getStorageSync("businessPersonProfile") || {};
-      if (cachedProfile.displayName) {
-        this.businessProfile = cachedProfile;
-      }
-      try {
-        const { result } = await uniCloud.callFunction({
-          name: "wtdb-business-person-profile",
-          data: {
-            action: "get",
-            uniIdToken: uni.getStorageSync("uni_id_token"),
-          },
-        });
-        if (result && result.code === 200) {
-          this.businessProfile = result.data || this.businessProfile;
-          uni.setStorageSync(
-            "businessPersonProfile",
-            this.businessProfile
-          );
-        }
-      } catch (error) {
-        console.warn("业务姓名加载失败:", error);
-      }
     },
     async loadMemberships() {
       this.membershipsLoaded = false;
@@ -841,7 +797,7 @@ export default {
   white-space: nowrap;
 }
 
-.business-name-pill {
+.nickname-pill {
   display: inline-flex;
   align-self: flex-start;
   align-items: center;
@@ -857,13 +813,13 @@ export default {
   font-weight: 700;
 }
 
-.business-name-pill text {
+.nickname-pill text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.business-name-dot {
+.nickname-dot {
   width: 11rpx;
   height: 11rpx;
   flex-shrink: 0;

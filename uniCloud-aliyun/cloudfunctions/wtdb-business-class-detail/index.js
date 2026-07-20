@@ -27,6 +27,7 @@ exports.main = async (event = {}, context) => {
 				nickname: true,
 				teacherName: true,
 				class_creator_teacher: true,
+				created_by: true,
 				school_id: true,
 				section: true,
 				grade: true,
@@ -37,7 +38,20 @@ exports.main = async (event = {}, context) => {
 		if (!res.data || !res.data[0]) {
 			return { code: 404, msg: '未找到该班级，请检查班级码', data: null }
 		}
-		return { code: 200, msg: '查询成功', data: res.data[0] }
+		const classInfo = res.data[0]
+		if (classInfo.created_by) {
+			const creatorRes = await db.collection('uni-id-users')
+				.where({ _id: classInfo.created_by })
+				.field({ nickname: true })
+				.limit(1)
+				.get()
+			const creatorNickname = String(creatorRes.data?.[0]?.nickname || '').trim()
+			if (creatorNickname) {
+				classInfo.teacherName = creatorNickname
+				classInfo.class_creator_teacher = creatorNickname
+			}
+		}
+		return { code: 200, msg: '查询成功', data: classInfo }
 	} catch (error) {
 		console.error('查询班级失败:', error)
 		return { code: 500, msg: '班级查询失败，请稍后重试' }

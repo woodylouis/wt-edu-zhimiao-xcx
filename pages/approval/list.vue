@@ -56,7 +56,7 @@
             <view class="applicant-avatar">{{ firstChar(item.applicant_name) }}</view>
             <view class="applicant-info">
               <view class="applicant-name-row">
-                <text class="applicant-name">{{ item.applicant_name || '未填写姓名' }}</text>
+                <text class="applicant-name">{{ item.applicant_name || '未设置昵称' }}</text>
                 <view class="role-chip">老师</view>
               </view>
               <text class="apply-time">{{ formatTime(item.apply_time) }}</text>

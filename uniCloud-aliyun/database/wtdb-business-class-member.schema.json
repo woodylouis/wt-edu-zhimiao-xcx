@@ -28,16 +28,7 @@
     },
     "nickname": {
       "bsonType": "string",
-      "title": "历史班级内称呼"
-    },
-    "person_id": {
-      "bsonType": "string",
-      "foreignKey": "wtdb-business-person._id",
-      "title": "统一业务人员ID"
-    },
-    "display_name_override": {
-      "bsonType": "string",
-      "title": "班级内称呼覆盖"
+      "title": "加入时昵称快照"
     },
     "child_id": {
       "bsonType": "string",
@@ -99,13 +90,6 @@
       "key": {
         "class_id": 1,
         "role": 1
-      }
-    },
-    {
-      "name": "person_class",
-      "key": {
-        "person_id": 1,
-        "class_id": 1
       }
     }
   ]

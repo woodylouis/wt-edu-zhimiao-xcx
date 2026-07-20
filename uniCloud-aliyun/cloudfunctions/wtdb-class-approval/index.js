@@ -1,16 +1,10 @@
 'use strict'
 
 let businessAuth
-let businessPerson
 try {
 	businessAuth = require('business-auth')
 } catch (error) {
 	businessAuth = require('../common/business-auth')
-}
-try {
-	businessPerson = require('business-person')
-} catch (error) {
-	businessPerson = require('../common/business-person')
 }
 
 const db = uniCloud.database()
@@ -64,6 +58,16 @@ async function getUserProfile(uid, source = db) {
 		.limit(1)
 		.get()
 	return res.data && res.data[0] || null
+}
+
+async function getUserProfileMap(userIds) {
+	const ids = [...new Set(userIds.filter(Boolean))]
+	if (!ids.length) return new Map()
+	const res = await db.collection(USER_COLLECTION)
+		.where({ _id: dbCmd.in(ids) })
+		.field({ _id: true, nickname: true, username: true, mobile: true })
+		.get()
+	return new Map((res.data || []).map(item => [businessAuth.compactId(item._id), item]))
 }
 
 async function getClassInfo({ classId, classCode }, source = db) {
@@ -191,16 +195,8 @@ async function submitApproval(event, scope) {
 	const profile = await getUserProfile(scope.uid)
 	if (!profile) throwBusinessError(404, '申请人账号不存在')
 
-	const submittedName = sanitizeText(
-		event.displayName || event.businessName || event.nickname || event.applicantName,
-		30
-	)
-	const personProfile = await businessPerson.ensurePersonForUser(scope.uid, {
-		displayName: submittedName,
-		nameSource: 'class_application'
-	})
-	const applicantName = sanitizeText(personProfile.displayName, 30)
-	if (!applicantName) throwBusinessError(400, '请填写申请人姓名')
+	const applicantName = sanitizeText(profile.nickname, 30)
+	if (!applicantName) throwBusinessError(400, '请先在个人资料中设置昵称')
 
 	const memberRes = await db.collection(MEMBER_COLLECTION)
 		.where({
@@ -224,7 +220,6 @@ async function submitApproval(event, scope) {
 		.get()
 	if (pendingRes.data && pendingRes.data[0]) {
 		await db.collection(APPROVAL_COLLECTION).doc(pendingRes.data[0]._id).update({
-			applicant_person_id: personProfile.personId,
 			applicant_name: applicantName,
 			nickname: applicantName,
 			update_time: Date.now()
@@ -234,8 +229,7 @@ async function submitApproval(event, scope) {
 			msg: '申请已提交，请等待班主任或学校负责人审批',
 			data: {
 				approvalId: businessAuth.compactId(pendingRes.data[0]._id),
-				personId: personProfile.personId,
-				displayName: applicantName,
+				nickname: applicantName,
 				status: 'pending',
 				existing: true
 			}
@@ -250,7 +244,6 @@ async function submitApproval(event, scope) {
 		school_id: school.school_id,
 		school_name: school.name || school.school_id,
 		applicant_user_id: scope.uid,
-		applicant_person_id: personProfile.personId,
 		applicant_name: applicantName,
 		applicant_mobile: profile.mobile || '',
 		requested_role: requestedRole,
@@ -265,8 +258,7 @@ async function submitApproval(event, scope) {
 		msg: '申请已提交，请等待班主任或学校负责人审批',
 		data: {
 			approvalId: addRes.id,
-			personId: personProfile.personId,
-			displayName: applicantName,
+			nickname: applicantName,
 			status: 'pending',
 			existing: false
 		}
@@ -361,12 +353,20 @@ async function listApprovals(event, scope) {
 			.get(),
 		db.collection(APPROVAL_COLLECTION).where(where).count()
 	])
+	const rows = listRes.data || []
+	const userMap = await getUserProfileMap(rows
+		.map(item => businessAuth.compactId(item.applicant_user_id)))
+	const list = rows.map(item => {
+		const user = userMap.get(businessAuth.compactId(item.applicant_user_id)) || {}
+		const nickname = sanitizeText(user.nickname, 30) || item.applicant_name || item.nickname || ''
+		return { ...item, applicant_name: nickname, nickname }
+	})
 
 	return {
 		code: 200,
 		msg: 'success',
 		data: {
-			list: listRes.data || [],
+			list,
 			total: countRes.total || 0,
 			page,
 			pageSize
@@ -387,11 +387,8 @@ async function reviewApproval(event, scope) {
 	}
 
 	const reviewerProfile = await getUserProfile(scope.uid)
-	const reviewerBusinessProfile = reviewerProfile
-		? await businessPerson.resolveProfile(scope.uid, reviewerProfile.nickname || reviewerProfile.username)
-		: null
 	const reviewerName = sanitizeText(
-		reviewerBusinessProfile && reviewerBusinessProfile.displayName,
+		reviewerProfile && (reviewerProfile.nickname || reviewerProfile.username),
 		30
 	) || '管理员'
 
@@ -445,18 +442,16 @@ async function reviewApproval(event, scope) {
 		approvalUpdated = true
 
 		if (decision === 'approve' && !existingMember) {
-			const applicantProfile = request.applicant_person_id
-				? { personId: businessAuth.compactId(request.applicant_person_id) }
-				: await businessPerson.ensurePersonForUser(applicantUserId, {
-					displayName: request.applicant_name || request.nickname,
-					nameSource: 'approved_class_application'
-				})
+			const applicantProfile = await getUserProfile(applicantUserId)
+			const applicantNickname = sanitizeText(
+				applicantProfile && applicantProfile.nickname,
+				30
+			) || sanitizeText(request.applicant_name || request.nickname, 30)
 			const addRes = await db.collection(MEMBER_COLLECTION).add({
 				class_id: classId,
 				user_id: applicantUserId,
-				person_id: applicantProfile.personId,
 				role: request.requested_role,
-				nickname: request.nickname || request.applicant_name,
+				nickname: applicantNickname,
 				join_time: now,
 				approved_by: scope.uid,
 				approval_id: approvalId

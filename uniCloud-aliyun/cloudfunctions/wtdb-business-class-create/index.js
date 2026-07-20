@@ -1,16 +1,10 @@
 'use strict'
 
 let businessAuth
-let businessPerson
 try {
 	businessAuth = require('business-auth')
 } catch (error) {
 	businessAuth = require('../common/business-auth')
-}
-try {
-	businessPerson = require('business-person')
-} catch (error) {
-	businessPerson = require('../common/business-person')
 }
 
 const db = uniCloud.database()
@@ -26,6 +20,17 @@ function clean(value, maxLength = 100) {
 
 function generateClassCode() {
 	return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
+async function getUserNickname(userId) {
+	const userRes = await userCollection
+		.where({ _id: userId })
+		.field({ nickname: true })
+		.limit(1)
+		.get()
+	const nickname = clean(userRes.data && userRes.data[0] && userRes.data[0].nickname, 30)
+	if (!nickname) throw new businessAuth.AuthError(400, '请先在个人资料中设置昵称')
+	return nickname
 }
 
 async function resolveSchool(event, scope) {
@@ -83,10 +88,7 @@ exports.main = async (event = {}, context) => {
 		if (!nickname) throw new businessAuth.AuthError(400, '请填写班级名称')
 		if (!/^\d{4}$/.test(year)) throw new businessAuth.AuthError(400, '年份应为4位数字')
 		if (headTeacherUserId) await assertHeadTeacherCandidate(headTeacherUserId, school.school_id)
-		const creatorProfile = await businessPerson.ensurePersonForUser(scope.uid, {
-			displayName: clean(event.displayName || event.businessName, 30),
-			nameSource: 'class_creation'
-		})
+		const creatorNickname = await getUserNickname(scope.uid)
 
 		const classData = {
 			school_id: school.school_id,
@@ -97,8 +99,8 @@ exports.main = async (event = {}, context) => {
 			nickname,
 			description: clean(event.description, 200),
 			remark: clean(event.remark, 200),
-			teacherName: creatorProfile.displayName,
-			class_creator_teacher: creatorProfile.displayName,
+			teacherName: creatorNickname,
+			class_creator_teacher: creatorNickname,
 			created_by: scope.uid,
 			create_time: Date.now(),
 			code: generateClassCode()
@@ -111,17 +113,15 @@ exports.main = async (event = {}, context) => {
 		await joinClass({
 			classId: createdClassId,
 			userId: scope.uid,
-			personId: creatorProfile.personId,
-			nickname: creatorProfile.displayName,
+			nickname: creatorNickname,
 			role: 'teacher'
 		})
 		if (headTeacherUserId && headTeacherUserId !== scope.uid) {
-			const headTeacherProfile = await businessPerson.ensurePersonForUser(headTeacherUserId)
+			const headTeacherNickname = await getUserNickname(headTeacherUserId)
 			await joinClass({
 				classId: createdClassId,
 				userId: headTeacherUserId,
-				personId: headTeacherProfile.personId,
-				nickname: headTeacherProfile.displayName,
+				nickname: headTeacherNickname,
 				role: 'teacher'
 			})
 		}
@@ -132,8 +132,7 @@ exports.main = async (event = {}, context) => {
 				classId: createdClassId,
 				classCode: classData.code,
 				year: classData.year,
-				personId: creatorProfile.personId,
-				displayName: creatorProfile.displayName,
+				nickname: creatorNickname,
 				joinStatus: 'success'
 			},
 			msg: '班级创建成功'

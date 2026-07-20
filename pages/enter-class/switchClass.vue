@@ -359,8 +359,6 @@ export default {
                         ...result.data,
                         memberRole: this.selectedClass.role,
                         memberNickname: this.selectedClass.nickname,
-						memberPersonId: this.selectedClass.personId,
-						memberDisplayName: this.selectedClass.displayName,
                         schoolName: this.selectedSchoolName
                     }
                     this.currentClassCode = currentClass.code || ''
@@ -410,21 +408,12 @@ export default {
                 })
 
                 if (res.result.code === 200) {
-					const teacherProfile = (res.result.data || []).find(item => item.role === 'teacher' && item.displayName)
-					if (teacherProfile) {
-						uni.setStorageSync('businessPersonProfile', {
-							personId: teacherProfile.personId || teacherProfile.person_id || '',
-							displayName: teacherProfile.displayName
-						})
-					}
                     this.classes.parent = res.result.data
                         .filter(item => item.role === 'parent')
                         .map(item => ({
                             name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
                             nickname: item.nickname || '家长',
-							displayName: item.displayName || item.nickname || '家长',
-							personId: item.personId || '',
                             role: item.role,
                             schoolId: item.classInfo.school_id || item.schoolInfo?.school_id || 'unknown',
                             schoolName: item.schoolInfo?.name || '未分配学校',
@@ -437,9 +426,7 @@ export default {
                         .map(item => ({
                             name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
-							nickname: item.displayName || item.nickname || '老师',
-							displayName: item.displayName || item.nickname || '老师',
-							personId: item.personId || item.person_id || '',
+							nickname: item.nickname || '老师',
                             role: item.role,
                             schoolId: item.classInfo.school_id || item.schoolInfo?.school_id || 'unknown',
                             schoolName: item.schoolInfo?.name || '未分配学校',

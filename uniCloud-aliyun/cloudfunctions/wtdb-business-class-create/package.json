@@ -2,7 +2,6 @@
   "name": "wtdb-business-class-create",
   "dependencies": {
     "business-auth": "file:../common/business-auth",
-    "business-person": "file:../common/business-person",
     "wtdb-business-join-class": "file:../common/wtdb-business-join-class"
   },
   "extensions": {

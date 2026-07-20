@@ -1,11 +1,23 @@
 'use strict'
 
-const businessPerson = require('business-person')
 const db = uniCloud.database()
 const dbName2 = 'wtdb-business-assess-record'
 const dbName3 = 'wtdb-report-tasks'
 const dbName4 = 'wtdb-business-assess-report'
 const dbNameLog = 'wtdb-debug-logs'
+
+async function resolveAssessorNickname(userId, fallback = '') {
+	if (userId) {
+		const res = await db.collection('uni-id-users')
+			.where({ _id: userId })
+			.field({ nickname: true })
+			.limit(1)
+			.get()
+		const nickname = String(res.data?.[0]?.nickname || '').trim()
+		if (nickname) return nickname
+	}
+	return String(fallback || '').trim() || '未设置昵称'
+}
 
 // ✅ 日志记录函数
 async function log(tag, data = null, { taskId = '', recordId = '', level = 'info' } = {}) {
@@ -68,7 +80,6 @@ async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
 				recordId: reportData.recordId,
 				assessmentId: reportData.assessmentId,
 				assessorId: reportData.assessorId,
-				assessorPersonId: reportData.assessorPersonId || '',
 				classId: reportData.classId,
 				className: reportData.className,
 				childId: reportData.childId,
@@ -236,8 +247,7 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 		const completionTime = Date.now()
 		const duration = completionTime - taskCreateTime
 
-		const assessorProfile = await businessPerson.resolveProfile(query.assessorId, query.assessorName)
-		const assessorName = assessorProfile.displayName
+		const assessorName = await resolveAssessorNickname(query.assessorId, query.assessorName)
 
 		const reportData = {
 			reportVersion: 'v2',
@@ -245,7 +255,6 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 			recordId,
 			assessmentId: query.assessmentId,
 			assessorId: query.assessorId,
-			assessorPersonId: assessorProfile.personId,
 			assessorName,
 			classId: recordRes.data[0].classId,
 			className: recordRes.data[0].className,

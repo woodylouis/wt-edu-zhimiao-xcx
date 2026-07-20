@@ -49,7 +49,7 @@ const businessClass = ref(uni.getStorageSync('currentClass') || {});
 // 修改为计算属性
 const currentClass = computed(() => className.value || '暂无班级信息');
 const displayName = computed(() => {
-	const name = businessClass.value.memberDisplayName || userInfo.value.nickname || '';
+	const name = userInfo.value.nickname || businessClass.value.memberNickname || '';
 	return name ? `${name}老师` : '老师';
 });
 

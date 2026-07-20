@@ -26,7 +26,6 @@ module.exports = async function joinClass(params) {
 		user_id: params.userId,
 		role: params.role
 	}
-	if (params.personId) memberData.person_id = params.personId
 	if (params.nickname) memberData.nickname = String(params.nickname).trim().slice(0, 30)
 
 	// 家长角色需要关联孩子

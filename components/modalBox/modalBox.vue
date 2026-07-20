@@ -15,7 +15,7 @@
         <span class="info-value">{{ nickname }}</span>
       </div>
       <div class="info-field">
-        <span class="info-label">我的姓名：</span>
+        <span class="info-label">我的昵称：</span>
         <span class="info-value">{{ teacherName }}</span>
       </div>
       <div class="info-field">
