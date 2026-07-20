@@ -82,6 +82,10 @@
                             <view class="school-info">
                                 <view class="school-name-row">
                                     <text class="school-name">{{ school.schoolName }}</text>
+                                    <view v-if="school.isSchoolDirector" class="school-director-badge">
+                                        <view class="school-director-dot"></view>
+                                        <text>学校负责人</text>
+                                    </view>
                                     <view v-if="schoolIndex === 0 && school.distance !== null" class="nearest-badge">
                                         <text>最近</text>
                                     </view>
@@ -131,10 +135,13 @@
                                     <view class="class-identity-row">
                                         <view
                                             class="class-identity-badge"
-                                            :class="{ 'class-identity-badge--parent': item.role === 'parent' }"
+                                            :class="{
+                                                'class-identity-badge--parent': item.role === 'parent',
+                                                'class-identity-badge--head-teacher': item.role === 'teacher' && item.isHeadTeacher
+                                            }"
                                         >
                                             <view class="identity-dot"></view>
-                                            <text>{{ item.role === 'teacher' ? '任课老师' : '家长' }}</text>
+                                            <text>{{ getClassRoleLabel(item) }}</text>
                                         </view>
                                     </view>
                                 </view>
@@ -311,10 +318,13 @@ export default {
                         longitude: item.schoolLongitude,
                         hasLocation: !!(item.schoolLatitude && item.schoolLongitude),
                         distance: this.schoolDistances[schoolId] ?? null,
+                        isSchoolDirector: false,
                         classes: []
                     })
                 }
-                schoolMap.get(schoolId).classes.push(item)
+                const school = schoolMap.get(schoolId)
+                if (item.isSchoolDirector) school.isSchoolDirector = true
+                school.classes.push(item)
             })
             
             const result = Array.from(schoolMap.values())
@@ -392,6 +402,11 @@ export default {
         getClassColor(index) {
             return this.classColors[index % this.classColors.length]
         },
+
+        getClassRoleLabel(item) {
+            if (item.role === 'parent') return '家长'
+            return item.isHeadTeacher ? '班主任' : '老师'
+        },
         
         getSchoolAvatarClass(index) {
             const classes = ['avatar-green', 'avatar-blue', 'avatar-purple', 'avatar-orange']
@@ -425,7 +440,9 @@ export default {
                             schoolId: item.classInfo.school_id || item.schoolInfo?.school_id || 'unknown',
                             schoolName: item.schoolInfo?.name || '未分配学校',
                             schoolLatitude: item.schoolInfo?.latitude,
-                            schoolLongitude: item.schoolInfo?.longitude
+                            schoolLongitude: item.schoolInfo?.longitude,
+                            isHeadTeacher: Boolean(item.isHeadTeacher || item.classInfo?.isHeadTeacher),
+                            isSchoolDirector: Boolean(item.isSchoolDirector || item.schoolInfo?.isSchoolDirector)
                         }))
 
                     this.classes.teacher = res.result.data
@@ -438,7 +455,9 @@ export default {
                             schoolId: item.classInfo.school_id || item.schoolInfo?.school_id || 'unknown',
                             schoolName: item.schoolInfo?.name || '未分配学校',
                             schoolLatitude: item.schoolInfo?.latitude,
-                            schoolLongitude: item.schoolInfo?.longitude
+                            schoolLongitude: item.schoolInfo?.longitude,
+                            isHeadTeacher: Boolean(item.isHeadTeacher || item.classInfo?.isHeadTeacher),
+                            isSchoolDirector: Boolean(item.isSchoolDirector || item.schoolInfo?.isSchoolDirector)
                         }))
                     
                     this.selectedRole = this.defaultRole
@@ -1281,9 +1300,33 @@ export default {
 }
 
 .school-name {
+    min-width: 0;
     color: #31284f;
     font-size: 29rpx;
     font-weight: 900;
+}
+
+.school-director-badge {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 7rpx;
+    height: 34rpx;
+    padding: 0 12rpx;
+    color: #25684f;
+    font-size: 18rpx;
+    font-weight: 900;
+    line-height: 34rpx;
+    border: 2rpx solid #392f59;
+    border-radius: 999rpx;
+    background: #d9f5e9;
+}
+
+.school-director-dot {
+    width: 9rpx;
+    height: 9rpx;
+    border-radius: 50%;
+    background: #42b88e;
 }
 
 .nearest-badge,
@@ -1384,6 +1427,8 @@ export default {
 .class-identity-row {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 8rpx;
     margin-top: 10rpx;
 }
 
@@ -1415,6 +1460,15 @@ export default {
 
 .class-identity-badge--parent .identity-dot {
     background: #ff765f;
+}
+
+.class-identity-badge--head-teacher {
+    color: #725817;
+    background: #fff0a8;
+}
+
+.class-identity-badge--head-teacher .identity-dot {
+    background: #e5ae16;
 }
 
 .class-check .check-circle,

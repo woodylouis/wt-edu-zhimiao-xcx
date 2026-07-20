@@ -2,6 +2,14 @@
 const uniID = require('uni-id-common')
 const db = uniCloud.database()
 
+function compactId(value) {
+	if (!value) return ''
+	if (typeof value === 'string') return value
+	if (value.$oid) return value.$oid
+	if (value._id) return compactId(value._id)
+	return String(value)
+}
+
 exports.main = async (event, context) => {
 	const uniIdInstance = uniID.createInstance({ context })
 	const payload = await uniIdInstance.checkToken(event.uniIdToken)
@@ -48,6 +56,7 @@ exports.main = async (event, context) => {
 					grade: 1,
 					class: 1,
 					school_id: 1,
+					head_teacher_user_id: 1,
 					teacherName: 1,
 					class_creator_teacher: 1
 				},
@@ -55,7 +64,8 @@ exports.main = async (event, context) => {
 					school_id: 1,
 					name: 1,
 					latitude: 1,
-					longitude: 1
+					longitude: 1,
+					director_user_id: 1
 				}
 			})
 			.end()
@@ -63,14 +73,45 @@ exports.main = async (event, context) => {
 		const rows = res.data || []
 		const userRes = await db.collection('uni-id-users')
 			.where({ _id: payload.uid })
-			.field({ nickname: true })
+			.field({ nickname: true, mobile: true })
 			.limit(1)
 			.get()
-		const accountNickname = String(userRes.data?.[0]?.nickname || '').trim()
-		const data = rows.map(item => ({
-			...item,
-			nickname: accountNickname || String(item.nickname || '').trim()
-		}))
+		const account = userRes.data?.[0] || {}
+		const accountNickname = String(account.nickname || '').trim()
+		const linkedUserIds = new Set([compactId(payload.uid)])
+		const mobile = String(account.mobile || '').trim()
+		if (mobile) {
+			const linkedRes = await db.collection('uni-id-users')
+				.where({ mobile })
+				.field({ _id: true })
+				.get()
+			;(linkedRes.data || []).forEach(user => {
+				const userId = compactId(user._id)
+				if (userId) linkedUserIds.add(userId)
+			})
+		}
+		const data = rows.map(item => {
+			const classInfo = item.classInfo || {}
+			const schoolInfo = item.schoolInfo || {}
+			const isHeadTeacher = linkedUserIds.has(compactId(classInfo.head_teacher_user_id))
+			const isSchoolDirector = linkedUserIds.has(compactId(schoolInfo.director_user_id))
+			const { head_teacher_user_id, ...safeClassInfo } = classInfo
+			const { director_user_id, ...safeSchoolInfo } = schoolInfo
+			return {
+				...item,
+				nickname: accountNickname || String(item.nickname || '').trim(),
+				isHeadTeacher,
+				isSchoolDirector,
+				classInfo: {
+					...safeClassInfo,
+					isHeadTeacher
+				},
+				schoolInfo: {
+					...safeSchoolInfo,
+					isSchoolDirector
+				}
+			}
+		})
 
 		return {
 			code: 200,

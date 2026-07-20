@@ -64,7 +64,16 @@
       </view>
       <view class="summary-divider"></view>
       <view class="summary-item summary-item--wide">
-        <text class="summary-value summary-value--text">{{ roleLabel }}</text>
+        <view class="summary-role-list">
+          <text
+            v-for="role in roleLabels"
+            :key="role"
+            class="summary-role-tag"
+            :class="{ 'summary-role-tag--director': role === '学校负责人' }"
+          >
+            {{ role }}
+          </text>
+        </view>
         <text class="summary-label">当前身份</text>
       </view>
       <view class="summary-divider"></view>
@@ -106,12 +115,15 @@
         :hover-stay-time="80"
         @click="openClasses"
       >
+        <text class="action-number">01</text>
         <view class="action-icon action-icon--mint">
           <text>班</text>
           <view class="icon-dot"></view>
         </view>
-        <text class="action-title">我的班级</text>
-        <text class="action-desc">切换或加入班级</text>
+        <view class="action-copy">
+          <text class="action-title">我的班级</text>
+          <text class="action-desc">切换或加入班级</text>
+        </view>
         <view class="action-arrow">↗</view>
       </view>
 
@@ -121,12 +133,15 @@
         :hover-stay-time="80"
         @click="openAssessment"
       >
+        <text class="action-number">02</text>
         <view class="action-icon action-icon--purple">
           <text>评</text>
           <view class="icon-star">✦</view>
         </view>
-        <text class="action-title">{{ assessmentActionTitle }}</text>
-        <text class="action-desc">{{ assessmentActionDesc }}</text>
+        <view class="action-copy">
+          <text class="action-title">{{ assessmentActionTitle }}</text>
+          <text class="action-desc">{{ assessmentActionDesc }}</text>
+        </view>
         <view class="action-arrow">↗</view>
       </view>
 
@@ -136,12 +151,15 @@
         :hover-stay-time="80"
         @click="openUserInfo"
       >
+        <text class="action-number">03</text>
         <view class="action-icon action-icon--yellow">
           <text>我</text>
           <view class="icon-ring"></view>
         </view>
-        <text class="action-title">个人资料</text>
-        <text class="action-desc">昵称、头像与手机号</text>
+        <view class="action-copy">
+          <text class="action-title">个人资料</text>
+          <text class="action-desc">昵称、头像与手机号</text>
+        </view>
         <view class="action-arrow">↗</view>
       </view>
 
@@ -149,14 +167,17 @@
         class="action-card action-card--coral"
         hover-class="action-card--pressed"
         :hover-stay-time="80"
-        @click="openFeedback"
+        @click="openSettings"
       >
+        <text class="action-number">04</text>
         <view class="action-icon action-icon--coral">
-          <text>话</text>
-          <view class="icon-tail"></view>
+          <text>设</text>
+          <view class="icon-gear-dot"></view>
         </view>
-        <text class="action-title">意见反馈</text>
-        <text class="action-desc">告诉我们你的想法</text>
+        <view class="action-copy">
+          <text class="action-title">设置</text>
+          <text class="action-desc">账号、隐私与应用设置</text>
+        </view>
         <view class="action-arrow">↗</view>
       </view>
     </view>
@@ -215,25 +236,9 @@
       </view>
     </view>
 
-    <view class="settings-card">
+    <view v-if="hasLogin" class="settings-card settings-card--logout">
       <view
         class="settings-row"
-        hover-class="settings-row--pressed"
-        :hover-stay-time="80"
-        @click="openSettings"
-      >
-        <view class="settings-icon settings-icon--purple">
-          <view class="gear-core"></view>
-        </view>
-        <view class="settings-copy">
-          <text class="settings-title">设置</text>
-          <text class="settings-desc">账号、隐私与应用设置</text>
-        </view>
-        <view class="settings-arrow">›</view>
-      </view>
-      <view
-        v-if="hasLogin"
-        class="settings-row settings-row--border"
         hover-class="settings-row--pressed"
         :hover-stay-time="80"
         @click="confirmLogout"
@@ -279,8 +284,10 @@ export default {
       },
       teacherSummary: {
         canManage: false,
+        scopeType: "none",
         teacherCount: 0,
         assignmentCount: 0,
+        schools: [],
       },
     };
   },
@@ -314,14 +321,24 @@ export default {
     classCount() {
       return this.membershipsLoaded ? this.memberships.length : "—";
     },
-    roleLabel() {
+    roleLabels() {
+      const labels = [];
+      const hasCurrentClass = Boolean(this.currentClass._id || this.currentClass.code);
+
+      if (hasCurrentClass) {
+        if (this.activeRole === "teacher") {
+          labels.push(this.isCurrentClassHeadTeacher ? "班主任" : "老师");
+        } else if (this.activeRole === "parent") {
+          labels.push("家长");
+        }
+        if (this.isCurrentSchoolDirector) labels.push("学校负责人");
+        return labels.length ? labels : ["待加入"];
+      }
+
       const roles = this.memberships.map((item) => item.role);
-      const isTeacher = roles.includes("teacher");
-      const isParent = roles.includes("parent");
-      if (isTeacher && isParent) return "老师·家长";
-      if (isTeacher) return "老师";
-      if (isParent) return "家长";
-      return "待加入";
+      if (roles.includes("teacher")) labels.push("老师");
+      if (roles.includes("parent")) labels.push("家长");
+      return labels.length ? labels : ["待加入"];
     },
     currentClassName() {
       if (this.currentClass.nickname) return this.currentClass.nickname;
@@ -330,16 +347,43 @@ export default {
       }
       return "暂无班级";
     },
-    activeRole() {
-      if (this.currentClass.memberRole) return this.currentClass.memberRole;
-      const currentMembership = this.memberships.find((item) => {
+    currentMembership() {
+      return this.memberships.find((item) => {
         const classInfo = item.classInfo || {};
         return (
           (this.currentClass.code && classInfo.code === this.currentClass.code) ||
           (this.currentClass._id && classInfo._id === this.currentClass._id)
         );
       });
-      return currentMembership ? currentMembership.role : "teacher";
+    },
+    currentSchoolId() {
+      const membership = this.currentMembership || {};
+      const classInfo = membership.classInfo || {};
+      return (
+        this.currentClass.school_id ||
+        this.currentClass.schoolId ||
+        classInfo.school_id ||
+        membership.schoolInfo?.school_id ||
+        ""
+      );
+    },
+    isCurrentSchoolDirector() {
+      if (!this.currentSchoolId || this.teacherSummary.scopeType !== "school") {
+        return false;
+      }
+      return (this.teacherSummary.schools || []).some(
+        (school) => school.schoolId === this.currentSchoolId
+      );
+    },
+    isCurrentClassHeadTeacher() {
+      const membership = this.currentMembership || {};
+      return Boolean(
+        membership.isHeadTeacher || membership.classInfo?.isHeadTeacher
+      );
+    },
+    activeRole() {
+      if (this.currentClass.memberRole) return this.currentClass.memberRole;
+      return this.currentMembership ? this.currentMembership.role : "teacher";
     },
     assessmentActionTitle() {
       return this.activeRole === "parent" ? "成长报告" : "成长评估";
@@ -384,8 +428,10 @@ export default {
         this.approvalSummary = { canReview: false, pending: 0 };
         this.teacherSummary = {
           canManage: false,
+          scopeType: "none",
           teacherCount: 0,
           assignmentCount: 0,
+          schools: [],
         };
         return;
       }
@@ -489,11 +535,6 @@ export default {
       }
       uni.navigateTo({
         url: `/pages/assessment/list?role=${this.activeRole}`,
-      });
-    },
-    openFeedback() {
-      uni.navigateTo({
-        url: "/uni_modules/uni-feedback/pages/opendb-feedback/opendb-feedback",
       });
     },
     openSettings() {
@@ -896,6 +937,34 @@ export default {
   padding: 0 8rpx;
 }
 
+.summary-role-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5rpx;
+  max-width: 100%;
+  padding: 0 5rpx;
+}
+
+.summary-role-tag {
+  padding: 4rpx 10rpx;
+  border: 2rpx solid #d9d0f4;
+  border-radius: 15rpx;
+  background: #eee8ff;
+  color: #574483;
+  font-size: 19rpx;
+  font-weight: 900;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.summary-role-tag--director {
+  border-color: #f4c4ba;
+  background: #ffe5df;
+  color: #a94f48;
+}
+
 .summary-label {
   margin-top: 8rpx;
   color: #8b84a6;
@@ -1054,21 +1123,46 @@ export default {
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20rpx;
+  gap: 22rpx;
 }
 
 .action-card {
   position: relative;
   display: flex;
-  min-height: 238rpx;
+  min-height: 246rpx;
   box-sizing: border-box;
   overflow: hidden;
   flex-direction: column;
-  padding: 22rpx;
+  justify-content: space-between;
+  padding: 22rpx 22rpx 20rpx;
   border: 3rpx solid #2f2854;
-  border-radius: 30rpx;
-  box-shadow: 0 10rpx 0 rgba(47, 40, 84, 0.1);
+  border-radius: 34rpx;
+  box-shadow: 0 11rpx 0 rgba(47, 40, 84, 0.11);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.action-card::before,
+.action-card::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.action-card::before {
+  width: 132rpx;
+  height: 132rpx;
+  top: -72rpx;
+  right: -47rpx;
+  border: 18rpx solid rgba(255, 255, 255, 0.34);
+}
+
+.action-card::after {
+  width: 15rpx;
+  height: 15rpx;
+  right: 73rpx;
+  bottom: 39rpx;
+  background: rgba(47, 40, 84, 0.14);
 }
 
 .action-card--pressed {
@@ -1077,34 +1171,48 @@ export default {
 }
 
 .action-card--mint {
-  background: #dff8ee;
+  background: linear-gradient(145deg, #c9f4e2 0%, #e8fbf4 72%, #ffffff 100%);
 }
 
 .action-card--purple {
-  background: #eee8ff;
+  background: linear-gradient(145deg, #d8ccff 0%, #f0ecff 72%, #ffffff 100%);
 }
 
 .action-card--yellow {
-  background: #fff3bf;
+  background: linear-gradient(145deg, #ffe98c 0%, #fff6cb 72%, #ffffff 100%);
 }
 
 .action-card--coral {
-  background: #ffe3df;
+  background: linear-gradient(145deg, #ffc4bb 0%, #ffe9e5 72%, #ffffff 100%);
+}
+
+.action-number {
+  position: absolute;
+  z-index: 2;
+  top: 23rpx;
+  right: 22rpx;
+  color: rgba(47, 40, 84, 0.48);
+  font-size: 18rpx;
+  font-weight: 900;
+  letter-spacing: 2rpx;
 }
 
 .action-icon {
   position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 72rpx;
-  height: 72rpx;
+  width: 76rpx;
+  height: 76rpx;
   box-sizing: border-box;
   border: 3rpx solid #2f2854;
-  border-radius: 23rpx;
+  border-radius: 25rpx;
+  box-shadow: 4rpx 5rpx 0 rgba(47, 40, 84, 0.12);
   color: #2f2854;
   font-size: 29rpx;
   font-weight: 900;
+  transform: rotate(-3deg);
 }
 
 .action-icon--mint {
@@ -1113,6 +1221,7 @@ export default {
 
 .action-icon--purple {
   background: #b7a5ff;
+  transform: rotate(3deg);
 }
 
 .action-icon--yellow {
@@ -1121,6 +1230,7 @@ export default {
 
 .action-icon--coral {
   background: #ff8f86;
+  transform: rotate(3deg);
 }
 
 .icon-dot {
@@ -1153,22 +1263,29 @@ export default {
   background: #ffffff;
 }
 
-.icon-tail {
+.icon-gear-dot {
   position: absolute;
-  width: 15rpx;
-  height: 15rpx;
-  right: 3rpx;
-  bottom: -9rpx;
-  border-right: 3rpx solid #2f2854;
-  border-bottom: 3rpx solid #2f2854;
-  background: #ff8f86;
-  transform: rotate(40deg);
+  width: 16rpx;
+  height: 16rpx;
+  right: -8rpx;
+  bottom: 8rpx;
+  border: 3rpx solid #2f2854;
+  border-radius: 5rpx;
+  background: #ffffff;
+  transform: rotate(18deg);
+}
+
+.action-copy {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding-right: 42rpx;
 }
 
 .action-title {
-  margin-top: 20rpx;
   color: #2f2854;
-  font-size: 29rpx;
+  font-size: 30rpx;
   font-weight: 900;
 }
 
@@ -1181,10 +1298,19 @@ export default {
 
 .action-arrow {
   position: absolute;
-  top: 25rpx;
-  right: 23rpx;
+  z-index: 2;
+  right: 18rpx;
+  bottom: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 48rpx;
+  border: 2rpx solid rgba(47, 40, 84, 0.3);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.68);
   color: #2f2854;
-  font-size: 30rpx;
+  font-size: 25rpx;
   font-weight: 900;
 }
 
@@ -1299,11 +1425,9 @@ export default {
   margin-top: 28rpx;
 }
 
-.gear-core {
-  width: 24rpx;
-  height: 24rpx;
-  border: 5rpx dotted #2f2854;
-  border-radius: 50%;
+.settings-card--logout {
+  border-color: #f1d8d4;
+  background: rgba(255, 250, 249, 0.92);
 }
 
 .page-footer {
