@@ -18,7 +18,12 @@
       <view class="hero-stage">
         <view class="growth-illustration">
           <view class="hero-copy">
-            <text class="hero-kicker">GROW UP HAPPY</text>
+            <view v-if="bannerLoggedIn" class="hero-user-chip">
+              <view class="hero-user-spark">✦</view>
+              <text class="hero-user-greeting">{{ bannerGreeting }}，</text>
+              <text class="hero-user-name">{{ bannerNickname }}</text>
+            </view>
+            <text v-else class="hero-kicker">GROW UP HAPPY</text>
             <text class="hero-title">看见每一次</text>
             <text class="hero-title hero-title-last">小小成长</text>
             <text class="hero-subtitle">用科学评估，发现孩子的闪光点</text>
@@ -222,6 +227,19 @@
       teacherManagementSubtitle() {
         return `${this.teacherSummary.teacherCount || 0} 位老师 · ${this.teacherSummary.assignmentCount || 0} 条任教关系`;
       },
+      bannerNickname() {
+        return (
+          this.bannerUserInfo.nickname ||
+          this.bannerUserInfo.username ||
+          "新朋友"
+        );
+      },
+      bannerGreeting() {
+        const hour = new Date().getHours();
+        if (hour < 11) return "早上好";
+        if (hour < 18) return "下午好";
+        return "晚上好";
+      },
     },
     data() {
       return {
@@ -234,6 +252,8 @@
         showLoginPrompt: false,
         loadingVisible: false,
         loadingText: "正在查找班级",
+        bannerLoggedIn: false,
+        bannerUserInfo: {},
         infoPrompt: {
           show: false,
           eyebrow: "温馨提示",
@@ -268,10 +288,20 @@
       };
     },
     onShow() {
+      this.refreshBannerUser();
       this.loadApprovalSummary();
       this.loadTeacherSummary();
     },
     methods: {
+      refreshBannerUser() {
+        const token = uni.getStorageSync("uni_id_token");
+        const tokenExpired = uni.getStorageSync("uni_id_token_expired");
+        const userInfo = uni.getStorageSync("uni-id-pages-userInfo") || {};
+        this.bannerUserInfo = userInfo;
+        this.bannerLoggedIn = Boolean(
+          token && userInfo._id && tokenExpired > Date.now()
+        );
+      },
       async loadApprovalSummary() {
         const token = uni.getStorageSync("uni_id_token");
         const tokenExpired = uni.getStorageSync("uni_id_token_expired");
@@ -655,6 +685,56 @@
       font-weight: 700;
       letter-spacing: 2rpx;
       line-height: 1;
+    }
+
+    .hero-user-chip {
+      display: flex;
+      align-self: flex-start;
+      align-items: center;
+      max-width: 302rpx;
+      height: 52rpx;
+      box-sizing: border-box;
+      margin-bottom: 14rpx;
+      padding: 5rpx 15rpx 5rpx 6rpx;
+      overflow: hidden;
+      border: 2rpx solid #2f2854;
+      border-radius: 25rpx 25rpx 25rpx 9rpx;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 4rpx 5rpx 0 #ffcf46;
+      color: #3d3266;
+      transform: rotate(-1deg);
+    }
+
+    .hero-user-spark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36rpx;
+      height: 36rpx;
+      flex-shrink: 0;
+      margin-right: 8rpx;
+      border-radius: 50%;
+      background: #8ee3c2;
+      color: #2f2854;
+      font-size: 19rpx;
+      font-weight: 900;
+    }
+
+    .hero-user-greeting {
+      flex-shrink: 0;
+      font-size: 19rpx;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .hero-user-name {
+      min-width: 0;
+      overflow: hidden;
+      color: #7657f6;
+      font-size: 20rpx;
+      font-weight: 900;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .hero-title {
