@@ -99,7 +99,7 @@ const avatarUrl = computed(() => {
 });
 
 const onClick = () => {
-    uni.redirectTo({
+    uni.switchTab({
         url: '/pages/enter-class/index'
     });
 }

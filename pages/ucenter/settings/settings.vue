@@ -226,8 +226,8 @@
 							if(uni.setLocale){
 								uni.setLocale(language)
 							}
-							uni.reLaunch({
-								url: '/pages/list/list',
+							uni.switchTab({
+								url: '/pages/enter-class/index',
 								complete: () => {
 									uni.$emit("changeLanguage",language)
 								}

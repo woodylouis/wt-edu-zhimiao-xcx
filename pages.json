@@ -127,7 +127,8 @@
     {
       "path": "pages/ucenter/ucenter",
       "style": {
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的"
       }
     },
     {
@@ -391,22 +392,16 @@
     "current": 1
   },
   "tabBar": {
-    "color": "#7A7E83",
+    "color": "#8B84A6",
     "selectedColor": "#007AFF",
-    "borderStyle": "black",
-    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "backgroundColor": "#FFFCF6",
     "list": [
       {
-        "pagePath": "pages/list/list",
+        "pagePath": "pages/enter-class/index",
         "iconPath": "static/tabbar/list.png",
         "selectedIconPath": "static/tabbar/list_active.png",
-        "text": "列表"
-      },
-      {
-        "pagePath": "pages/grid/grid",
-        "iconPath": "static/tabbar/grid.png",
-        "selectedIconPath": "static/tabbar/grid_active.png",
-        "text": "宫格"
+        "text": "首页"
       },
       {
         "pagePath": "pages/ucenter/ucenter",
