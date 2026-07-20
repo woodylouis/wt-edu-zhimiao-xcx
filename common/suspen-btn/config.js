@@ -73,7 +73,7 @@ export default {
                 url: '/pages/assessment/list'
             })
         } else if (i === 2) {
-            uni.redirectTo({
+            uni.switchTab({
                 url: '/pages/enter-class/index'
             })
         }
