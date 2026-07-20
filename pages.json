@@ -393,20 +393,20 @@
   },
   "tabBar": {
     "color": "#8B84A6",
-    "selectedColor": "#007AFF",
+    "selectedColor": "#7657F6",
     "borderStyle": "white",
     "backgroundColor": "#FFFCF6",
     "list": [
       {
         "pagePath": "pages/enter-class/index",
-        "iconPath": "static/tabbar/list.png",
-        "selectedIconPath": "static/tabbar/list_active.png",
+        "iconPath": "static/tabbar/home.png",
+        "selectedIconPath": "static/tabbar/home_active.png",
         "text": "首页"
       },
       {
         "pagePath": "pages/ucenter/ucenter",
-        "iconPath": "static/tabbar/me.png",
-        "selectedIconPath": "static/tabbar/me_active.png",
+        "iconPath": "static/tabbar/profile.png",
+        "selectedIconPath": "static/tabbar/profile_active.png",
         "text": "我的"
       }
     ]
