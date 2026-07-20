@@ -3,10 +3,13 @@
     <u-sticky>
       <custom-nav
         :needBack="true"
+        :needBar="false"
         :xcxName="'创建学生'"
         :backHandler="handleNavBack"
+        navCustomStyle="background: linear-gradient(135deg, #BDF4DC 0%, #74D9B5 48%, #FFD778 100%);height: calc(100vh / 8);"
       />
     </u-sticky>
+    <dopamine-flow-header eyebrow="ADD A LITTLE STAR" title="添加成长档案" subtitle="填写孩子的基础信息，开始记录成长" badge="星" tone="mint" :step="1" :total-steps="1" />
     <view class="form-container">
       <view class="form-description"
         >正在加入<span style="font-weight: bold"
@@ -92,7 +95,7 @@
         </view>
       </u--form>
     </view>
-    <up-overlay :show="show">
+    <up-overlay :show="show" :opacity="0.52">
       <view class="warp">
         <modal-box
           v-if="show"
@@ -103,12 +106,27 @@
         />
       </view>
     </up-overlay>
+    <dopamine-loading :show="loading" text="正在创建成长档案" subtext="小芽正在保存孩子的信息" />
+    <dopamine-modal
+      :show="promptDialog.show"
+      :eyebrow="promptDialog.eyebrow"
+      :title="promptDialog.title"
+      :content="promptDialog.content"
+      :confirm-text="promptDialog.confirmText"
+      :cancel-text="promptDialog.cancelText"
+      :show-cancel="promptDialog.showCancel"
+      @confirm="handlePromptConfirm"
+      @cancel="handlePromptCancel"
+    />
   </view>
 </template>
 
 <script>
   // 导入modlBox组件
   import modalBox from "../../components/modalBox-v2/modalBox";
+  import DopamineFlowHeader from "./components/dopamineFlowHeader.vue";
+  import DopamineLoading from "../../components/dopamine-loading/index.vue";
+  import DopamineModal from "../../components/dopamine-modal/index.vue";
   import {
     CURRENT_CLASS,
     DEFAULT_AVATAR_BOY,
@@ -125,12 +143,26 @@
     },
     components: {
       modalBox,
+      DopamineFlowHeader,
+      DopamineLoading,
+      DopamineModal,
     },
     // 在data中修正show定义位置
     data() {
       return {
         show: false, // 移动到顶层
         loading: false, // 提交状态锁
+        assessmentRedirectUrl: "",
+        promptDialog: {
+          show: false,
+          type: "",
+          eyebrow: "温馨提示",
+          title: "",
+          content: "",
+          confirmText: "确定",
+          cancelText: "取消",
+          showCancel: true,
+        },
         showRelationship: false, // 重命名为关系选择器状态
         showGenderPicker: false, // 新增性别选择器状态
         showDatetimePicker: false,
@@ -213,18 +245,20 @@
           ],
         },
         inputStyle: {
-          backgroundColor: "#FFFFFF",
-          borderRadius: "16rpx",
-          border: "2rpx solid rgba(206, 213, 218, 1)",
-          padding: "24rpx 32rpx",
+          backgroundColor: "#FFFDF8",
+          borderRadius: "24rpx",
+          border: "3rpx solid #2F2854",
+          padding: "26rpx 28rpx",
           fontSize: "28rpx",
-          color: "rgba(111, 115, 116, 1)",
+          color: "#2F2854",
         },
         buttonStyle: {
-          backgroundColor: "rgba(110, 221, 138, 1)",
-          color: "rgba(0, 33, 77, 1)",
-          borderRadius: "48rpx",
-          fontWeight: "500",
+          backgroundColor: "#7657F6",
+          color: "#FFFFFF",
+          borderRadius: "26rpx",
+          border: "4rpx solid #2F2854",
+          boxShadow: "7rpx 8rpx 0 #2F2854",
+          fontWeight: "800",
           fontSize: "32rpx",
           padding: "26rpx 0",
           height: "48px",
@@ -256,10 +290,6 @@
       async handleConfirm() {
         if (this.loading) return;
         this.loading = true;
-        uni.showLoading({
-          title: "提交中...",
-          mask: true,
-        });
 
         // 1. 计算并添加年龄相关信息
         const birthDate = new Date(this.formData.birthdate);
@@ -306,28 +336,26 @@
           }
 
           if (this.assessmentId && this.assessmentTitle) {
-            uni.showModal({
-              title: "创建成功",
-              content: "是否直接进入ABLLS评估？",
-              success: (res) => {
-                if (res.confirm) {
-                  uni.redirectTo({
-                    url:
-                      `/pages/assessment/listMoudules?classId=${currentClass._id}` +
-                      `&className=${currentClass.nickname}` +
-                      `&childId=${childrenRes.result.data.child_id}` +
-                      `&avatar=${this.formData.avatar}` +
-                      `&childName=${this.formData.name}` +
-                      `&childAge=${ageStr}` +
-                      `&ageInt=${ageInt}` +
-                      `&assessmentId=${this.assessmentId}` +
-                      `&assessmentTitle=${this.assessmentTitle}`,
-                  });
-                } else if (res.cancel) {
-                  uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
-                }
-              },
-            });
+            this.assessmentRedirectUrl =
+              `/pages/assessment/listMoudules?classId=${currentClass._id}` +
+              `&className=${currentClass.nickname}` +
+              `&childId=${childrenRes.result.data.child_id}` +
+              `&avatar=${this.formData.avatar}` +
+              `&childName=${this.formData.name}` +
+              `&childAge=${ageStr}` +
+              `&ageInt=${ageInt}` +
+              `&assessmentId=${this.assessmentId}` +
+              `&assessmentTitle=${this.assessmentTitle}`;
+            this.promptDialog = {
+              show: true,
+              type: "assessment",
+              eyebrow: "成长档案创建成功",
+              title: "现在开始评估吗？",
+              content: "孩子的档案已经准备好，可以直接进入 ABLLS 评估。",
+              confirmText: "开始评估",
+              cancelText: "稍后再说",
+              showCancel: true,
+            };
           } else {
             uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
           }
@@ -344,7 +372,6 @@
         });
       } finally {
         this.loading = false;
-        uni.hideLoading();
       }
     },
       async handleSubmit() {
@@ -370,16 +397,32 @@
         }
       },
       handleNavBack() {
-        // 需要提示如果返回需要重填
-        uni.showModal({
-          title: "您确定要返回吗？",
-          content: "返回后需要重新填写信息。",
-          success: (res) => {
-            if (res.confirm) {
-              uni.navigateBack();
-            }
-          },
-        });
+        this.promptDialog = {
+          show: true,
+          type: "back",
+          eyebrow: "再确认一下",
+          title: "确定返回吗？",
+          content: "返回后需要重新填写孩子的信息。",
+          confirmText: "确定返回",
+          cancelText: "继续填写",
+          showCancel: true,
+        };
+      },
+      handlePromptConfirm() {
+        const type = this.promptDialog.type;
+        this.promptDialog.show = false;
+        if (type === "back") {
+          uni.navigateBack();
+        } else if (type === "assessment" && this.assessmentRedirectUrl) {
+          uni.redirectTo({ url: this.assessmentRedirectUrl });
+        }
+      },
+      handlePromptCancel() {
+        const type = this.promptDialog.type;
+        this.promptDialog.show = false;
+        if (type === "assessment") {
+          uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
+        }
       },
       onClickDatetime() {
         this.showDatetimePicker = true;
@@ -513,4 +556,6 @@
     text-align: center;
     margin-top: 32rpx;
   }
+
+  @import "./dopamine-flow.scss";
 </style>

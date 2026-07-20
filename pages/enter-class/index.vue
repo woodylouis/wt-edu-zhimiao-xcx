@@ -184,6 +184,20 @@
       @confirm="handleLoginConfirm"
       @cancel="handleLoginCancel"
     />
+    <dopamine-modal
+      :show="infoPrompt.show"
+      :eyebrow="infoPrompt.eyebrow"
+      :title="infoPrompt.title"
+      :content="infoPrompt.content"
+      confirm-text="我知道了"
+      :show-cancel="false"
+      @confirm="infoPrompt.show = false"
+    />
+    <dopamine-loading
+      :show="loadingVisible"
+      :text="loadingText"
+      subtext="小芽正在整理班级信息"
+    />
   </view>
 </template>
 
@@ -191,11 +205,13 @@
   // 导入modlBox组件
   import modalBoxMcq from "../../components/modalBox-MCQ";
   import DopamineModal from "../../components/dopamine-modal";
+  import DopamineLoading from "../../components/dopamine-loading";
 
   export default {
     components: {
       modalBoxMcq,
       DopamineModal,
+      DopamineLoading,
     },
     computed: {
       approvalEntrySubtitle() {
@@ -216,6 +232,14 @@
         confirmText: "立即创建",
         isJoinClass: false,
         showLoginPrompt: false,
+        loadingVisible: false,
+        loadingText: "正在查找班级",
+        infoPrompt: {
+          show: false,
+          eyebrow: "温馨提示",
+          title: "还没有班级",
+          content: "先申请加入一个班级，再回来开启成长旅程吧。",
+        },
         approvalSummary: {
           canReview: false,
           pending: 0,
@@ -302,27 +326,31 @@
         this.checkLoginStatus().then(async (valid) => {
           // 改为 async
           if (valid) {
-            // 要先检查是否当前用户是否已经加入班级
-            const res = await uniCloud.callFunction({
-              name: "wtdb-business-member-class",
-              data: {
-                uniIdToken: uni.getStorageSync("uni_id_token"),
-              },
-            });
-            if (res.result.code === 200) {
-              if (res.result.data.length > 0) {
-                console.log("是否有加入过任何班级", res.result.data.length > 0);
-                uni.navigateTo({
-                  url: "/pages/enter-class/switchClass",
-                });
-              } else {
-                uni.showModal({
-                  title: "提示",
-                  content: "您还没有加入任何班级",
-                  showConfirm: true,
-                  showCancel: false,
-                });
+            this.loadingText = "正在查找已加入的班级";
+            this.loadingVisible = true;
+            try {
+              const res = await uniCloud.callFunction({
+                name: "wtdb-business-member-class",
+                data: {
+                  uniIdToken: uni.getStorageSync("uni_id_token"),
+                },
+              });
+              if (res.result.code === 200) {
+                if (res.result.data.length > 0) {
+                  uni.navigateTo({
+                    url: "/pages/enter-class/switchClass",
+                  });
+                } else {
+                  this.infoPrompt = {
+                    show: true,
+                    eyebrow: "等待第一次相遇",
+                    title: "还没有加入班级",
+                    content: "先用班级码提交申请，通过后班级会出现在这里。",
+                  };
+                }
               }
+            } finally {
+              this.loadingVisible = false;
             }
           }
         });
@@ -404,17 +432,23 @@
           // 改为 async
           if (valid) {
             if (item === 0) {
-              const res = await uniCloud.callFunction({
-                name: "wt-fetch-admin-user",
-              });
+              this.loadingText = "正在确认创建权限";
+              this.loadingVisible = true;
+              let res;
+              try {
+                res = await uniCloud.callFunction({ name: "wt-fetch-admin-user" });
+              } finally {
+                this.loadingVisible = false;
+              }
 
-              if (res.result.code !== 200) {
-                return uni.showModal({
-                  title: "提示",
-                  content: "您暂时没有权限创建班级",
-                  showConfirm: true,
-                  showCancel: false,
-                });
+              if (!res || res.result.code !== 200) {
+                this.infoPrompt = {
+                  show: true,
+                  eyebrow: "权限提示",
+                  title: "暂时不能创建班级",
+                  content: "请联系学校负责人开通权限后再试。",
+                };
+                return;
               }
             }
             if (item === 1) {
@@ -958,7 +992,7 @@
     .approval-entry-title {
       color: #2f2854;
       font-size: 29rpx;
-      font-weight: 850;
+      font-weight: 800;
     }
 
     .approval-entry-subtitle {

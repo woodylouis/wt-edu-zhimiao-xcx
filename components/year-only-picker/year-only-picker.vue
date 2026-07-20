@@ -90,30 +90,33 @@
   .year-only-picker__trigger {
     display: flex;
     width: 100%;
-    min-height: 40px;
+    min-height: 92rpx;
     align-items: center;
     justify-content: space-between;
-    padding: 0 12px;
-    border: 1px solid #dcdfe6;
-    border-radius: 7px;
-    color: #303843;
-    background: #ffffff;
-    font-size: 14px;
+    padding: 0 26rpx;
+    border: 3rpx solid #2f2854;
+    border-radius: 22rpx;
+    color: #2f2854;
+    background: #fffdf8;
+    font-size: 27rpx;
+    font-weight: 700;
     box-sizing: border-box;
+    box-shadow: 4rpx 5rpx 0 rgba(47, 40, 84, 0.16);
   }
 
   .year-only-picker__trigger--disabled {
-    color: #a8abb2;
-    background: #f5f7fa;
+    color: #9a94aa;
+    background: #f2eff7;
   }
 
   .year-only-picker__placeholder,
   .year-only-picker__arrow {
-    color: #a8abb2;
+    color: #7657f6;
   }
 
   .year-only-picker__arrow {
     margin-left: 10px;
-    font-size: 18px;
+    font-size: 34rpx;
+    font-weight: 900;
   }
 </style>

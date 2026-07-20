@@ -2,8 +2,10 @@
     <view class="growth-assessment">
         <u-sticky>
             <!-- 添加自定义返回处理 -->
-            <custom-nav :needBack="true" :back-handler="handleCustomBack" />
+            <custom-nav :needBack="true" :needBar="false" :xcxName="'创建班级'" :back-handler="handleCustomBack"
+                navCustomStyle="background: linear-gradient(135deg, #FFF2B8 0%, #FFD778 48%, #FFB8AC 100%);height: calc(100vh / 8);" />
         </u-sticky>
+        <dopamine-flow-header eyebrow="CREATE A HAPPY CLASS" title="先选好班级结构" subtitle="年份、学段和班级，一步就能配好" badge="01" tone="yellow" :step="1" :total-steps="2" />
         <!-- <view class="assessment-header">成长评估</view> -->
         <view class="selection-container">
             <!-- Year Selection -->
@@ -65,10 +67,12 @@
 
 <script>
 import YearOnlyPicker from "../../components/year-only-picker/year-only-picker.vue";
+import DopamineFlowHeader from "./components/dopamineFlowHeader.vue";
 
 export default {
     components: {
         YearOnlyPicker,
+        DopamineFlowHeader,
     },
     data() {
         const currentYear = new Date().getFullYear();
@@ -160,7 +164,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .growth-assessment {
     display: flex;
     flex-direction: column;
@@ -292,5 +296,110 @@ export default {
     align-items: center;
     line-height: 1;
     margin-right: 20rpx;
+}
+
+@import "./dopamine-flow.scss";
+
+.selection-container {
+    position: relative;
+    z-index: 4;
+    min-height: 58vh;
+    box-sizing: border-box;
+    overflow: visible;
+    margin: -24rpx 24rpx 40rpx;
+    border: 4rpx solid #2f2854;
+    border-radius: 40rpx;
+    background: #fffdf8;
+    box-shadow: 9rpx 11rpx 0 rgba(47, 40, 84, 0.22);
+}
+
+.section-group {
+    margin: 0 28rpx 24rpx;
+    padding: 26rpx;
+    border: 3rpx solid #e4deef;
+    border-radius: 28rpx;
+    background: #ffffff;
+}
+
+.section-group:first-child {
+    margin-top: 34rpx;
+    background: #fff8dc;
+}
+
+.section-group:nth-child(2) {
+    background: #f2edff;
+}
+
+.section-group:nth-child(3) {
+    background: #eafaf3;
+}
+
+.section-group:nth-child(4) {
+    background: #fff0ed;
+}
+
+.indicator-bar {
+    width: 16rpx;
+    height: 30rpx;
+    border: 3rpx solid #2f2854;
+    border-radius: 8rpx;
+    background: #ffcf46;
+}
+
+.section-title {
+    color: #2f2854;
+    font-size: 27rpx;
+    font-weight: 800;
+}
+
+.option-button {
+    padding: 23rpx 8rpx;
+    border: 3rpx solid #2f2854;
+    border-radius: 22rpx;
+    background: #fffdf8;
+    color: #625b75;
+    font-size: 24rpx;
+    font-weight: 700;
+    box-shadow: 4rpx 5rpx 0 rgba(47, 40, 84, 0.14);
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.option-selected {
+    background: #7657f6;
+    color: #ffffff;
+    box-shadow: 5rpx 6rpx 0 #2f2854;
+    transform: translateY(-2rpx);
+}
+
+.action-buttons {
+    box-sizing: border-box;
+    gap: 18rpx;
+    padding: 28rpx;
+    border-top: 3rpx dashed #d9d1e8;
+    border-radius: 0 0 36rpx 36rpx;
+    background: #fffdf8;
+    box-shadow: none;
+}
+
+.cancel-button,
+.confirm-button {
+    height: 92rpx;
+    margin: 0;
+    padding: 0;
+    border: 4rpx solid #2f2854;
+    border-radius: 26rpx;
+    font-size: 29rpx;
+    font-weight: 800;
+}
+
+.cancel-button {
+    background: #ffffff;
+    color: #2f2854;
+}
+
+.confirm-button {
+    background: #7657f6;
+    color: #ffffff;
+    box-shadow: 7rpx 8rpx 0 #2f2854;
 }
 </style>

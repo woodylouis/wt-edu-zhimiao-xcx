@@ -4,7 +4,7 @@
 
         <FormInput label="所属班级" placeholder="请选择所属班级" />
         <FormInput label="班级昵称" placeholder="输入班级昵称" />
-        <FormInput label="我的姓名" placeholder="请输入我的姓名" />
+        <FormInput label="我的昵称" placeholder="使用个人资料中的昵称" />
 
         <button class="submit-button" @tap="handleSubmit">创建新班级</button>
         <text class="help-link" @tap="handleHelp">遇到问题？查看帮助</text>
@@ -21,10 +21,7 @@ export default {
     },
     methods: {
         handleSubmit() {
-            uni.showLoading({
-                title: "提交中...",
-            });
-            // Add your submission logic here
+            this.$emit("submit");
         },
         handleHelp() {
             uni.navigateTo({
@@ -37,44 +34,56 @@ export default {
 
 <style scoped>
 .form-container {
-    background-color: rgba(255, 255, 255, 1);
-    /* background-color: red; */
+    background-color: #fffdf8;
     align-self: stretch;
     /* margin-top: 32rpx; */
-    padding: 0 40rpx 14rpx;
+    box-sizing: border-box;
+    margin: 24rpx;
+    padding: 30rpx;
+    border: 4rpx solid #2f2854;
+    border-radius: 38rpx;
+    box-shadow: 8rpx 9rpx 0 rgba(47, 40, 84, 0.2);
     flex-direction: column;
     align-items: stretch;
     font-family: PingFang SC;
     font-size: 32rpx;
-    color: rgba(0, 33, 77, 1);
+    color: #2f2854;
     font-weight: 400;
 }
 
 .form-description {
-    color: rgba(61, 70, 74, 1);
-    font-size: 24rpx;
-    line-height: 1;
+    box-sizing: border-box;
+    padding: 17rpx 20rpx;
+    border: 3rpx solid #2f2854;
+    border-radius: 20rpx;
+    background: #eee9ff;
+    color: #2f2854;
+    font-size: 23rpx;
+    font-weight: 700;
+    line-height: 1.4;
     align-self: flex-start;
 }
 
 .submit-button {
-    border-radius: 48rpx;
-    background-color: rgba(110, 221, 138, 1);
-    margin-top: 80rpx;
+    border-radius: 24rpx;
+    background-color: #7657f6;
+    margin-top: 42rpx;
     padding: 26rpx 140rpx;
-    font-weight: 500;
-    border: none;
-    color: rgba(0, 33, 77, 1);
+    font-weight: 800;
+    border: 4rpx solid #2f2854;
+    color: #ffffff;
     font-family: inherit;
     font-size: 32rpx;
     width: 100%;
+    box-shadow: 7rpx 8rpx 0 #2f2854;
 }
 
 .help-link {
-    color: rgba(111, 115, 116, 1);
-    font-size: 28rpx;
+    color: #7657f6;
+    font-size: 24rpx;
+    font-weight: 700;
     line-height: 1;
-    text-decoration: underline;
+    text-decoration: none;
     align-self: center;
     margin-top: 32rpx;
 }

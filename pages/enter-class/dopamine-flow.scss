@@ -1,0 +1,128 @@
+.growth-assessment {
+  min-height: 100vh;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 8% 26%, rgba(255, 125, 107, 0.2) 0 34rpx, transparent 36rpx),
+    radial-gradient(circle at 92% 42%, rgba(118, 87, 246, 0.16) 0 44rpx, transparent 46rpx),
+    linear-gradient(180deg, #fff3bd 0%, #fff9e9 38%, #f3eeff 100%);
+}
+
+.form-container {
+  position: relative;
+  z-index: 4;
+  min-height: 58vh;
+  box-sizing: border-box;
+  margin: -24rpx 24rpx 40rpx;
+  padding: 36rpx 30rpx 54rpx;
+  border: 4rpx solid #2f2854;
+  border-radius: 40rpx;
+  background: #fffdf8;
+  box-shadow: 9rpx 11rpx 0 rgba(47, 40, 84, 0.22);
+}
+
+.form-description {
+  display: block;
+  box-sizing: border-box;
+  margin-bottom: 30rpx;
+  padding: 18rpx 22rpx;
+  border: 3rpx solid #2f2854;
+  border-radius: 22rpx;
+  background: #fff0b5;
+  color: #2f2854;
+  font-size: 23rpx;
+  font-weight: 650;
+  line-height: 1.45;
+  box-shadow: 5rpx 5rpx 0 #ffcf46;
+}
+
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 26rpx;
+}
+
+.input-group {
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 14rpx;
+  margin: 0;
+  padding: 24rpx;
+  border: 3rpx solid #e5dff0;
+  border-radius: 28rpx;
+  background: #ffffff;
+}
+
+.input-group:nth-child(3n + 1) {
+  background: #fff8dc;
+}
+
+.input-group:nth-child(3n + 2) {
+  background: #f2edff;
+}
+
+.input-group:nth-child(3n) {
+  background: #eafaf3;
+}
+
+.input-label {
+  color: #2f2854;
+  font-family: "PingFang SC";
+  font-size: 27rpx;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+:deep(.u-form-item) {
+  margin: 0;
+}
+
+:deep(.u-form-item__body) {
+  padding: 0 !important;
+}
+
+:deep(.u-input) {
+  box-shadow: 4rpx 5rpx 0 rgba(47, 40, 84, 0.15);
+}
+
+:deep(.u-button) {
+  border: 4rpx solid #2f2854 !important;
+  box-shadow: 7rpx 8rpx 0 #2f2854;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+:deep(.u-button:active) {
+  transform: translate(4rpx, 5rpx);
+  box-shadow: 2rpx 2rpx 0 #2f2854;
+}
+
+.help-link {
+  margin-top: 10rpx;
+  color: #7657f6;
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+  text-decoration: none;
+}
+
+.help-tips {
+  box-sizing: border-box;
+  padding: 20rpx 22rpx;
+  border: 3rpx dashed #2f2854;
+  border-radius: 22rpx;
+  background: #eafaf3;
+  color: #625b75;
+  font-size: 22rpx;
+  line-height: 1.55;
+}
+
+.warp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 36rpx;
+}

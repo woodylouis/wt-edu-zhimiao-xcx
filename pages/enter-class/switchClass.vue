@@ -35,7 +35,7 @@
                     :class="{ 'role-tab-active': selectedRole === 'parent' }"
                     @click="handleRoleChange('parent')"
                 >
-                    <text class="role-icon">👨‍👩‍👧</text>
+                    <text class="role-icon">家</text>
                     <text class="role-text">我是家长</text>
                 </view>
                 <view 
@@ -43,14 +43,21 @@
                     :class="{ 'role-tab-active': selectedRole === 'teacher' }"
                     @click="handleRoleChange('teacher')"
                 >
-                    <text class="role-icon">👩‍🏫</text>
+                    <text class="role-icon">师</text>
                     <text class="role-text">我是老师</text>
                 </view>
             </view>
             
             <!-- 无数据状态 -->
             <view v-if="groupedClasses[selectedRole].length === 0" class="no-data">
-                <view class="empty-illustration">🏫</view>
+                <view class="empty-illustration">
+                    <view class="empty-building">
+                        <view class="empty-building-roof"></view>
+                        <view class="empty-building-window window-left"></view>
+                        <view class="empty-building-window window-right"></view>
+                        <view class="empty-building-door"></view>
+                    </view>
+                </view>
                 <text class="empty-text">暂无班级数据</text>
                 <text class="empty-hint">请先加入班级</text>
             </view>
@@ -392,8 +399,8 @@ export default {
         },
         
         getSchoolEmoji(index) {
-            const emojis = ['🏫', '🏢', '🏰', '🌟']
-            return emojis[index % emojis.length]
+            const labels = ['校', '园', '学', '苗']
+            return labels[index % labels.length]
         },
         
         async loadClasses() {
@@ -1490,5 +1497,73 @@ export default {
 .enter-btn .enter-arrow {
     color: #fff;
     font-weight: 900;
+}
+
+.role-tabs .role-tab .role-icon {
+    display: flex;
+    width: 56rpx;
+    height: 56rpx;
+    align-items: center;
+    justify-content: center;
+    border: 3rpx solid #392f59;
+    border-radius: 18rpx 18rpx 18rpx 7rpx;
+    background: #ffd447;
+    color: #392f59;
+    font-size: 22rpx;
+    font-weight: 900;
+}
+
+.role-tabs .role-tab:nth-child(2) .role-icon {
+    background: #79dfc2;
+}
+
+.school-emoji {
+    color: #392f59;
+    font-size: 25rpx;
+    font-weight: 900;
+}
+
+.empty-building {
+    position: relative;
+    width: 74rpx;
+    height: 68rpx;
+    box-sizing: border-box;
+    border: 4rpx solid #392f59;
+    border-radius: 8rpx;
+    background: #fffdf8;
+}
+
+.empty-building-roof {
+    position: absolute;
+    width: 58rpx;
+    height: 24rpx;
+    top: -24rpx;
+    left: 4rpx;
+    border: 4rpx solid #392f59;
+    border-bottom: 0;
+    background: #ff7868;
+    transform: skew(-24deg);
+}
+
+.empty-building-window {
+    position: absolute;
+    width: 13rpx;
+    height: 13rpx;
+    top: 15rpx;
+    border: 3rpx solid #392f59;
+    background: #9f83ff;
+}
+
+.window-left { left: 10rpx; }
+.window-right { right: 10rpx; }
+.empty-building-door {
+    position: absolute;
+    width: 18rpx;
+    height: 27rpx;
+    bottom: 0;
+    left: 24rpx;
+    border: 3rpx solid #392f59;
+    border-bottom: 0;
+    background: #79dfc2;
 }
 </style>

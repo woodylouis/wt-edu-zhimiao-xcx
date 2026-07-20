@@ -1,8 +1,10 @@
 <template>
     <view class="growth-assessment">
         <u-sticky>
-            <custom-nav :xcxName="'申请加入'" :needBack="true" :backHandler="handleNavBack" />
+            <custom-nav :xcxName="'申请加入'" :needBack="true" :needBar="false" :backHandler="handleNavBack"
+                navCustomStyle="background: linear-gradient(135deg, #D8CDFF 0%, #A98CFF 48%, #FFB8AC 100%);height: calc(100vh / 8);" />
         </u-sticky>
+        <dopamine-flow-header eyebrow="JOIN THE GROWTH CLASS" title="找到你的班级" subtitle="输入老师分享的 6 位班级码" badge="码" tone="purple" :step="1" :total-steps="2" />
         <view class="form-container">
             <u--form :model="formData" :rules="rules" ref="uForm" errorType="message" :borderBottom="false">
                 <view class="form-content">
@@ -25,30 +27,36 @@
                         <view>好友分享的小程序卡片会自动带入班级码，也可以向班级老师获取。</view>
                     </view>
 
-                    <u-button @click="handleSubmit" :custom-style="buttonStyle">直接点击下一步</u-button>
+                    <u-button @click="handleSubmit" :custom-style="buttonStyle">查找班级</u-button>
                 </view>
             </u--form>
         </view>
-        <up-overlay :show="show">
+        <up-overlay :show="show" :opacity="0.52">
             <view class="warp">
                 <modal-box v-if="show" :items="confirmInfo" confirmText="确定" @cancel="show = false"
                     @create="handleConfirm" />
             </view>
         </up-overlay>
+        <dopamine-loading :show="loadingVisible" text="正在寻找班级" subtext="小芽正在核对班级码" />
     </view>
 </template>
 
 <script>
 // 导入modlBox组件
 import modalBox from '../../components/modalBox-v2/modalBox';
+import DopamineFlowHeader from './components/dopamineFlowHeader.vue';
+import DopamineLoading from '../../components/dopamine-loading/index.vue';
 export default {
     components: {
         modalBox,
+        DopamineFlowHeader,
+        DopamineLoading,
     },
     // 在data中修正show定义位置
     data() {
         return {
             show: false,
+            loadingVisible: false,
             isSharedInvite: false,
             formData: {  // 增加classInfo字段定义
                 role: '',
@@ -80,18 +88,20 @@ export default {
                 ],
             },
             inputStyle: {
-                backgroundColor: "#FFFFFF",
-                borderRadius: "16rpx",
-                border: "2rpx solid rgba(206, 213, 218, 1)",
-                padding: "24rpx 32rpx",
+                backgroundColor: "#FFFDF8",
+                borderRadius: "24rpx",
+                border: "3rpx solid #2F2854",
+                padding: "26rpx 28rpx",
                 fontSize: "28rpx",
-                color: "rgba(111, 115, 116, 1)",
+                color: "#2F2854",
             },
             buttonStyle: {
-                backgroundColor: "rgba(110, 221, 138, 1)",
-                color: "rgba(0, 33, 77, 1)",
-                borderRadius: "48rpx",
-                fontWeight: "500",
+                backgroundColor: "#7657F6",
+                color: "#FFFFFF",
+                borderRadius: "26rpx",
+                border: "4rpx solid #2F2854",
+                boxShadow: "7rpx 8rpx 0 #2F2854",
+                fontWeight: "800",
                 fontSize: "32rpx",
                 padding: "26rpx 0",
                 height: "48px",
@@ -123,8 +133,7 @@ export default {
             try {
                 const valid = await this.$refs.uForm.validate()
                 if (valid) {
-                    // 添加加载提示
-                    uni.showLoading({ title: '查询中...', mask: true });
+                    this.loadingVisible = true;
 
                     const { result } = await uniCloud.callFunction({
                         name: 'wtdb-business-class-detail',
@@ -134,14 +143,9 @@ export default {
                         }
                     });
 
-                    // 关闭加载提示
-                    uni.hideLoading();
-
-                    // 统一更新班级信息
-                    this.formData.nickname = result.data.nickname
-                    this.formData.classInfo = result.code === 200 ? result.data : null
-
                     if (result.code === 200) {
+                        this.formData.nickname = result.data.nickname
+                        this.formData.classInfo = result.data
                         this.show = true;
                         this.confirmInfo = [
                             { label: "您正在申请加入：", name: result.data.nickname },
@@ -153,6 +157,7 @@ export default {
                             title: result.msg,
                             icon: "none"
                         });
+                        this.formData.classInfo = null
                     }
 
                     this.updateLocalStorage();
@@ -164,6 +169,8 @@ export default {
                     title: `请完善以下信息：${errorMessages.join('，')}`,
                     icon: "none"
                 })
+            } finally {
+                this.loadingVisible = false;
             }
         },  // 注意这里需要逗号分隔
 
@@ -330,4 +337,6 @@ export default {
     font-size: 21rpx;
     line-height: 1.35;
 }
+
+@import "./dopamine-flow.scss";
 </style>

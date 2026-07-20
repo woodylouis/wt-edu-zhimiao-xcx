@@ -1,8 +1,10 @@
 <template>
     <view class="growth-assessment">
         <u-sticky>
-            <custom-nav :needBack="true" :xcxName="'申请加入'" :backHandler="handleNavBack" />
+            <custom-nav :needBack="true" :needBar="false" :xcxName="'申请加入'" :backHandler="handleNavBack"
+                navCustomStyle="background: linear-gradient(135deg, #D8CDFF 0%, #A98CFF 48%, #FFB8AC 100%);height: calc(100vh / 8);" />
         </u-sticky>
+        <dopamine-flow-header eyebrow="JOIN THE GROWTH CLASS" title="确认加入资料" subtitle="昵称与手机号会用于班级身份确认" badge="02" tone="mint" :step="2" :total-steps="2" />
         <view class="form-container">
             <view class="form-description">您正在加入<span style="font-weight: bold;">【{{ formData.className
             }}】</span>，请填写以下信息</view>
@@ -10,11 +12,20 @@
                 <view class="form-content">
                     <view class="input-group">
                         <text class="input-label">我的身份</text>
-                        <u-radio-group v-model="formData.role" activeColor="rgba(110, 221, 138, 1)"
-                            labelColor="#00214D">
-                            <u-radio :customStyle="{ marginBottom: '8px' }" v-for="(item, index) in role" :key="index"
-                                :label="item.name" :name="item.role" @change="radioChange" />
-                        </u-radio-group>
+                        <view
+                            v-for="(item, index) in role"
+                            :key="index"
+                            class="role-choice-card"
+                            :class="{ 'role-choice-card--active': formData.role === item.role }"
+                            @click="radioChange(item.role)"
+                        >
+                            <view class="role-choice-icon">师</view>
+                            <view class="role-choice-copy">
+                                <text class="role-choice-title">{{ item.name }}</text>
+                                <text class="role-choice-desc">参与班级管理与成长评估</text>
+                            </view>
+                            <view class="role-choice-check">✓</view>
+                        </view>
                     </view>
                     <!-- <view v-if="formData.role === 'parent'">
                         <view class="input-group">
@@ -67,7 +78,7 @@
                             <text class="input-label">昵称</text>
                             <u-form-item prop="teacherData.user_name" :borderBottom="false">
                                 <u--input v-model="formData.teacherData.user_name" placeholder="请先在个人资料中设置昵称" border="false"
-                                    :custom-style="{ ...inputStyle, backgroundColor: '#F5F5F5', color: '#999999' }" disabled />
+                                    :custom-style="{ ...inputStyle, backgroundColor: '#EEE9FF', color: '#6F6880' }" disabled />
                             </u-form-item>
                         </view>
                     </view>
@@ -76,7 +87,7 @@
                         <text class="input-label">我的手机号码</text>
                         <u-form-item prop="mobile" :borderBottom="false" @click="bindMobile">
                             <u--input v-model="formData.mobile" placeholder="绑定手机号码" border="false"
-                                :custom-style="inputStyle" disabled />
+                                :custom-style="{ ...inputStyle, backgroundColor: '#E2F8EE', color: '#5E756B' }" disabled />
                         </u-form-item>
                     </view>
 
@@ -86,7 +97,7 @@
                 </view>
             </u--form>
         </view>
-        <up-overlay :show="show">
+        <up-overlay :show="show" :opacity="0.52">
             <view class="warp">
                 <modal-box v-if="show" :items="confirmInfo" confirmText="确定" @cancel="show = false"
                     @create="handleConfirm" />
@@ -94,12 +105,27 @@
         </up-overlay>
 
         <uni-id-pages-bind-mobile ref="bind-mobile-by-sms" @success="bindMobileSuccess"></uni-id-pages-bind-mobile>
+        <dopamine-loading :show="submitting" text="正在提交入班申请" subtext="小芽正在把申请送给班主任" />
+        <dopamine-modal
+            :show="promptDialog.show"
+            :eyebrow="promptDialog.eyebrow"
+            :title="promptDialog.title"
+            :content="promptDialog.content"
+            :confirm-text="promptDialog.confirmText"
+            cancel-text="继续填写"
+            :show-cancel="promptDialog.showCancel"
+            @confirm="handlePromptConfirm"
+            @cancel="promptDialog.show = false"
+        />
     </view>
 </template>
 
 <script>
 // 导入modlBox组件
 import modalBox from '../../components/modalBox-v2/modalBox';
+import DopamineFlowHeader from './components/dopamineFlowHeader.vue';
+import DopamineLoading from '../../components/dopamine-loading/index.vue';
+import DopamineModal from '../../components/dopamine-modal/index.vue';
 import {
     store,
     mutations
@@ -112,12 +138,24 @@ export default {
     },
     components: {
         modalBox,
+        DopamineFlowHeader,
+        DopamineLoading,
+        DopamineModal,
     },
     // 在data中修正show定义位置
     data() {
         return {
             show: false,  // 移动到顶层
             submitting: false,
+            promptDialog: {
+                show: false,
+                type: '',
+                eyebrow: '温馨提示',
+                title: '',
+                content: '',
+                confirmText: '确定',
+                showCancel: true
+            },
             showRelationship: false,  // 重命名为关系选择器状态
             showGenderPicker: false,   // 新增性别选择器状态
             showDatetimePicker: false,
@@ -219,18 +257,20 @@ export default {
 
             },
             inputStyle: {
-                backgroundColor: "#FFFFFF",
-                borderRadius: "16rpx",
-                border: "2rpx solid rgba(206, 213, 218, 1)",
-                padding: "24rpx 32rpx",
+                backgroundColor: "#FFFDF8",
+                borderRadius: "24rpx",
+                border: "3rpx solid #2F2854",
+                padding: "26rpx 28rpx",
                 fontSize: "28rpx",
-                color: "rgba(111, 115, 116, 1)",
+                color: "#2F2854",
             },
             buttonStyle: {
-                backgroundColor: "rgba(110, 221, 138, 1)",
-                color: "rgba(0, 33, 77, 1)",
-                borderRadius: "48rpx",
-                fontWeight: "500",
+                backgroundColor: "#7657F6",
+                color: "#FFFFFF",
+                borderRadius: "26rpx",
+                border: "4rpx solid #2F2854",
+                boxShadow: "7rpx 8rpx 0 #2F2854",
+                fontWeight: "800",
                 fontSize: "32rpx",
                 padding: "26rpx 0",
                 height: "48px",
@@ -269,7 +309,6 @@ export default {
             const cacheData = uni.getStorageSync('tempFormData') || {};
             const classInfo = cacheData.classInfo || {};
             this.submitting = true;
-            uni.showLoading({ title: '提交申请中...', mask: true });
             try {
                 const { result } = await uniCloud.callFunction({
                     name: 'wtdb-class-approval',
@@ -292,7 +331,6 @@ export default {
                     icon: 'none'
                 });
             } finally {
-                uni.hideLoading();
                 this.submitting = false;
             }
         },
@@ -300,15 +338,15 @@ export default {
         handleApplySuccess(existing) {
             this.show = false;
             uni.removeStorageSync('tempFormData');
-            uni.showModal({
-                title: existing ? '申请已在审批中' : '申请已提交',
-                content: '班主任或学校负责人通过后，该班级会自动出现在您的班级列表中。',
-                showCancel: false,
+            this.promptDialog = {
+                show: true,
+                type: 'success',
+                eyebrow: '申请已送达',
+                title: existing ? '申请正在审批中' : '申请提交成功',
+                content: '通过后，该班级会自动出现在您的班级列表中。',
                 confirmText: '我知道了',
-                success: () => {
-                    uni.reLaunch({ url: '/pages/enter-class/index' });
-                }
-            });
+                showCancel: false
+            };
         },
         async handleSubmit() {
             if (this.formData.role === 'parent') {
@@ -371,17 +409,25 @@ export default {
             this.$refs.uForm.validateField('mobile');
         },
         handleNavBack() {
-            // 需要提示如果返回需要重填
-            uni.showModal({
-                title: '您确定要返回吗？',
-                content: '返回后需要重新填写信息。',
-                success: (res) => {
-                    if (res.confirm) {
-                        uni.navigateBack();
-                    }
-                }
-            });
+            this.promptDialog = {
+                show: true,
+                type: 'back',
+                eyebrow: '再确认一下',
+                title: '确定返回上一步吗？',
+                content: '当前填写的信息会保留，您可以稍后继续。',
+                confirmText: '返回上一步',
+                showCancel: true
+            };
 
+        },
+        handlePromptConfirm() {
+            const type = this.promptDialog.type;
+            this.promptDialog.show = false;
+            if (type === 'success') {
+                uni.reLaunch({ url: '/pages/enter-class/index' });
+            } else if (type === 'back') {
+                uni.navigateBack();
+            }
         },
         onClickDatetime() {
             this.showDatetimePicker = true;
@@ -567,5 +613,62 @@ export default {
     text-decoration: underline;
     text-align: center;
     margin-top: 32rpx;
+}
+
+@import "./dopamine-flow.scss";
+
+.role-choice-card {
+    display: flex;
+    min-height: 98rpx;
+    box-sizing: border-box;
+    align-items: center;
+    padding: 18rpx 20rpx;
+    border: 3rpx solid #2f2854;
+    border-radius: 23rpx;
+    background: #fffdf8;
+    box-shadow: 4rpx 5rpx 0 rgba(47, 40, 84, 0.16);
+}
+
+.role-choice-card--active {
+    background: #eee9ff;
+    box-shadow: 5rpx 6rpx 0 #2f2854;
+}
+
+.role-choice-icon {
+    display: flex;
+    width: 60rpx;
+    height: 60rpx;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 3rpx solid #2f2854;
+    border-radius: 19rpx 19rpx 19rpx 7rpx;
+    background: #8ee3c2;
+    color: #2f2854;
+    font-size: 23rpx;
+    font-weight: 900;
+}
+
+.role-choice-copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    margin-left: 17rpx;
+}
+
+.role-choice-title { color: #2f2854; font-size: 25rpx; font-weight: 800; }
+.role-choice-desc { margin-top: 5rpx; color: #8a839d; font-size: 19rpx; }
+.role-choice-check {
+    display: flex;
+    width: 38rpx;
+    height: 38rpx;
+    align-items: center;
+    justify-content: center;
+    border: 3rpx solid #2f2854;
+    border-radius: 50%;
+    background: #7657f6;
+    color: #ffffff;
+    font-size: 20rpx;
+    font-weight: 900;
 }
 </style>

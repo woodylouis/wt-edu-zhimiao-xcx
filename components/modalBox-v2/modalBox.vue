@@ -1,23 +1,31 @@
 <!-- 选择弹窗 -->
 <template>
     <view class="create-class-card">
+        <view class="modal-confetti modal-confetti--one"></view>
+        <view class="modal-confetti modal-confetti--two">✦</view>
         <view class="create-class-header">
-            <text class="header-text">请确认以下信息是否正确</text>
+            <view class="header-icon">✓</view>
+            <view class="header-copy">
+                <text class="header-kicker">CHECK IT TOGETHER</text>
+                <text class="header-text">确认申请信息</text>
+                <text class="header-description">再看一眼，确认后就可以继续啦</text>
+            </view>
         </view>
 
-        <div class="confirmation-content">
-            <div v-for="(item, index) in items" :key="index" class="info-field">
-                <span class="info-label">{{ item.label }} </span>
-                <span class="info-value">{{ item.name }}</span>
-            </div>
-        </div>
+        <view class="confirmation-content">
+            <view v-for="(item, index) in items" :key="index" class="info-field" :class="`info-field--${index % 4}`">
+                <text class="info-label">{{ item.label }}</text>
+                <text class="info-value">{{ item.name }}</text>
+            </view>
+        </view>
 
         <view class="buttons-container">
-            <view class="btn btn-cancel" @tap="onCancel">
+            <view class="btn btn-cancel" hover-class="btn-pressed" @tap="onCancel">
                 <text class="btn-text">{{ cancelText }}</text>
             </view>
-            <view class="btn btn-create" @tap="onCreate">
+            <view class="btn btn-create" hover-class="btn-create-pressed" @tap="onCreate">
                 <text class="btn-text">{{ confirmText }}</text>
+                <text class="btn-arrow">→</text>
             </view>
         </view>
     </view>
@@ -88,7 +96,7 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 .create-class-card {
     width: 560rpx;
     /* 高度自适应 */
@@ -224,4 +232,94 @@ export default {
     color: #00214d;
     line-height: 40rpx;
 }
+
+.create-class-card {
+    position: relative;
+    width: 640rpx;
+    max-width: 92vw;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 4rpx solid #2f2854;
+    border-radius: 40rpx;
+    background: #fffdf8;
+    box-shadow: 12rpx 14rpx 0 rgba(47, 40, 84, 0.55);
+}
+
+.create-class-header {
+    display: flex;
+    height: auto;
+    min-height: 178rpx;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 34rpx;
+    border-bottom: 3rpx solid #2f2854;
+    background: linear-gradient(135deg, #d8cdff 0%, #ffb3a8 100%);
+    text-align: left;
+}
+
+.header-icon {
+    display: flex;
+    width: 88rpx;
+    height: 88rpx;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    margin-right: 24rpx;
+    border: 4rpx solid #2f2854;
+    border-radius: 28rpx 28rpx 28rpx 10rpx;
+    background: #8ee3c2;
+    box-shadow: 6rpx 7rpx 0 #2f2854;
+    color: #2f2854;
+    font-size: 39rpx;
+    font-weight: 900;
+    transform: rotate(-4deg);
+}
+
+.header-copy { display: flex; min-width: 0; flex-direction: column; }
+.header-kicker { color: #7657f6; font-size: 18rpx; font-weight: 900; letter-spacing: 2rpx; }
+.header-text { margin-top: 7rpx; color: #2f2854; font-size: 34rpx; font-weight: 900; line-height: 1.2; }
+.header-description { margin-top: 8rpx; color: rgba(47, 40, 84, 0.7); font-size: 20rpx; font-weight: 600; }
+
+.confirmation-content {
+    display: flex;
+    width: auto;
+    box-sizing: border-box;
+    flex-direction: column;
+    gap: 14rpx;
+    margin: 0;
+    padding: 30rpx;
+}
+
+.info-field {
+    display: flex;
+    min-height: 78rpx;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    padding: 17rpx 20rpx;
+    border: 3rpx solid #2f2854;
+    border-radius: 21rpx;
+    line-height: 1.35;
+}
+
+.info-field--0 { background: #fff4be; }
+.info-field--1 { background: #eee9ff; }
+.info-field--2 { background: #e2f8ee; }
+.info-field--3 { background: #ffe9e5; }
+.info-label { max-width: 48%; color: #7c748e; font-size: 21rpx; font-weight: 700; }
+.info-value { max-width: 52%; color: #2f2854; font-size: 24rpx; font-weight: 800; text-align: right; }
+
+.buttons-container { display: flex; gap: 18rpx; margin: 0; padding: 2rpx 30rpx 34rpx; }
+.btn { height: 88rpx; box-sizing: border-box; border: 4rpx solid #2f2854; border-radius: 24rpx; }
+.btn-cancel { width: 188rpx; background: #ffffff; }
+.btn-create { flex: 1; background: #7657f6; box-shadow: 6rpx 7rpx 0 #2f2854; }
+.btn-create .btn-text { color: #ffffff; }
+.btn-arrow { margin-left: 12rpx; color: #ffffff; font-size: 27rpx; font-weight: 900; }
+.modal-confetti { position: absolute; z-index: 4; pointer-events: none; }
+.modal-confetti--one { width: 24rpx; height: 9rpx; top: 24rpx; left: 18rpx; border-radius: 8rpx; background: #ff7168; transform: rotate(28deg); }
+.modal-confetti--two { top: 16rpx; right: 22rpx; color: #fffdf8; font-size: 32rpx; font-weight: 900; }
+.btn-pressed { transform: scale(0.97); }
+.btn-create-pressed { transform: translate(4rpx, 5rpx); box-shadow: 2rpx 2rpx 0 #2f2854; }
 </style>

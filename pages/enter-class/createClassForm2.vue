@@ -1,8 +1,10 @@
 <template>
   <view class="growth-assessment">
     <u-sticky>
-      <custom-nav :needBack="true" />
+      <custom-nav :needBack="true" :needBar="false" :xcxName="'创建班级'"
+        navCustomStyle="background: linear-gradient(135deg, #FFF2B8 0%, #FFD778 48%, #FFB8AC 100%);height: calc(100vh / 8);" />
     </u-sticky>
+    <dopamine-flow-header eyebrow="CREATE A HAPPY CLASS" title="完善班级资料" subtitle="给新班级一个好记又可爱的名字" badge="02" tone="coral" :step="2" :total-steps="2" />
     <view class="form-container">
       <text class="form-description">您正在创建班级，请填写以下信息</text>
       <u--form
@@ -22,8 +24,8 @@
                 border="false"
                 :custom-style="{
                   ...inputStyle,
-                  backgroundColor: '#F5F5F5',
-                  color: '#999999',
+                  backgroundColor: '#EEE9FF',
+                  color: '#6F6880',
                 }"
                 disabled
               />
@@ -51,8 +53,8 @@
                 border="false"
                 :custom-style="{
                   ...inputStyle,
-                  backgroundColor: '#F5F5F5',
-                  color: '#999999',
+                  backgroundColor: '#E2F8EE',
+                  color: '#5E756B',
                 }"
                 disabled
               />
@@ -61,7 +63,7 @@
 
           <view class="input-group">
             <text class="input-label">备注</text>
-            <u-form-item prop="teacherName" :borderBottom="false">
+            <u-form-item prop="remark" :borderBottom="false">
               <u--input
                 v-model="formData.remark"
                 placeholder="请输入"
@@ -79,7 +81,7 @@
         </view>
       </u--form>
     </view>
-    <up-overlay :show="show">
+    <up-overlay :show="show" :opacity="0.52">
       <view class="warp">
         <modal-box
           v-if="show"
@@ -93,15 +95,20 @@
         />
       </view>
     </up-overlay>
+    <dopamine-loading :show="loading" text="正在创建新班级" subtext="小芽正在搭建成长空间" />
   </view>
 </template>
 
 <script>
   // 导入modlBox组件
   import modalBox from "../../components/modalBox/modalBox";
+  import DopamineFlowHeader from "./components/dopamineFlowHeader.vue";
+  import DopamineLoading from "../../components/dopamine-loading/index.vue";
   export default {
     components: {
       modalBox,
+      DopamineFlowHeader,
+      DopamineLoading,
     },
     // 在data中修正show定义位置
     data() {
@@ -143,18 +150,20 @@
           ],
         },
         inputStyle: {
-          backgroundColor: "#FFFFFF",
-          borderRadius: "16rpx",
-          border: "2rpx solid rgba(206, 213, 218, 1)",
-          padding: "24rpx 32rpx",
+          backgroundColor: "#FFFDF8",
+          borderRadius: "24rpx",
+          border: "3rpx solid #2F2854",
+          padding: "26rpx 28rpx",
           fontSize: "28rpx",
-          color: "rgba(111, 115, 116, 1)",
+          color: "#2F2854",
         },
         buttonStyle: {
-          backgroundColor: "rgba(110, 221, 138, 1)",
-          color: "rgba(0, 33, 77, 1)",
-          borderRadius: "48rpx",
-          fontWeight: "500",
+          backgroundColor: "#7657F6",
+          color: "#FFFFFF",
+          borderRadius: "26rpx",
+          border: "4rpx solid #2F2854",
+          boxShadow: "7rpx 8rpx 0 #2F2854",
+          fontWeight: "800",
           fontSize: "32rpx",
           padding: "26rpx 0",
           height: "48px",
@@ -187,7 +196,6 @@
       async handleConfirm() {
         if (this.loading) return;
         this.loading = true;
-        uni.showLoading({ title: "提交中...", mask: true });
         try {
           const cacheData = uni.getStorageSync("classFormData") || {};
 
@@ -241,7 +249,6 @@
           });
         } finally {
           this.loading = false;
-          uni.hideLoading();
         }
       }, // 注意这里需要逗号分隔
 
@@ -333,4 +340,6 @@
     text-align: center;
     margin-top: 32rpx;
   }
+
+  @import "./dopamine-flow.scss";
 </style>
