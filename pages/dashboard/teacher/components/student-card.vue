@@ -19,7 +19,7 @@
                         <text class="new-tag-text">刚刚创建</text>
                     </view>
                 </view>
-                <view class="assessment-meta" :class="{ 'assessment-meta--empty': !hasAssessments }">
+                <view class="assessment-meta" :class="{ 'assessment-meta--empty': !hasAssessmentActivity }">
                     <view class="assessment-stat date-stat">
                         <text class="stat-label">最近评估</text>
                         <view class="stat-value-row">
@@ -54,11 +54,16 @@
                 </view>
                 <text class="action-arrow">›</text>
             </button>
-            <button class="action-btn assess-btn" hover-class="action-btn--pressed" @click="handleAssessClick">
-                <view class="action-icon action-icon--assess">✍️</view>
+            <button
+                class="action-btn assess-btn"
+                :class="{ 'assess-btn--continue': isAssessing }"
+                hover-class="action-btn--pressed"
+                @click="handleAssessClick"
+            >
+                <view class="action-icon action-icon--assess">{{ isAssessing ? '⏱️' : '✍️' }}</view>
                 <view class="action-copy">
-                    <text class="action-title">开始评估</text>
-                    <text class="action-hint">选择成长量表</text>
+                    <text class="action-title">{{ isAssessing ? '继续评估' : '开始评估' }}</text>
+                    <text class="action-hint">{{ isAssessing ? '恢复上次进度' : '选择成长量表' }}</text>
                 </view>
                 <text class="action-arrow">›</text>
             </button>
@@ -98,7 +103,14 @@ const hasAssessments = computed(() => {
     return assessmentCount.value > 0
 })
 
+const isAssessing = computed(() =>
+    Boolean(props.student.hasInProgressAssessment || props.student.inProgressAssessment)
+)
+
+const hasAssessmentActivity = computed(() => hasAssessments.value || isAssessing.value)
+
 const lastAssessmentText = computed(() => {
+    if (isAssessing.value) return '评估进行中'
     if (!hasAssessments.value) return '尚未评估'
     const value = props.student.lastAssessmentDate
     return value && value !== '暂无评估记录' ? value : '尚未评估'
@@ -112,7 +124,7 @@ const handleReportClick = () => {
 };
 
 const handleAssessClick = () => {
-    console.log('student-card: 点击开始评估');
+    console.log(`student-card: 点击${isAssessing.value ? '继续' : '开始'}评估`);
     emit('assessClick');
 };
 </script>
@@ -473,6 +485,10 @@ const handleAssessClick = () => {
 .assess-btn {
     color: #392f59;
     background: #ffd447;
+}
+
+.assess-btn--continue {
+    background: #79dfc2;
 }
 
 .report-btn--empty {

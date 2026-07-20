@@ -28,30 +28,76 @@ exports.main = async (event = {}, context) => {
 		}
 
 		const childIds = childrenRes.data.map(child => child._id)
-		const statsRes = await db.collection('wtdb-business-assess-record')
-			.aggregate()
-			.match(dbCmd.or([
-				{ childId: dbCmd.in(childIds) },
-				{ child_id: dbCmd.in(childIds) }
-			]))
-			.match(dbCmd.or([{ isCompleted: true }, { reportStatus: 'completed' }]))
-			.project({
-				childId: { $ifNull: ['$childId', '$child_id'] },
-				completedAt: { $ifNull: ['$lastCompletedTime', { $ifNull: ['$lastSaveTime', '$updateTime'] }] }
-			})
-			.group({
-				_id: '$childId',
-				assessmentCount: dbCmd.aggregate.sum(1),
-				latestAssessmentTime: dbCmd.aggregate.max('$completedAt')
-			})
-			.end()
+		const [statsRes, activeRes] = await Promise.all([
+			db.collection('wtdb-business-assess-record')
+				.aggregate()
+				.match(dbCmd.or([
+					{ childId: dbCmd.in(childIds) },
+					{ child_id: dbCmd.in(childIds) }
+				]))
+				.match(dbCmd.or([{ isCompleted: true }, { reportStatus: 'completed' }]))
+				.project({
+					childId: { $ifNull: ['$childId', '$child_id'] },
+					completedAt: { $ifNull: ['$lastCompletedTime', { $ifNull: ['$lastSaveTime', '$updateTime'] }] }
+				})
+				.group({
+					_id: '$childId',
+					assessmentCount: dbCmd.aggregate.sum(1),
+					latestAssessmentTime: dbCmd.aggregate.max('$completedAt')
+				})
+				.end(),
+			db.collection('wtdb-business-assess-record')
+				.where(dbCmd.and([
+					dbCmd.or([
+						{ childId: dbCmd.in(childIds) },
+						{ child_id: dbCmd.in(childIds) }
+					]),
+					{ assessorId: scope.uid }
+				]))
+				.field({
+					childId: true,
+					child_id: true,
+					assessmentId: true,
+					assessment_id: true,
+					assessmentTitle: true,
+					modulesStatus: true,
+					isCompleted: true,
+					reportStatus: true,
+					lastSaveTime: true,
+					updateTime: true,
+					createTime: true
+				})
+				.limit(500)
+				.get()
+		])
 
 		const statsMap = new Map((statsRes.data || []).map(item => [
 			subjectAuth.compactId(item._id),
 			{ count: Number(item.assessmentCount) || 0, time: toTimestamp(item.latestAssessmentTime) }
 		]))
+		const activeMap = new Map()
+		for (const record of activeRes.data || []) {
+			const isCompleted = record.isCompleted === true || record.reportStatus === 'completed'
+			const hasUnfinishedModule = Array.isArray(record.modulesStatus) &&
+				record.modulesStatus.some(module => Number(module.status) !== 1)
+			if (isCompleted || !hasUnfinishedModule) continue
+
+			const childId = subjectAuth.compactId(record.childId || record.child_id)
+			if (!childId) continue
+			const updatedAt = toTimestamp(record.lastSaveTime || record.updateTime || record.createTime)
+			const current = activeMap.get(childId)
+			if (!current || updatedAt > current.updatedAt) {
+				activeMap.set(childId, {
+					assessmentId: subjectAuth.compactId(record.assessmentId || record.assessment_id),
+					assessmentTitle: String(record.assessmentTitle || '').trim(),
+					updatedAt
+				})
+			}
+		}
 		const list = childrenRes.data.map(child => {
-			const stats = statsMap.get(subjectAuth.compactId(child._id)) || { count: 0, time: 0 }
+			const childId = subjectAuth.compactId(child._id)
+			const stats = statsMap.get(childId) || { count: 0, time: 0 }
+			const inProgressAssessment = activeMap.get(childId) || null
 			const age = calculateAge(child.birthdate)
 			return {
 				_id: child._id,
@@ -66,7 +112,9 @@ exports.main = async (event = {}, context) => {
 				lastAssessmentTime: stats.time,
 				lastAssessmentDate: formatDate(stats.time),
 				assessmentCount: stats.count,
-				assessmentNumber: `共评估${stats.count}次`
+				assessmentNumber: `共评估${stats.count}次`,
+				hasInProgressAssessment: Boolean(inProgressAssessment),
+				inProgressAssessment
 			}
 		}).sort((a, b) => {
 			if (a.hasAssessments !== b.hasAssessments) return Number(b.hasAssessments) - Number(a.hasAssessments)

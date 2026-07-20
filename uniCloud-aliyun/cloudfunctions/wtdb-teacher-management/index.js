@@ -99,6 +99,13 @@ async function getClassById(classId, source = db) {
 	return classInfo
 }
 
+async function getClassForReadById(classId) {
+	const res = await db.collection(CLASS_COLLECTION).doc(classId).get()
+	const classInfo = res.data && res.data[0]
+	if (!classInfo) throwBusinessError(404, '班级不存在')
+	return classInfo
+}
+
 async function getAvailableSchools(scope) {
 	if (!scope.isGlobalBusinessAdmin) return scope.schools
 	return fetchAll(
@@ -526,6 +533,101 @@ async function listTeachers(event, scope) {
 	}
 }
 
+async function assertClassTeacherReadAccess(scope, classInfo) {
+	const classId = businessAuth.compactId(classInfo._id)
+	if (
+		scope.isGlobalBusinessAdmin ||
+		scope.schoolIds.includes(classInfo.school_id) ||
+		scope.headTeacherClassIds.includes(classId)
+	) return
+
+	const memberRes = await db.collection(MEMBER_COLLECTION)
+		.where({
+			class_id: classId,
+			user_id: dbCmd.in(scope.userIds),
+			role: 'teacher'
+		})
+		.field({ _id: true })
+		.limit(1)
+		.get()
+	if (!memberRes.data?.length) throwBusinessError(403, '您不是该班级的授权老师')
+}
+
+async function listCurrentClassTeachers(event, scope) {
+	const classId = businessAuth.compactId(event.classId || event.class_id)
+	if (!classId) throwBusinessError(400, '缺少班级ID')
+
+	const classInfo = await getClassForReadById(classId)
+	await assertClassTeacherReadAccess(scope, classInfo)
+
+	const memberRes = await db.collection(MEMBER_COLLECTION)
+		.where({ class_id: classId, role: 'teacher' })
+		.field({ _id: true, user_id: true, nickname: true, join_time: true })
+		.orderBy('join_time', 'asc')
+		.limit(200)
+		.get()
+	const members = memberRes.data || []
+	const headTeacherUserId = businessAuth.compactId(classInfo.head_teacher_user_id)
+	const userIds = [...new Set([
+		...members.map(item => businessAuth.compactId(item.user_id)),
+		headTeacherUserId
+	].filter(Boolean))]
+	const userRes = userIds.length
+		? await db.collection(USER_COLLECTION)
+			.where({ _id: dbCmd.in(userIds) })
+			.field({ _id: true, nickname: true, username: true, mobile: true, avatar_file: true })
+			.get()
+		: { data: [] }
+	const userMap = new Map((userRes.data || []).map(user => [
+		businessAuth.compactId(user._id),
+		user
+	]))
+	const headTeacherMobile = clean(userMap.get(headTeacherUserId)?.mobile, 30)
+	const teacherMap = new Map()
+
+	for (const member of members) {
+		const userId = businessAuth.compactId(member.user_id)
+		const user = userMap.get(userId) || {}
+		const mobile = clean(user.mobile, 30)
+		const key = mobile ? `mobile:${mobile}` : `user:${userId || businessAuth.compactId(member._id)}`
+		const avatarFile = user.avatar_file || {}
+		const teacher = {
+			memberId: businessAuth.compactId(member._id),
+			userId,
+			teacherName: clean(user.nickname || member.nickname || user.username, 60) || '未命名老师',
+			avatarUrl: typeof avatarFile === 'string' ? avatarFile : (avatarFile.url || ''),
+			isHeadTeacher: userId === headTeacherUserId || Boolean(mobile && mobile === headTeacherMobile),
+			isCurrentUser: scope.userIds.includes(userId)
+		}
+		const existing = teacherMap.get(key)
+		if (!existing) {
+			teacherMap.set(key, teacher)
+		} else {
+			existing.isHeadTeacher = existing.isHeadTeacher || teacher.isHeadTeacher
+			existing.isCurrentUser = existing.isCurrentUser || teacher.isCurrentUser
+			if (!existing.avatarUrl && teacher.avatarUrl) existing.avatarUrl = teacher.avatarUrl
+		}
+	}
+
+	const list = [...teacherMap.values()].sort((left, right) =>
+		Number(right.isHeadTeacher) - Number(left.isHeadTeacher) ||
+		Number(right.isCurrentUser) - Number(left.isCurrentUser) ||
+		left.teacherName.localeCompare(right.teacherName, 'zh-CN')
+	)
+
+	return {
+		code: 200,
+		msg: 'success',
+		data: {
+			classId,
+			className: classDisplayName(classInfo),
+			classCode: classInfo.code || '',
+			list,
+			total: list.length
+		}
+	}
+}
+
 async function findLegacyTeacherMember(source, memberId, userId, classId) {
 	if (userId && classId) {
 		const directRes = await source.collection(MEMBER_COLLECTION)
@@ -645,6 +747,7 @@ exports.main = async (event = {}, context) => {
 		const scope = await businessAuth.getBusinessAuthScope(event, context)
 		if (action === 'summary') return getSummary(scope)
 		if (action === 'list') return listTeachers(event, scope)
+		if (action === 'class-list') return listCurrentClassTeachers(event, scope)
 		if (action === 'manager-access-list') return getManagerAccessList(event, scope)
 		if (action === 'remove') return removeTeacher(event, scope)
 		return { code: 400, msg: '未知操作' }

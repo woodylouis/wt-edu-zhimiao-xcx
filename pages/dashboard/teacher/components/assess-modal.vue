@@ -4,7 +4,7 @@
         <view class="modal-content">
             <!-- 标题 -->
             <view class="modal-header">
-                <text class="modal-title">选择评估量表</text>
+                <text class="modal-title">{{ modalTitle }}</text>
                 <view class="close-btn" @click="onClose">
                     <text class="close-icon">✕</text>
                 </view>
@@ -32,6 +32,7 @@
                         <view class="assess-icon">📋</view>
                         <view class="assess-info">
                             <text class="assess-title">{{ item.title }}</text>
+                            <text v-if="isInProgressAssessment(item)" class="progress-chip">进行中</text>
                         </view>
                         <view class="check-icon" v-if="selectedAssessment?.id === item.id">✓</view>
                     </view>
@@ -41,14 +42,14 @@
             <!-- 提示信息 -->
             <view class="hint-text">
                 <text class="hint-icon">💡</text>
-                <text>点击「开始评估」将直接进入，请确认学生和量表信息无误</text>
+                <text>{{ actionHint }}</text>
             </view>
             
             <!-- 底部按钮 -->
             <view class="modal-footer">
                 <button class="cancel-btn" @click="onClose">取消</button>
                 <button class="confirm-btn" :disabled="!selectedAssessment" @click="onStartAssess">
-                    开始评估
+                    {{ isContinuing ? '继续评估' : '开始评估' }}
                 </button>
             </view>
         </view>
@@ -85,6 +86,30 @@ const locationLoading = ref(false)
 const navigationLoading = ref(false)
 const assessmentList = ref([])
 const selectedAssessment = ref(null)
+
+const inProgressAssessmentId = computed(() =>
+    String(props.student?.inProgressAssessment?.assessmentId || '')
+)
+
+const isInProgressAssessment = (assessment) =>
+    Boolean(inProgressAssessmentId.value) &&
+    String(assessment?.id || '') === inProgressAssessmentId.value
+
+const isContinuing = computed(() => isInProgressAssessment(selectedAssessment.value))
+
+const modalTitle = computed(() =>
+    inProgressAssessmentId.value ? '继续评估' : '选择评估量表'
+)
+
+const actionHint = computed(() => isContinuing.value
+    ? '已定位到上次的量表，点击「继续评估」即可恢复进度'
+    : '点击「开始评估」将直接进入，请确认学生和量表信息无误'
+)
+
+const applyAssessmentList = (list) => {
+    assessmentList.value = Array.isArray(list) ? list : []
+    selectedAssessment.value = assessmentList.value.find(isInProgressAssessment) || null
+}
 
 // 计算学生年龄
 const studentAge = computed(() => {
@@ -142,8 +167,8 @@ const loadAssessments = async () => {
         const CACHE_KEY = 'teacher_assessment_list'
         const cachedData = uni.getStorageSync(CACHE_KEY)
         if (cachedData && Date.now() - cachedData.timestamp < 3600000) {
-            assessmentList.value = cachedData.list
-            return
+            applyAssessmentList(cachedData.list)
+            if (!inProgressAssessmentId.value || selectedAssessment.value) return
         }
         
         const res = await uniCloud.callFunction({
@@ -152,7 +177,7 @@ const loadAssessments = async () => {
         })
         
         if (res.result.code === 0) {
-            assessmentList.value = res.result.data.list
+            applyAssessmentList(res.result.data.list)
             // 更新缓存
             uni.setStorageSync(CACHE_KEY, {
                 list: res.result.data.list,
@@ -692,10 +717,31 @@ const onStartAssess = async () => {
     font-size: 31rpx;
 }
 
+.assess-info {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    min-width: 0;
+}
+
 .assess-title {
+    overflow: hidden;
     color: #31284f;
     font-size: 28rpx;
     font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.progress-chip {
+    flex-shrink: 0;
+    padding: 5rpx 11rpx;
+    color: #25684f;
+    border: 2rpx solid #392f59;
+    border-radius: 999rpx;
+    background: #79dfc2;
+    font-size: 19rpx;
+    font-weight: 900;
 }
 
 .check-icon {

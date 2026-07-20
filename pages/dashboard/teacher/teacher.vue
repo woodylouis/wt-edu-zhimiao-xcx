@@ -85,6 +85,11 @@
         <text class="count-num">{{ totalStudents }}</text>
         <text class="count-label">名学生</text>
       </view>
+      <view class="class-teachers-entry" @click="openClassTeachers">
+        <view class="class-teachers-icon">👩‍🏫</view>
+        <text>本班老师</text>
+        <text class="class-teachers-arrow">›</text>
+      </view>
     </view>
     
     <view class="student-list">
@@ -131,6 +136,12 @@
       @confirm="onAssessConfirm"
     />
 
+    <ClassTeacherModal
+      :visible="showClassTeacherModal"
+      :classInfo="currentClass"
+      @close="showClassTeacherModal = false"
+    />
+
     <DopamineLoading
       :show="loading || actionLoading"
       :text="loading ? '正在召集小朋友' : '正在寻找成长报告'"
@@ -153,6 +164,7 @@
   import QcSuspendBtn from "@/components/qc-suspendBtn/qc-suspendBtn.vue";
   import StudentList from "./components/student-list.vue";
   import AssessModal from "./components/assess-modal.vue";
+  import ClassTeacherModal from "./components/class-teacher-modal.vue";
   import DopamineLoading from "@/components/dopamine-loading/index.vue";
   import btnConfig from "@/common/suspen-btn/config.js";
 
@@ -173,6 +185,7 @@
   // 评估弹窗相关
   const showAssessModal = ref(false);
   const selectedStudent = ref({});
+  const showClassTeacherModal = ref(false);
     
   // 计算属性：过滤后的学生列表
   const filteredStudentList = computed(() => {
@@ -332,6 +345,14 @@
     console.log("评估确认:", data);
   };
 
+  const openClassTeachers = () => {
+    if (!currentClass.value?._id && !currentClass.value?.id) {
+      uni.showToast({ title: "暂无当前班级信息", icon: "none" });
+      return;
+    }
+    showClassTeacherModal.value = true;
+  };
+
   const onClickInvite = () => {
     if (!currentClass.value?.code) {
       uni.showToast({ title: "暂无班级码", icon: "none" });
@@ -486,12 +507,15 @@
     userInfo.value = uni.getStorageSync("uni-id-pages-userInfo") || {};
     const newClass = uni.getStorageSync("currentClass") || {};
     
-    // 检查班级是否变化，如果变化则重新加载数据
-    if (newClass._id && newClass._id !== lastLoadedClassId.value) {
+    // 每次回到页面都刷新，以同步最新评估进度。
+    const classId = newClass._id || newClass.id;
+    if (classId) {
+      const classChanged = classId !== lastLoadedClassId.value;
       currentClass.value = newClass;
-      studentList.value = [];
-      // 重新加载全部数据
-      loadStudentsWithData(newClass._id);
+      if (classChanged) {
+        studentList.value = [];
+      }
+      loadStudentsWithData(classId);
     } else {
       currentClass.value = newClass;
     }
@@ -522,8 +546,6 @@
     userInfo.value = uni.getStorageSync("uni-id-pages-userInfo") || {};
     currentClass.value = uni.getStorageSync("currentClass") || {};
 
-    // 加载学生数据
-    loadStudentsWithData(currentClass.value._id);
   });
 
   onUnload(() => {
@@ -1285,6 +1307,45 @@
   color: #7c63e8;
   font-size: 38rpx;
   font-weight: 900;
+}
+
+.dashboard .list-header .class-teachers-entry {
+  display: inline-flex;
+  align-items: center;
+  min-height: 58rpx;
+  padding: 0 15rpx 0 10rpx;
+  color: #392f59;
+  border: 3rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #ffb6ad;
+  box-shadow: 4rpx 4rpx 0 #a58bff;
+  font-size: 23rpx;
+  font-weight: 900;
+
+  &:active {
+    transform: translate(3rpx, 3rpx);
+    box-shadow: 1rpx 1rpx 0 #a58bff;
+  }
+}
+
+.dashboard .list-header .class-teachers-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
+  margin-right: 7rpx;
+  border: 2rpx solid #392f59;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 21rpx;
+}
+
+.dashboard .list-header .class-teachers-arrow {
+  margin-left: 7rpx;
+  font-size: 31rpx;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .dashboard > .student-list {
