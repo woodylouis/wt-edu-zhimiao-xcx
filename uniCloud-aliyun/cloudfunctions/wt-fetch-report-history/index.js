@@ -38,12 +38,17 @@ exports.main = async (event = {}, context) => {
 				.match(dbCmd.or([{ isCompleted: true }, { reportStatus: 'completed' }]))
 				.project({
 					childId: { $ifNull: ['$childId', '$child_id'] },
+					assessorId: { $ifNull: ['$assessorId', '$assessor_id'] },
+					assessorName: { $ifNull: ['$assessorName', '$teacherName'] },
 					completedAt: { $ifNull: ['$lastCompletedTime', { $ifNull: ['$lastSaveTime', '$updateTime'] }] }
 				})
+				.sort({ completedAt: -1 })
 				.group({
 					_id: '$childId',
 					assessmentCount: dbCmd.aggregate.sum(1),
-					latestAssessmentTime: dbCmd.aggregate.max('$completedAt')
+					latestAssessmentTime: dbCmd.aggregate.first('$completedAt'),
+					latestAssessorId: dbCmd.aggregate.first('$assessorId'),
+					latestAssessorName: dbCmd.aggregate.first('$assessorName')
 				})
 				.end(),
 			db.collection('wtdb-business-assess-record')
@@ -71,9 +76,15 @@ exports.main = async (event = {}, context) => {
 				.get()
 		])
 
+		const assessorNameMap = await loadAssessorNames(statsRes.data || [], [scope.uid])
 		const statsMap = new Map((statsRes.data || []).map(item => [
 			subjectAuth.compactId(item._id),
-			{ count: Number(item.assessmentCount) || 0, time: toTimestamp(item.latestAssessmentTime) }
+			{
+				count: Number(item.assessmentCount) || 0,
+				time: toTimestamp(item.latestAssessmentTime),
+				assessorName: assessorNameMap.get(subjectAuth.compactId(item.latestAssessorId)) ||
+					String(item.latestAssessorName || '').trim()
+			}
 		]))
 		const activeMap = new Map()
 		for (const record of activeRes.data || []) {
@@ -90,14 +101,18 @@ exports.main = async (event = {}, context) => {
 				activeMap.set(childId, {
 					assessmentId: subjectAuth.compactId(record.assessmentId || record.assessment_id),
 					assessmentTitle: String(record.assessmentTitle || '').trim(),
+					assessorId: scope.uid,
 					updatedAt
 				})
 			}
 		}
 		const list = childrenRes.data.map(child => {
 			const childId = subjectAuth.compactId(child._id)
-			const stats = statsMap.get(childId) || { count: 0, time: 0 }
+			const stats = statsMap.get(childId) || { count: 0, time: 0, assessorName: '' }
 			const inProgressAssessment = activeMap.get(childId) || null
+			const latestAssessorName = inProgressAssessment?.updatedAt >= stats.time
+				? assessorNameMap.get(subjectAuth.compactId(inProgressAssessment.assessorId)) || stats.assessorName
+				: stats.assessorName
 			const age = calculateAge(child.birthdate)
 			return {
 				_id: child._id,
@@ -111,6 +126,7 @@ exports.main = async (event = {}, context) => {
 				hasAssessments: stats.count > 0,
 				lastAssessmentTime: stats.time,
 				lastAssessmentDate: formatDate(stats.time),
+				latestAssessorName,
 				assessmentCount: stats.count,
 				assessmentNumber: `共评估${stats.count}次`,
 				hasInProgressAssessment: Boolean(inProgressAssessment),
@@ -126,6 +142,48 @@ exports.main = async (event = {}, context) => {
 		console.error('查询班级评估历史失败:', error)
 		return subjectAuth.toErrorResponse(error, '查询失败')
 	}
+}
+
+async function loadAssessorNames(statsRows, extraUserIds = []) {
+	const assessorIds = [...new Set([
+		...(statsRows || []).map(item => subjectAuth.compactId(item.latestAssessorId)),
+		...extraUserIds.map(subjectAuth.compactId)
+	].filter(Boolean))]
+	const nameMap = new Map()
+	if (!assessorIds.length) return nameMap
+
+	const userRes = await db.collection('uni-id-users')
+		.where({ _id: dbCmd.in(assessorIds) })
+		.field({ _id: true, nickname: true, username: true, mobile: true })
+		.get()
+	const users = userRes.data || []
+	const mobiles = [...new Set(users.map(user => String(user.mobile || '').trim()).filter(Boolean))]
+	let linkedUsers = []
+	if (mobiles.length) {
+		const linkedRes = await db.collection('uni-id-users')
+			.where({ mobile: dbCmd.in(mobiles) })
+			.field({ nickname: true, mobile: true })
+			.get()
+		linkedUsers = linkedRes.data || []
+	}
+	const linkedNicknameByMobile = new Map()
+	for (const user of linkedUsers) {
+		const mobile = String(user.mobile || '').trim()
+		const nickname = String(user.nickname || '').trim()
+		if (mobile && nickname && !linkedNicknameByMobile.has(mobile)) {
+			linkedNicknameByMobile.set(mobile, nickname)
+		}
+	}
+
+	for (const user of users) {
+		const userId = subjectAuth.compactId(user._id)
+		const mobile = String(user.mobile || '').trim()
+		const nickname = String(user.nickname || '').trim() ||
+			linkedNicknameByMobile.get(mobile) ||
+			String(user.username || '').trim()
+		if (userId && nickname) nameMap.set(userId, nickname)
+	}
+	return nameMap
 }
 
 function calculateAge(value) {

@@ -36,6 +36,11 @@
                         </view>
                     </view>
                 </view>
+                <view v-if="latestAssessorName" class="latest-assessor">
+                    <text class="assessor-icon">👩‍🏫</text>
+                    <text class="assessor-label">最近评估老师</text>
+                    <text class="assessor-name">{{ latestAssessorName }}</text>
+                </view>
             </view>
         </view>
         
@@ -108,6 +113,10 @@ const isAssessing = computed(() =>
 )
 
 const hasAssessmentActivity = computed(() => hasAssessments.value || isAssessing.value)
+
+const latestAssessorName = computed(() =>
+    String(props.student.latestAssessorName || props.student.lastAssessorName || '').trim()
+)
 
 const lastAssessmentText = computed(() => {
     if (isAssessing.value) return '评估进行中'
@@ -441,6 +450,44 @@ const handleAssessClick = () => {
         filter: grayscale(1);
         opacity: 0.65;
     }
+}
+
+.latest-assessor {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    max-width: 100%;
+    margin-top: 9rpx;
+    padding: 6rpx 11rpx;
+    overflow: hidden;
+    color: #615878;
+    border: 2rpx solid #392f59;
+    border-radius: 999rpx;
+    background: #fff1ac;
+    box-sizing: border-box;
+    font-size: 19rpx;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.assessor-icon {
+    flex-shrink: 0;
+    margin-right: 5rpx;
+    font-size: 18rpx;
+}
+
+.assessor-label {
+    flex-shrink: 0;
+}
+
+.assessor-name {
+    min-width: 0;
+    margin-left: 7rpx;
+    overflow: hidden;
+    color: #392f59;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .action-area {
