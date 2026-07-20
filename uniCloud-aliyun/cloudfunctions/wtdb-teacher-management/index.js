@@ -639,36 +639,6 @@ async function removeTeacher(event, scope) {
 	}
 }
 
-async function updateTeacherNickname(event, scope) {
-	const memberId = businessAuth.compactId(event.memberId || event.member_id)
-	const userId = businessAuth.compactId(event.userId || event.user_id)
-	const classId = businessAuth.compactId(event.classId || event.class_id)
-	const nickname = clean(event.nickname, 30)
-	if (!memberId || !userId || !classId) throwBusinessError(400, '缺少老师任教信息')
-	if (!nickname) throwBusinessError(400, '请填写昵称')
-
-	const member = await findLegacyTeacherMember(db, memberId, userId, classId)
-	if (!member || businessAuth.compactId(member.user_id) !== userId) {
-		throwBusinessError(404, '老师任教关系不存在')
-	}
-	const classInfo = await getClassById(businessAuth.compactId(member.class_id))
-	const school = await getSchoolByBusinessId(classInfo.school_id)
-	businessAuth.assertSchoolAccess(scope, school, '无权修改该学校老师昵称')
-
-	const userRes = await db.collection(USER_COLLECTION)
-		.where({ _id: userId })
-		.update({ nickname })
-	if (!userRes || Number(userRes.updated) < 1) throwBusinessError(404, '老师账号不存在')
-	await db.collection(MEMBER_COLLECTION)
-		.where({ user_id: userId, role: 'teacher' })
-		.update({ nickname })
-	return {
-		code: 200,
-		msg: '老师昵称已更新',
-		data: { nickname }
-	}
-}
-
 exports.main = async (event = {}, context) => {
 	const action = event.action || 'summary'
 	try {
@@ -676,7 +646,6 @@ exports.main = async (event = {}, context) => {
 		if (action === 'summary') return getSummary(scope)
 		if (action === 'list') return listTeachers(event, scope)
 		if (action === 'manager-access-list') return getManagerAccessList(event, scope)
-		if (action === 'update-nickname') return updateTeacherNickname(event, scope)
 		if (action === 'remove') return removeTeacher(event, scope)
 		return { code: 400, msg: '未知操作' }
 	} catch (error) {
