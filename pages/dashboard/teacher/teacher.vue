@@ -24,9 +24,14 @@
           <view class="info">
             <view class="profile-name-row">
               <text class="name">{{ displayName }}</text>
-              <view class="identity-badge">
+              <view
+                v-for="identity in identityLabels"
+                :key="identity.key"
+                class="identity-badge"
+                :class="`identity-badge--${identity.key}`"
+              >
                 <view class="identity-dot"></view>
-                <text>老师</text>
+                <text>{{ identity.label }}</text>
               </view>
             </view>
             <view class="class-row">
@@ -213,12 +218,39 @@
   // 新增用户信息获取
   const userInfo = ref(uni.getStorageSync("uni-id-pages-userInfo") || {});
   const currentClass = ref(uni.getStorageSync("currentClass") || {});
+  const currentMembership = ref(null);
   const role = ref("teacher"); // 默认值设为teacher
   // 修改用户信息显示部分
   let userNickname = ref("");
   const displayName = computed(() => {
-	return userNickname.value || userInfo.value.nickname ||
-		currentClass.value.memberNickname || "未设置昵称";
+    return userNickname.value || userInfo.value.nickname ||
+      currentClass.value.memberNickname || "未设置昵称";
+  });
+  const identityLabels = computed(() => {
+    const membership = currentMembership.value || {};
+    const hasMembership = Boolean(currentMembership.value);
+    const classRole = membership.role || currentClass.value.memberRole || role.value;
+    const isHeadTeacher = hasMembership
+      ? Boolean(membership.isHeadTeacher || membership.classInfo?.isHeadTeacher)
+      : Boolean(currentClass.value.isHeadTeacher);
+    const isSchoolDirector = hasMembership
+      ? Boolean(membership.isSchoolDirector || membership.schoolInfo?.isSchoolDirector)
+      : Boolean(currentClass.value.isSchoolDirector);
+    const labels = [];
+
+    if (classRole === "parent") {
+      labels.push({ key: "parent", label: "家长" });
+    } else if (isHeadTeacher) {
+      labels.push({ key: "head-teacher", label: "班主任" });
+    } else {
+      labels.push({ key: "teacher", label: "老师" });
+    }
+
+    if (isSchoolDirector) {
+      labels.push({ key: "director", label: "学校负责人" });
+    }
+
+    return labels;
   });
   const navigateToLogin = () => {
     uni.reLaunch({
@@ -325,6 +357,49 @@
     return "暂无班级信息";
   });
 
+  const normalizeIdentifier = (value) => {
+    if (!value) return "";
+    if (typeof value === "object") {
+      return normalizeIdentifier(value.$oid || value._id || value.id);
+    }
+    return String(value);
+  };
+
+  const getClassIdentifiers = (classInfo = {}) =>
+    [classInfo.code, classInfo._id, classInfo.id]
+      .map(normalizeIdentifier)
+      .filter(Boolean);
+
+  const loadCurrentMembership = async () => {
+    const token = uni.getStorageSync("uni_id_token");
+    const requestedIdentifiers = getClassIdentifiers(currentClass.value);
+    const requestKey = requestedIdentifiers.join("|");
+    currentMembership.value = null;
+
+    if (!token || !requestKey) return;
+
+    try {
+      const { result } = await uniCloud.callFunction({
+        name: "wtdb-business-member-class",
+        data: { uniIdToken: token },
+      });
+      if (result?.code !== 200 || !Array.isArray(result.data)) return;
+
+      const membership = result.data.find((item) =>
+        getClassIdentifiers(item.classInfo).some((identifier) =>
+          requestedIdentifiers.includes(identifier)
+        )
+      );
+
+      // 防止切换班级时，较早返回的请求覆盖新班级身份。
+      if (requestKey === getClassIdentifiers(currentClass.value).join("|")) {
+        currentMembership.value = membership || null;
+      }
+    } catch (error) {
+      console.warn("加载当前班级身份失败:", error);
+    }
+  };
+
   const onClickSwitch = () => {
     uni
       .navigateTo({
@@ -421,7 +496,9 @@
       currentClass.value = newClass;
     }
     
-    checkLoginStatus();
+    if (checkLoginStatus()) {
+      loadCurrentMembership();
+    }
   });
 
   onLoad(async (options) => {
@@ -557,8 +634,10 @@
 
       .profile-left {
         display: flex;
+        flex: 1;
         gap: 20rpx;
         align-items: center;
+        min-width: 0;
         z-index: 2;
       }
       
@@ -595,14 +674,17 @@
 
       .info {
         display: flex;
+        flex: 1;
         flex-direction: column;
         gap: 6rpx;
+        min-width: 0;
 
         .profile-name-row {
           display: flex;
           align-items: center;
           min-width: 0;
-          gap: 12rpx;
+          flex-wrap: wrap;
+          gap: 8rpx;
         }
 
         .name {
@@ -636,6 +718,33 @@
             height: 10rpx;
             border-radius: 50%;
             background: #7c63e8;
+          }
+
+          &.identity-badge--head-teacher {
+            color: #735519;
+            background: #fff0a8;
+
+            .identity-dot {
+              background: #e3aa14;
+            }
+          }
+
+          &.identity-badge--director {
+            color: #25684f;
+            background: #d9f5e9;
+
+            .identity-dot {
+              background: #42b88e;
+            }
+          }
+
+          &.identity-badge--parent {
+            color: #7a3f38;
+            background: #ffe5df;
+
+            .identity-dot {
+              background: #ff765f;
+            }
           }
 
         }

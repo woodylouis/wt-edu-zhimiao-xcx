@@ -111,41 +111,67 @@
       </view> -->
       <view
         class="option"
+        :class="{
+          'option--class': primaryMode === 'current' || primaryMode === 'existing',
+          'option--loading': primaryMode === 'loading'
+        }"
         hover-class="option-pressed"
         :hover-stay-time="80"
-        @click="onClickButton(1)"
+        @click="handlePrimaryAction"
       >
         <view class="option-copy">
-          <view class="option-tag">推荐</view>
-          <text class="option-title">{{ $t("enterClassMethod.apply") }}</text>
-          <text class="option-subtitle">找到孩子的班级，一起记录成长</text>
+          <view class="option-tag" :class="{ 'option-tag--class': primaryMode === 'current' || primaryMode === 'existing' }">
+            {{ primaryTag }}
+          </view>
+          <text class="option-title">{{ primaryTitle }}</text>
+          <text class="option-subtitle">{{ primarySubtitle }}</text>
           <view class="option-action">
-            <text>现在加入</text>
+            <text>{{ primaryActionText }}</text>
             <view class="action-arrow">→</view>
           </view>
         </view>
         <view class="option-visual">
           <view class="visual-orbit orbit-large"></view>
           <view class="visual-orbit orbit-small"></view>
-          <image class="image" src="../../static/enter-class/apply.svg" />
+          <image class="image" :src="primaryImage" />
         </view>
       </view>
 
       <view
+        v-if="primaryMode !== 'current'"
         class="help-container"
         hover-class="help-pressed"
         :hover-stay-time="80"
-        @click="onClickEnter"
+        @click="handleSecondaryAction"
       >
         <view class="help-icon">
           <view class="help-person person-back"></view>
           <view class="help-person person-front"></view>
         </view>
         <view class="help-copy">
-          <text class="help-label">已经加入过班级？</text>
-          <text class="help-link">进入现有班级</text>
+          <text class="help-label">{{ secondaryLabel }}</text>
+          <text class="help-link">{{ secondaryActionText }}</text>
         </view>
         <view class="help-arrow">›</view>
+      </view>
+
+      <view v-else class="class-quick-actions">
+        <view class="class-quick-item" hover-class="class-quick-item--pressed" @click="openExistingClasses">
+          <view class="quick-icon quick-icon--switch">⇄</view>
+          <view class="quick-copy">
+            <text class="quick-label">想进入其他班级？</text>
+            <text class="quick-title">切换班级</text>
+          </view>
+          <text class="quick-arrow">›</text>
+        </view>
+        <view class="class-quick-item" hover-class="class-quick-item--pressed" @click="onClickButton(1)">
+          <view class="quick-icon quick-icon--join">+</view>
+          <view class="quick-copy">
+            <text class="quick-label">还有新班级？</text>
+            <text class="quick-title">申请加入</text>
+          </view>
+          <text class="quick-arrow">›</text>
+        </view>
       </view>
 
       <view class="promise-row">
@@ -240,6 +266,75 @@
         if (hour < 18) return "下午好";
         return "晚上好";
       },
+      hasCurrentClass() {
+        return Boolean(
+          this.bannerLoggedIn &&
+          (this.currentClass._id || this.currentClass.id || this.currentClass.code)
+        );
+      },
+      currentMembership() {
+        return this.memberships.find((item) => {
+          const classInfo = item.classInfo || {};
+          return (
+            (this.currentClass.code && classInfo.code === this.currentClass.code) ||
+            ((this.currentClass._id || this.currentClass.id) &&
+              classInfo._id === (this.currentClass._id || this.currentClass.id))
+          );
+        });
+      },
+      currentClassName() {
+        if (this.currentClass.nickname) return this.currentClass.nickname;
+        if (this.currentClass.grade && this.currentClass.class) {
+          return `${this.currentClass.grade}${this.currentClass.class}班`;
+        }
+        return "当前班级";
+      },
+      primaryMode() {
+        if (!this.bannerLoggedIn) return "apply";
+        if (this.hasCurrentClass) return "current";
+        if (!this.classContextLoaded) return "loading";
+        if (this.memberships.length) return "existing";
+        return "apply";
+      },
+      primaryTag() {
+        if (this.primaryMode === "current") return "当前班级";
+        if (this.primaryMode === "existing") return "我的班级";
+        if (this.primaryMode === "loading") return "请稍候";
+        return "推荐";
+      },
+      primaryTitle() {
+        if (this.primaryMode === "current") return "进入当前班级";
+        if (this.primaryMode === "existing") return "进入现有班级";
+        if (this.primaryMode === "loading") return "正在整理班级";
+        return this.$t("enterClassMethod.apply");
+      },
+      primarySubtitle() {
+        if (this.primaryMode === "current") {
+          return `继续前往「${this.currentClassName}」记录成长`;
+        }
+        if (this.primaryMode === "existing") return "选择一个已加入的班级继续成长旅程";
+        if (this.primaryMode === "loading") return "小芽正在确认你已加入的班级";
+        return "找到孩子的班级，一起记录成长";
+      },
+      primaryActionText() {
+        if (this.primaryMode === "current") return "继续进入";
+        if (this.primaryMode === "existing") return "选择班级";
+        if (this.primaryMode === "loading") return "马上就好";
+        return "现在加入";
+      },
+      primaryImage() {
+        return this.primaryMode === "apply"
+          ? "../../static/enter-class/apply.svg"
+          : "../../static/enter-class/create.svg";
+      },
+      secondaryLabel() {
+        return this.primaryMode === "existing"
+          ? "还想加入新班级？"
+          : "已经加入过班级？";
+      },
+      secondaryActionText() {
+        return this.primaryMode === "existing" ? "申请加入新班级" : "进入现有班级";
+      },
     },
     data() {
       return {
@@ -254,6 +349,9 @@
         loadingText: "正在查找班级",
         bannerLoggedIn: false,
         bannerUserInfo: {},
+        currentClass: {},
+        memberships: [],
+        classContextLoaded: false,
         infoPrompt: {
           show: false,
           eyebrow: "温馨提示",
@@ -289,6 +387,7 @@
     },
     onShow() {
       this.refreshBannerUser();
+      this.loadClassContext();
       this.loadApprovalSummary();
       this.loadTeacherSummary();
     },
@@ -301,6 +400,66 @@
         this.bannerLoggedIn = Boolean(
           token && userInfo._id && tokenExpired > Date.now()
         );
+      },
+      async loadClassContext() {
+        this.currentClass = uni.getStorageSync("currentClass") || {};
+        this.memberships = [];
+
+        if (!this.bannerLoggedIn) {
+          this.classContextLoaded = true;
+          return;
+        }
+
+        this.classContextLoaded = this.hasCurrentClass;
+        try {
+          const { result } = await uniCloud.callFunction({
+            name: "wtdb-business-member-class",
+            data: {
+              uniIdToken: uni.getStorageSync("uni_id_token"),
+            },
+          });
+          if (result && result.code === 200) {
+            this.memberships = result.data || [];
+          }
+        } catch (error) {
+          console.error("班级状态加载失败:", error);
+        } finally {
+          this.classContextLoaded = true;
+        }
+      },
+      async handlePrimaryAction() {
+        if (this.primaryMode === "loading") return;
+        if (this.primaryMode === "apply") {
+          this.onClickButton(1);
+          return;
+        }
+        if (this.primaryMode === "existing") {
+          this.openExistingClasses();
+          return;
+        }
+
+        const valid = await this.checkLoginStatus();
+        if (!valid) return;
+        const role =
+          this.currentClass.memberRole ||
+          this.currentMembership?.role ||
+          "teacher";
+        uni.navigateTo({
+          url: `/pages/dashboard/teacher/teacher?role=${role}`,
+        });
+      },
+      handleSecondaryAction() {
+        if (this.primaryMode === "loading") return;
+        if (this.primaryMode === "existing") {
+          this.onClickButton(1);
+          return;
+        }
+        this.onClickEnter();
+      },
+      async openExistingClasses() {
+        const valid = await this.checkLoginStatus();
+        if (!valid) return;
+        uni.navigateTo({ url: "/pages/enter-class/switchClass" });
       },
       async loadApprovalSummary() {
         const token = uni.getStorageSync("uni_id_token");
@@ -1124,6 +1283,23 @@
       transition: transform 0.16s ease, box-shadow 0.16s ease;
     }
 
+    .option--class {
+      background: linear-gradient(135deg, #bcefdc 0%, #dff8ee 54%, #d8ceff 100%);
+    }
+
+    .option--class .orbit-large {
+      background: #ffcf46;
+      box-shadow: inset -12rpx -12rpx 0 rgba(220, 143, 38, 0.15);
+    }
+
+    .option--class .orbit-small {
+      background: #ff8f82;
+    }
+
+    .option--loading {
+      pointer-events: none;
+    }
+
     .option-pressed {
       transform: translate(6rpx, 7rpx);
       box-shadow: 4rpx 4rpx 0 #2f2854;
@@ -1152,6 +1328,10 @@
       transform: rotate(-2deg);
     }
 
+    .option-tag--class {
+      background: #7657f6;
+    }
+
     .option-title {
       margin-top: 13rpx;
       color: #2f2854;
@@ -1166,7 +1346,10 @@
       font-size: 21rpx;
       font-weight: 500;
       line-height: 1.45;
-      white-space: nowrap;
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
     }
 
     .option-action {
@@ -1260,6 +1443,94 @@
   .help-pressed {
     transform: scale(0.985);
     background: #f4f0ff;
+  }
+
+  .class-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16rpx;
+    margin-top: 30rpx;
+  }
+
+  .class-quick-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    height: 108rpx;
+    box-sizing: border-box;
+    padding: 14rpx 15rpx;
+    overflow: hidden;
+    border: 3rpx solid #d9d1f4;
+    border-radius: 27rpx;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 9rpx 22rpx rgba(80, 61, 134, 0.08);
+    transition: transform 0.16s ease, background 0.16s ease;
+  }
+
+  .class-quick-item--pressed {
+    transform: scale(0.975);
+    background: #f4f0ff;
+  }
+
+  .quick-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52rpx;
+    height: 52rpx;
+    flex-shrink: 0;
+    border: 2rpx solid #2f2854;
+    border-radius: 17rpx;
+    color: #2f2854;
+    font-size: 28rpx;
+    font-weight: 900;
+    box-shadow: 3rpx 4rpx 0 rgba(47, 40, 84, 0.12);
+  }
+
+  .quick-icon--switch {
+    background: #c8bcff;
+    transform: rotate(-3deg);
+  }
+
+  .quick-icon--join {
+    background: #ffcf46;
+    transform: rotate(3deg);
+  }
+
+  .quick-copy {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    margin-left: 11rpx;
+  }
+
+  .quick-label,
+  .quick-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .quick-label {
+    color: #948da7;
+    font-size: 17rpx;
+  }
+
+  .quick-title {
+    margin-top: 5rpx;
+    color: #4c3b91;
+    font-size: 23rpx;
+    font-weight: 800;
+  }
+
+  .quick-arrow {
+    flex-shrink: 0;
+    margin-left: 4rpx;
+    color: #7657f6;
+    font-size: 32rpx;
+    font-weight: 800;
   }
 
   .help-icon {
