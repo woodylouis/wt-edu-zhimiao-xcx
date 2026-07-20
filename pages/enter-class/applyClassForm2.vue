@@ -64,9 +64,9 @@
                     </view> -->
                     <view v-if="formData.role === 'teacher'">
                         <view class="input-group">
-                            <text class="input-label">我的姓名</text>
+                            <text class="input-label">业务姓名</text>
                             <u-form-item prop="teacherData.user_name" :borderBottom="false">
-                                <u--input v-model="formData.teacherData.user_name" placeholder="请输入姓名" border="false"
+                                <u--input v-model="formData.teacherData.user_name" placeholder="用于班级和评估报告" border="false"
                                     :custom-style="inputStyle" />
                             </u-form-item>
                         </view>
@@ -265,6 +265,22 @@ export default {
     },
     // 修正handleSubmit中的逻辑
     methods: {
+		async loadBusinessProfile() {
+			const token = uni.getStorageSync('uni_id_token');
+			if (!token) return;
+			try {
+				const { result } = await uniCloud.callFunction({
+					name: 'wtdb-business-person-profile',
+					data: { action: 'get', uniIdToken: token }
+				});
+				if (result && result.code === 200 && result.data?.displayName) {
+					this.formData.teacherData.user_name = result.data.displayName;
+					uni.setStorageSync('businessPersonProfile', result.data);
+				}
+			} catch (error) {
+				console.warn('业务姓名加载失败，使用本地资料:', error);
+			}
+		},
 
         handleCodeBlur(e) {
             console.log('handleCodeBlur', e);
@@ -290,7 +306,7 @@ export default {
                         classId: classInfo._id,
                         classCode: cacheData.code,
                         requestedRole: 'teacher',
-                        nickname: this.formData.teacherData.user_name,
+                        displayName: this.formData.teacherData.user_name,
                         uniIdToken: uni.getStorageSync('uni_id_token')
                     }
                 });
@@ -298,7 +314,12 @@ export default {
                 if (result.code !== 200) {
                     throw new Error(result.msg || '申请提交失败');
                 }
-                this.handleApplySuccess(result.data && result.data.existing);
+				const profile = result.data || {};
+				uni.setStorageSync('businessPersonProfile', {
+					personId: profile.personId || '',
+					displayName: profile.displayName || this.formData.teacherData.user_name
+				});
+                this.handleApplySuccess(profile.existing);
             } catch (error) {
                 uni.showToast({
                     title: error.message || '申请提交失败',
@@ -479,7 +500,7 @@ export default {
         },
     },
 
-    onLoad() {
+    async onLoad() {
         // 新增缓存读取逻辑
         const cacheData = uni.getStorageSync('tempFormData') || {};
         this.formData = {
@@ -488,6 +509,10 @@ export default {
             class_id: cacheData.classInfo._id,
             role: cacheData.role || 'parent'
         };
+		const businessProfile = uni.getStorageSync('businessPersonProfile') || {};
+		const accountInfo = uni.getStorageSync('uni-id-pages-userInfo') || {};
+		this.formData.teacherData.user_name = businessProfile.displayName || accountInfo.nickname || '';
+		await this.loadBusinessProfile();
         console.log('初始化表单数据:', this.formData);
 
         // 新增：初始化时立即格式化日期

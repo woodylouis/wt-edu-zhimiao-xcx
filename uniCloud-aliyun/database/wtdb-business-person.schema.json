@@ -1,0 +1,53 @@
+{
+  "bsonType": "object",
+  "required": ["display_name", "name_confirmed", "create_time", "update_time"],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "统一业务人员ID" },
+    "display_name": {
+      "bsonType": "string",
+      "title": "业务姓名",
+      "minLength": 1,
+      "maxLength": 30
+    },
+    "mobile": {
+      "bsonType": "string",
+      "title": "关联手机号"
+    },
+    "name_confirmed": {
+      "bsonType": "bool",
+      "title": "姓名是否已确认"
+    },
+    "name_source": {
+      "bsonType": "string",
+      "title": "姓名来源"
+    },
+    "created_by": {
+      "bsonType": "string",
+      "foreignKey": "uni-id-users._id",
+      "title": "创建账号ID"
+    },
+    "updated_by": {
+      "bsonType": "string",
+      "foreignKey": "uni-id-users._id",
+      "title": "最后修改账号ID"
+    },
+    "create_time": { "bsonType": "timestamp", "title": "创建时间" },
+    "update_time": { "bsonType": "timestamp", "title": "更新时间" }
+  },
+  "indexes": [
+    {
+      "name": "mobile_1",
+      "key": { "mobile": 1 }
+    },
+    {
+      "name": "display_name_1",
+      "key": { "display_name": 1 }
+    }
+  ]
+}

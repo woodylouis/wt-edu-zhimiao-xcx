@@ -359,12 +359,14 @@ export default {
                         ...result.data,
                         memberRole: this.selectedClass.role,
                         memberNickname: this.selectedClass.nickname,
+						memberPersonId: this.selectedClass.personId,
+						memberDisplayName: this.selectedClass.displayName,
                         schoolName: this.selectedSchoolName
                     }
                     this.currentClassCode = currentClass.code || ''
                     uni.setStorageSync('currentClass', currentClass)
                     uni.redirectTo({
-                        url: `/pages/dashboard/teacher/teacher?userNickname=${this.selectedClass.nickname}&role=${this.selectedClass.role}`
+						url: `/pages/dashboard/teacher/teacher?role=${this.selectedClass.role}`
                     })
                 }
             } catch (e) {
@@ -408,12 +410,21 @@ export default {
                 })
 
                 if (res.result.code === 200) {
+					const teacherProfile = (res.result.data || []).find(item => item.role === 'teacher' && item.displayName)
+					if (teacherProfile) {
+						uni.setStorageSync('businessPersonProfile', {
+							personId: teacherProfile.personId || teacherProfile.person_id || '',
+							displayName: teacherProfile.displayName
+						})
+					}
                     this.classes.parent = res.result.data
                         .filter(item => item.role === 'parent')
                         .map(item => ({
                             name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
                             nickname: item.nickname || '家长',
+							displayName: item.displayName || item.nickname || '家长',
+							personId: item.personId || '',
                             role: item.role,
                             schoolId: item.classInfo.school_id || item.schoolInfo?.school_id || 'unknown',
                             schoolName: item.schoolInfo?.name || '未分配学校',
@@ -426,7 +437,9 @@ export default {
                         .map(item => ({
                             name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
-                            nickname: item.classInfo.teacherName || item.classInfo.class_creator_teacher || '老师',
+							nickname: item.displayName || item.nickname || '老师',
+							displayName: item.displayName || item.nickname || '老师',
+							personId: item.personId || item.person_id || '',
                             role: item.role,
                             schoolId: item.classInfo.school_id || item.schoolInfo?.school_id || 'unknown',
                             schoolName: item.schoolInfo?.name || '未分配学校',

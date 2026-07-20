@@ -1,6 +1,7 @@
 {
   "name": "wt-section-merge-to-report",
   "dependencies": {
+    "business-person": "file:../common/business-person",
     "deepseek-client": "file:../common/deepseek-client",
     "report-task-auth": "file:../common/report-task-auth"
   },

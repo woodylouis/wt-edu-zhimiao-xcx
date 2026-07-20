@@ -318,9 +318,10 @@
   const assessmentMeta = {
     recordId: recordId,
     assessmentId: accessStudentInfo.assessmentId,
+	...accessStudentInfo,
     assessorId: uni.getStorageSync("uni-id-pages-userInfo")._id,
-    assessorName: uni.getStorageSync("uni-id-pages-userInfo").nickname,
-    ...accessStudentInfo,
+	assessorName: (uni.getStorageSync("currentClass") || {}).memberDisplayName ||
+		(uni.getStorageSync("uni-id-pages-userInfo") || {}).nickname || "未设置姓名",
     startTimestamp: Date.now(),
     completionTime: 0,
     duration: 0,

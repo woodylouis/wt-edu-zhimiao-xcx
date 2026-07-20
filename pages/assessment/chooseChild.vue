@@ -44,10 +44,14 @@ import modalBox from '../../components/modalBox-v2/modalBox';
 const navCustomStyle = 'background: #F2F7F6;height: calc(100vh / 8)'
 // 新增用户信息引用
 const userInfo = ref(uni.getStorageSync('uni-id-pages-userInfo') || {});
+const businessClass = ref(uni.getStorageSync('currentClass') || {});
 
 // 修改为计算属性
 const currentClass = computed(() => className.value || '暂无班级信息');
-const displayName = computed(() => userInfo.value.nickname ? userInfo.value.nickname + '老师' : '老师');
+const displayName = computed(() => {
+	const name = businessClass.value.memberDisplayName || userInfo.value.nickname || '';
+	return name ? `${name}老师` : '老师';
+});
 
 const classId = ref('');        // 存储传入的班级ID
 const className = ref('');      // 存储传入的班级名称

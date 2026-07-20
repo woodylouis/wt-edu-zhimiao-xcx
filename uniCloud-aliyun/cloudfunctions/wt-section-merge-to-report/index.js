@@ -4,10 +4,10 @@ const dbTask = db.collection('wtdb-report-tasks')
 const dbAnalysis = db.collection('wtdb-section-analysis-tasks')
 const dbPending = db.collection('wtdb-report-save-pending')
 const dbRecord = db.collection('wtdb-business-assess-record')
-const dbUser = db.collection('uni-id-users')
 const dbLog = db.collection('wtdb-debug-logs')
 const deepseek = require('deepseek-client')
 const taskAuth = require('report-task-auth')
+const businessPerson = require('business-person')
 
 async function log(tag, data = null, { taskId = '', recordId = '', level = 'info' } = {}) {
 	const now = Date.now()
@@ -194,8 +194,8 @@ exports.main = async (event = {}) => {
 			}
 			const record = recordRes.data[0]
 			console.log('recordt', record)
-			const userRes = await dbUser.where({ _id: assessorId }).get()
-			const assessorName = userRes.data?.[0]?.nickname || userRes.data?.[0]?.username || '用户未设置昵称'
+			const assessorProfile = await businessPerson.resolveProfile(assessorId, originalParams.query?.assessorName)
+			const assessorName = assessorProfile.displayName
 
 			let reachCount = 0, belowCount = 0
 			const allSkillBelowStandard = []
@@ -239,6 +239,7 @@ exports.main = async (event = {}) => {
 				recordId,
 				assessmentId,
 				assessorId,
+				assessorPersonId: assessorProfile.personId,
 				assessorName,
 				classId: record.classId,
 				className: record.className,

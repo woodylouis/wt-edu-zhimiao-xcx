@@ -43,11 +43,11 @@
           </view>
 
           <view class="input-group">
-            <text class="input-label">我的姓名</text>
+            <text class="input-label">业务姓名</text>
             <u-form-item prop="teacherName" :borderBottom="false">
               <u--input
                 v-model="formData.teacherName"
-                placeholder="请输入我的姓名"
+				placeholder="用于班级和评估报告"
                 border="false"
                 :custom-style="inputStyle"
               />
@@ -165,6 +165,22 @@
     },
     // 修正handleSubmit中的逻辑
     methods: {
+	  async loadBusinessProfile() {
+		const token = uni.getStorageSync("uni_id_token");
+		if (!token) return;
+		try {
+		  const { result } = await uniCloud.callFunction({
+			name: "wtdb-business-person-profile",
+			data: { action: "get", uniIdToken: token },
+		  });
+		  if (result && result.code === 200 && result.data?.displayName) {
+			this.formData.teacherName = result.data.displayName;
+			uni.setStorageSync("businessPersonProfile", result.data);
+		  }
+		} catch (error) {
+		  console.warn("业务姓名加载失败，使用本地资料:", error);
+		}
+	  },
       async handleSubmit() {
         try {
           const valid = await this.$refs.uForm.validate();
@@ -198,6 +214,7 @@
             class: cacheData.class,
             nickname: this.formData.nickname,
             teacherName: this.formData.teacherName,
+			displayName: this.formData.teacherName,
             remark: this.formData.remark,
             section: cacheData.section || "小学",
             uniIdToken: uni.getStorageSync("uni_id_token"),
@@ -218,7 +235,13 @@
               grade: cacheData.grade,
               class: cacheData.class,
               nickname: this.formData.nickname,
+			  memberPersonId: result.data.personId || "",
+			  memberDisplayName: result.data.displayName || this.formData.teacherName,
             });
+			uni.setStorageSync("businessPersonProfile", {
+			  personId: result.data.personId || "",
+			  displayName: result.data.displayName || this.formData.teacherName,
+			});
 
             uni.showToast({
               title: `创建成功！班级码：${result.data.classCode}`,
@@ -270,13 +293,16 @@
       },
     },
     // 删除重复的methods声明块
-    onShow() {
+    async onShow() {
       const cacheData = uni.getStorageSync("classFormData");
       if (cacheData) {
+		const businessProfile = uni.getStorageSync("businessPersonProfile") || {};
+		const accountInfo = uni.getStorageSync("uni-id-pages-userInfo") || {};
         // 仅初始化本页字段
         this.formData.className = `${cacheData.grade}${cacheData.class}班`;
         this.formData.nickname = this.formData.className;
-        this.formData.teacherName = cacheData.teacherName || "";
+		this.formData.teacherName = businessProfile.displayName || cacheData.teacherName || accountInfo.nickname || "";
+		await this.loadBusinessProfile();
       }
     },
   };

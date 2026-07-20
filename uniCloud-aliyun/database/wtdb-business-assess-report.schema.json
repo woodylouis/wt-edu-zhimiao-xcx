@@ -227,6 +227,10 @@
             "bsonType": "string",
             "description": "评估师ID"
         },
+        "assessorPersonId": {
+            "bsonType": "string",
+            "description": "评估师统一业务人员ID"
+        },
         "assessorName": {
             "bsonType": "string",
             "description": "评估师名称"

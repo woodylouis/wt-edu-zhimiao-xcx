@@ -1,10 +1,16 @@
 'use strict'
 
 let businessAuth
+let businessPerson
 try {
 	businessAuth = require('business-auth')
 } catch (error) {
 	businessAuth = require('../common/business-auth')
+}
+try {
+	businessPerson = require('business-person')
+} catch (error) {
+	businessPerson = require('../common/business-person')
 }
 
 const db = uniCloud.database()
@@ -188,8 +194,10 @@ async function buildMemberWhere(classIds, keyword = '') {
 		const userIds = (userRes.data || [])
 			.map(item => businessAuth.compactId(item._id))
 			.filter(Boolean)
+		const businessNameUserIds = await businessPerson.findUserIdsByDisplayName(keyword)
 		const keywordConditions = [{ nickname: queryRegExp }]
-		if (userIds.length) keywordConditions.push({ user_id: dbCmd.in(userIds) })
+		const matchedUserIds = [...new Set([...userIds, ...businessNameUserIds])]
+		if (matchedUserIds.length) keywordConditions.push({ user_id: dbCmd.in(matchedUserIds) })
 		conditions.push(dbCmd.or(keywordConditions))
 	}
 
@@ -298,6 +306,7 @@ async function getManagerAccessList(event, scope) {
 		const userId = businessAuth.compactId(user._id)
 		if (userId) userMap.set(userId, user)
 	})
+	const businessProfiles = await businessPerson.resolveProfiles([...userMap.keys()])
 
 	const usersByMobile = new Map()
 	userMap.forEach(user => {
@@ -370,6 +379,7 @@ async function getManagerAccessList(event, scope) {
 		const managedSchools = [...(schoolAccessMap.get(userId) || new Map()).values()]
 		const headTeacherClasses = [...(headTeacherClassMap.get(userId) || new Map()).values()]
 		const source = getAccountSource(user)
+		const businessProfile = businessProfiles.get(userId) || {}
 		const status = Number(user.status || 0)
 		const isEnabled = status === 0
 		const canUseMiniProgram = isEnabled && source.isWechat
@@ -384,7 +394,8 @@ async function getManagerAccessList(event, scope) {
 		const avatarFile = user.avatar_file || {}
 		return {
 			userId,
-			displayName: userDisplayName(user),
+			personId: businessProfile.personId || '',
+			displayName: businessProfile.displayName || userDisplayName(user),
 			username: clean(user.username, 80),
 			mobile: clean(user.mobile, 30),
 			avatarUrl: typeof avatarFile === 'string' ? avatarFile : (avatarFile.url || ''),
@@ -488,6 +499,13 @@ async function listTeachers(event, scope) {
 	}
 
 	const userMap = new Map(users.map(item => [businessAuth.compactId(item._id), item]))
+	const fallbackNames = new Map()
+	members.forEach(member => {
+		const userId = businessAuth.compactId(member.user_id)
+		const memberName = clean(member.display_name_override || member.nickname, 30)
+		if (userId && memberName && !fallbackNames.has(userId)) fallbackNames.set(userId, memberName)
+	})
+	const businessProfiles = await businessPerson.resolveProfiles(userIds, fallbackNames)
 	const classMap = new Map(classes.map(item => [businessAuth.compactId(item._id), item]))
 	const schoolMap = new Map(schools.map(item => [item.school_id, item]))
 	const list = members.map(member => {
@@ -495,11 +513,13 @@ async function listTeachers(event, scope) {
 		const classInfo = classMap.get(businessAuth.compactId(member.class_id)) || {}
 		const school = schoolMap.get(classInfo.school_id) || {}
 		const user = userMap.get(userId) || {}
+		const businessProfile = businessProfiles.get(userId) || {}
 		const avatarFile = user.avatar_file || {}
 		return {
 			memberId: businessAuth.compactId(member._id),
 			userId,
-			teacherName: clean(member.nickname || user.nickname || user.username, 60) || '未命名老师',
+			personId: businessProfile.personId || businessAuth.compactId(member.person_id),
+			teacherName: clean(member.display_name_override || businessProfile.displayName || member.nickname || user.nickname || user.username, 60) || '未命名老师',
 			username: user.username || '',
 			mobile: user.mobile || '',
 			avatarUrl: typeof avatarFile === 'string' ? avatarFile : (avatarFile.url || ''),
@@ -597,14 +617,18 @@ async function removeTeacher(event, scope) {
 	])
 	const operator = operatorRes.data && operatorRes.data[0] || {}
 	const teacher = teacherRes.data && teacherRes.data[0] || {}
-	const operatorName = clean(operator.nickname || operator.username, 60) || '管理员'
+	const [operatorProfile, teacherProfile] = await Promise.all([
+		businessPerson.resolveProfile(scope.uid, operator.nickname || operator.username),
+		businessPerson.resolveProfile(member.user_id, member.nickname || teacher.nickname || teacher.username)
+	])
+	const operatorName = clean(operatorProfile.displayName, 60) || '管理员'
 	const now = Date.now()
 	let actionLogId = ''
 	try {
 		const logRes = await db.collection(ACTION_LOG_COLLECTION).add({
 			action: 'remove_from_class',
 			teacher_user_id: businessAuth.compactId(member.user_id),
-			teacher_name: clean(member.nickname || teacher.nickname || teacher.username, 60) || '未命名老师',
+			teacher_name: clean(member.display_name_override || teacherProfile.displayName || member.nickname || teacher.nickname || teacher.username, 60) || '未命名老师',
 			teacher_mobile: teacher.mobile || '',
 			member_id: resolvedMemberId,
 			class_id: businessAuth.compactId(classInfo._id),
@@ -640,6 +664,43 @@ async function removeTeacher(event, scope) {
 	}
 }
 
+async function updateTeacherDisplayName(event, scope) {
+	const memberId = businessAuth.compactId(event.memberId || event.member_id)
+	const userId = businessAuth.compactId(event.userId || event.user_id)
+	const classId = businessAuth.compactId(event.classId || event.class_id)
+	const displayName = clean(event.displayName || event.display_name, 30)
+	if (!memberId || !userId || !classId) throwBusinessError(400, '缺少老师任教信息')
+	if (!displayName) throwBusinessError(400, '请填写业务姓名')
+
+	const member = await findLegacyTeacherMember(db, memberId, userId, classId)
+	if (!member || businessAuth.compactId(member.user_id) !== userId) {
+		throwBusinessError(404, '老师任教关系不存在')
+	}
+	const classInfo = await getClassById(businessAuth.compactId(member.class_id))
+	const school = await getSchoolByBusinessId(classInfo.school_id)
+	businessAuth.assertSchoolAccess(scope, school, '无权修改该学校老师姓名')
+
+	const profile = await businessPerson.ensurePersonForUser(userId, {
+		displayName,
+		nameSource: 'admin_teacher_management',
+		updatedBy: scope.uid
+	})
+	await db.collection(MEMBER_COLLECTION)
+		.where({ user_id: userId, role: 'teacher' })
+		.update({
+			person_id: profile.personId,
+			nickname: profile.displayName
+		})
+	return {
+		code: 200,
+		msg: '老师姓名已更新',
+		data: {
+			personId: profile.personId,
+			displayName: profile.displayName
+		}
+	}
+}
+
 exports.main = async (event = {}, context) => {
 	const action = event.action || 'summary'
 	try {
@@ -647,6 +708,7 @@ exports.main = async (event = {}, context) => {
 		if (action === 'summary') return getSummary(scope)
 		if (action === 'list') return listTeachers(event, scope)
 		if (action === 'manager-access-list') return getManagerAccessList(event, scope)
+		if (action === 'update-display-name') return updateTeacherDisplayName(event, scope)
 		if (action === 'remove') return removeTeacher(event, scope)
 		return { code: 400, msg: '未知操作' }
 	} catch (error) {

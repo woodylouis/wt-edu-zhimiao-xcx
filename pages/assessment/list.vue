@@ -87,7 +87,8 @@ const role = ref('teacher'); // 默认值设为teacher
 // 修改用户信息显示部分
 let userNickname = ref('');
 const displayName = computed(() => {
-    return userNickname.value ? userNickname.value : userInfo.value.nickname || '小程序用户';
+	return currentClass.value.memberDisplayName || userNickname.value ||
+		userInfo.value.nickname || '未设置姓名';
 });
 
 const avatarUrl = computed(() => {

@@ -1,10 +1,16 @@
 'use strict'
 
 let businessAuth
+let businessPerson
 try {
 	businessAuth = require('business-auth')
 } catch (error) {
 	businessAuth = require('../common/business-auth')
+}
+try {
+	businessPerson = require('business-person')
+} catch (error) {
+	businessPerson = require('../common/business-person')
 }
 
 const db = uniCloud.database()
@@ -185,10 +191,15 @@ async function submitApproval(event, scope) {
 	const profile = await getUserProfile(scope.uid)
 	if (!profile) throwBusinessError(404, '申请人账号不存在')
 
-	const applicantName = sanitizeText(
-		event.nickname || event.applicantName || profile.nickname || profile.username,
+	const submittedName = sanitizeText(
+		event.displayName || event.businessName || event.nickname || event.applicantName,
 		30
 	)
+	const personProfile = await businessPerson.ensurePersonForUser(scope.uid, {
+		displayName: submittedName,
+		nameSource: 'class_application'
+	})
+	const applicantName = sanitizeText(personProfile.displayName, 30)
 	if (!applicantName) throwBusinessError(400, '请填写申请人姓名')
 
 	const memberRes = await db.collection(MEMBER_COLLECTION)
@@ -212,11 +223,19 @@ async function submitApproval(event, scope) {
 		.limit(1)
 		.get()
 	if (pendingRes.data && pendingRes.data[0]) {
+		await db.collection(APPROVAL_COLLECTION).doc(pendingRes.data[0]._id).update({
+			applicant_person_id: personProfile.personId,
+			applicant_name: applicantName,
+			nickname: applicantName,
+			update_time: Date.now()
+		})
 		return {
 			code: 200,
 			msg: '申请已提交，请等待班主任或学校负责人审批',
 			data: {
 				approvalId: businessAuth.compactId(pendingRes.data[0]._id),
+				personId: personProfile.personId,
+				displayName: applicantName,
 				status: 'pending',
 				existing: true
 			}
@@ -231,6 +250,7 @@ async function submitApproval(event, scope) {
 		school_id: school.school_id,
 		school_name: school.name || school.school_id,
 		applicant_user_id: scope.uid,
+		applicant_person_id: personProfile.personId,
 		applicant_name: applicantName,
 		applicant_mobile: profile.mobile || '',
 		requested_role: requestedRole,
@@ -245,6 +265,8 @@ async function submitApproval(event, scope) {
 		msg: '申请已提交，请等待班主任或学校负责人审批',
 		data: {
 			approvalId: addRes.id,
+			personId: personProfile.personId,
+			displayName: applicantName,
 			status: 'pending',
 			existing: false
 		}
@@ -365,8 +387,11 @@ async function reviewApproval(event, scope) {
 	}
 
 	const reviewerProfile = await getUserProfile(scope.uid)
+	const reviewerBusinessProfile = reviewerProfile
+		? await businessPerson.resolveProfile(scope.uid, reviewerProfile.nickname || reviewerProfile.username)
+		: null
 	const reviewerName = sanitizeText(
-		reviewerProfile && (reviewerProfile.nickname || reviewerProfile.username),
+		reviewerBusinessProfile && reviewerBusinessProfile.displayName,
 		30
 	) || '管理员'
 
@@ -420,9 +445,16 @@ async function reviewApproval(event, scope) {
 		approvalUpdated = true
 
 		if (decision === 'approve' && !existingMember) {
+			const applicantProfile = request.applicant_person_id
+				? { personId: businessAuth.compactId(request.applicant_person_id) }
+				: await businessPerson.ensurePersonForUser(applicantUserId, {
+					displayName: request.applicant_name || request.nickname,
+					nameSource: 'approved_class_application'
+				})
 			const addRes = await db.collection(MEMBER_COLLECTION).add({
 				class_id: classId,
 				user_id: applicantUserId,
+				person_id: applicantProfile.personId,
 				role: request.requested_role,
 				nickname: request.nickname || request.applicant_name,
 				join_time: now,
