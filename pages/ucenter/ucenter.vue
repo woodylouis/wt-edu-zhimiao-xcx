@@ -13,6 +13,18 @@
 				<text class="uer-name" v-else>{{$t('mine.notLogged')}}</text>
 			</view>
 		</view>
+		<uni-list v-if="hasLogin" class="center-list business-profile-list">
+			<uni-list-item
+				title="业务姓名"
+				:note="'用于班级、审批和评估报告'"
+				:rightText="businessNameLoading ? '加载中...' : businessDisplayName"
+				link
+				:clickable="!businessNameSaving"
+				:show-extra-icon="true"
+				:extraIcon="{ type: 'person', color: '#6EDD8A' }"
+				@click="editBusinessName"
+			/>
+		</uni-list>
 		<uni-grid class="grid" :column="4" :showBorder="false" :square="true">
 			<uni-grid-item class="item" v-for="(item,index) in gridList" @click.native="tapGrid(index)" :key="index">
 				<uni-icons class="icon" color="#007AFF" :type="item.icon" size="26"></uni-icons>
@@ -59,6 +71,13 @@
 		// #endif
 		data() {
 			return {
+				businessProfile: {
+					personId: '',
+					displayName: '',
+					nameConfirmed: false
+				},
+				businessNameLoading: false,
+				businessNameSaving: false,
 				gridList: [{
 						"text": this.$t('mine.showText'),
 						"icon": "chat"
@@ -156,13 +175,19 @@
 			})
 			//#endif
 		},
-		onShow() {},
+		async onShow() {
+			if (this.hasLogin) await this.loadBusinessProfile()
+		},
 		computed: {
 			userInfo() {
 				return store.userInfo
 			},
 			hasLogin(){
 				return store.hasLogin
+			},
+			businessDisplayName() {
+				return this.businessProfile.displayName || this.userInfo.nickname ||
+					this.userInfo.username || '未设置'
 			},
 			// #ifdef APP-PLUS
 			appVersion() {
@@ -174,6 +199,88 @@
 			}
 		},
 		methods: {
+			async loadBusinessProfile() {
+				const token = uni.getStorageSync('uni_id_token')
+				if (!token || this.businessNameLoading) return
+				this.businessNameLoading = true
+				try {
+					const { result } = await uniCloud.callFunction({
+						name: 'wtdb-business-person-profile',
+						data: { action: 'get', uniIdToken: token }
+					})
+					if (!result || result.code !== 200) {
+						throw new Error(result && result.msg ? result.msg : '业务姓名加载失败')
+					}
+					this.businessProfile = {
+						personId: result.data?.personId || '',
+						displayName: result.data?.displayName || '',
+						nameConfirmed: Boolean(result.data?.nameConfirmed)
+					}
+					uni.setStorageSync('businessPersonProfile', this.businessProfile)
+				} catch (error) {
+					console.warn('业务姓名加载失败:', error)
+				} finally {
+					this.businessNameLoading = false
+				}
+			},
+			editBusinessName() {
+				if (this.businessNameSaving) return
+				uni.showModal({
+					title: '修改业务姓名',
+					content: `当前姓名：${this.businessDisplayName}`,
+					editable: true,
+					placeholderText: '请输入1-10个字的姓名',
+					confirmText: '保存',
+					success: modalRes => {
+						if (!modalRes.confirm) return
+						const displayName = String(modalRes.content || '').trim()
+						if (!displayName || displayName.length > 10) {
+							uni.showToast({ title: '姓名长度需为1-10个字', icon: 'none' })
+							return
+						}
+						if (/(老师|小朋友|儿童|学生)/.test(displayName)) {
+							uni.showToast({ title: '请填写姓名，不要包含身份称呼', icon: 'none' })
+							return
+						}
+						this.saveBusinessName(displayName)
+					}
+				})
+			},
+			async saveBusinessName(displayName) {
+				const token = uni.getStorageSync('uni_id_token')
+				if (!token) return
+				this.businessNameSaving = true
+				uni.showLoading({ title: '保存中...', mask: true })
+				try {
+					const { result } = await uniCloud.callFunction({
+						name: 'wtdb-business-person-profile',
+						data: { action: 'update', displayName, uniIdToken: token }
+					})
+					if (!result || result.code !== 200) {
+						throw new Error(result && result.msg ? result.msg : '业务姓名保存失败')
+					}
+					this.businessProfile = {
+						personId: result.data?.personId || '',
+						displayName: result.data?.displayName || displayName,
+						nameConfirmed: true
+					}
+					uni.setStorageSync('businessPersonProfile', this.businessProfile)
+					const currentClass = uni.getStorageSync('currentClass') || {}
+					if (currentClass._id || currentClass.id || currentClass.code) {
+						uni.setStorageSync('currentClass', {
+							...currentClass,
+							memberPersonId: this.businessProfile.personId,
+							memberDisplayName: this.businessProfile.displayName
+						})
+					}
+					uni.showToast({ title: '业务姓名已更新', icon: 'success' })
+				} catch (error) {
+					uni.showToast({ title: error.message || '保存失败', icon: 'none' })
+				} finally {
+					uni.hideLoading()
+					this.businessNameSaving = false
+				}
+			},
 			toSettings() {
 				uni.navigateTo({
 					url: "/pages/ucenter/settings/settings"
@@ -399,6 +506,11 @@
 	.center-list {
 		margin-bottom: 30rpx;
 		background-color: #f9f9f9;
+	}
+
+	.business-profile-list {
+		margin-top: 16rpx;
+		margin-bottom: 12rpx;
 	}
 
 	.center-list-cell {
