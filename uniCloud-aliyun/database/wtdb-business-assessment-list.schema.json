@@ -1,7 +1,9 @@
 {
     "bsonType": "object",
     "required": [
-        "title"
+        "title",
+        "type",
+        "is_active"
     ],
     "properties": {
         "_id": {
@@ -9,11 +11,12 @@
         },
         "title": {
             "bsonType": "string",
-            "title": "标题"
+            "title": "量表名称",
+            "trim": "both"
         },
         "description": {
             "bsonType": "string",
-            "title": "描述"
+            "title": "量表说明"
         },
         "type": {
             "bsonType": "string",
@@ -21,12 +24,13 @@
                 "regular",
                 "on_demand"
             ],
-            "title": "类型（定期/按需）"
+            "title": "评估类型"
         },
         "frequency": {
             "bsonType": "int",
             "minimum": 1,
-            "title": "频率（月数，仅定期有效）"
+            "maximum": 120,
+            "title": "定期评估间隔（月）"
         },
         "created_by": {
             "bsonType": "string",
@@ -40,9 +44,13 @@
             },
             "title": "创建时间"
         },
+        "update_time": {
+            "bsonType": "timestamp",
+            "title": "最后更新时间"
+        },
         "is_active": {
             "bsonType": "bool",
-            "defaultValue": true,
+            "defaultValue": false,
             "title": "是否启用"
         }
     },

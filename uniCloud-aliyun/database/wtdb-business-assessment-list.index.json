@@ -1,0 +1,3 @@
+[
+  { "IndexName": "active_created_time", "MgoKeySchema": { "MgoIndexKeys": [{ "Name": "is_active", "Direction": "1" }, { "Name": "created_time", "Direction": "-1" }], "MgoIsUnique": false } }
+]

@@ -1,0 +1,4 @@
+[
+  { "IndexName": "assessment_section_order", "MgoKeySchema": { "MgoIndexKeys": [{ "Name": "assessment_id", "Direction": "1" }, { "Name": "section_id", "Direction": "1" }, { "Name": "order", "Direction": "1" }], "MgoIsUnique": false } },
+  { "IndexName": "section_group_order", "MgoKeySchema": { "MgoIndexKeys": [{ "Name": "section_id", "Direction": "1" }, { "Name": "ablls_r_section_alphabet", "Direction": "1" }, { "Name": "ablls_r_section_order", "Direction": "1" }], "MgoIsUnique": false } }
+]

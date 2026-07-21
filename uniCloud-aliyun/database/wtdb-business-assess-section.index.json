@@ -1,0 +1,4 @@
+[
+  { "IndexName": "assessment_order", "MgoKeySchema": { "MgoIndexKeys": [{ "Name": "assessment_id", "Direction": "1" }, { "Name": "order", "Direction": "1" }], "MgoIsUnique": false } },
+  { "IndexName": "section_id_unique", "MgoKeySchema": { "MgoIndexKeys": [{ "Name": "section_id", "Direction": "1" }], "MgoIsUnique": true } }
+]

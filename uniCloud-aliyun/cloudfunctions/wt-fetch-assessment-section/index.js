@@ -25,6 +25,7 @@ exports.main = async (event) => {
 			.where({
 				assessment_id: assessmentId,
 			})
+			.orderBy('order', 'asc')
 			.get();
 
 		if (!sectionRes.data || sectionRes.data.length === 0) {

@@ -1,6 +1,6 @@
 {
 	"bsonType": "object",
-	"required": [],
+	"required": ["assessment_id", "section_id", "section", "order"],
 	"properties": {
 		"_id": {
 			"description": "ID，系统自动生成"
@@ -11,38 +11,32 @@
 		},
 		"order": {
 			"bsonType": "int",
+			"minimum": 0,
 			"description": "排序"
 		},
 		"section_id": {
 			"bsonType": "string",
-			"description": "自动生成的分类ID",
-			"pattern": "^[a-zA-Z0-9]_{1,5}$",
-			"autoGenerate": true
+			"description": "模块业务编码，需全局唯一",
+			"pattern": "^[A-Z][A-Z0-9_]{1,29}$"
 		},
 		"section": {
 			"bsonType": "string",
-			"description": "上级分类"
+			"description": "模块名称"
 		},
 		"desc": {
 			"bsonType": "string",
-			"description": "上级分类描述"
+			"description": "模块说明"
 		},
 		"create_time": {
 			"bsonType": "timestamp",
-			"description": "创建时间戳(毫秒)",
+			"description": "创建时间",
 			"defaultValue": {
 				"$env": "now"
 			}
 		},
 		"update_time": {
 			"bsonType": "timestamp",
-			"description": "最后修改时间戳(毫秒)",
-			"defaultValue": {
-				"$env": "now"
-			},
-			"forceDefaultValue": {
-				"$env": "now"
-			}
+			"description": "最后更新时间"
 		}
 	}
 }

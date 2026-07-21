@@ -1,69 +1,77 @@
 {
     "bsonType": "object",
-    "required": [],
+    "required": [
+        "assessment_id",
+        "section_id",
+        "type",
+        "content",
+        "options",
+        "age_standards"
+    ],
     "properties": {
         "_id": {
-            "description": "题目ID（MongoDB自动生成）"
+            "description": "题目ID"
         },
         "assessment_id": {
             "bsonType": "string",
-            "description": "可选，所属评估量表ID"
+            "description": "所属评估量表ID"
         },
         "section_id": {
             "bsonType": "string",
-            "description": "上级大分类section_id, 关联分类表，例如 '语言与沟通技能' 的id是section_001"
+            "description": "所属模块业务编码"
+        },
+        "order": {
+            "bsonType": "int",
+            "minimum": 0,
+            "description": "模块内排序"
         },
         "type": {
             "bsonType": "string",
             "enum": [
-                "radio",
-                "checkbox",
-                "text"
+                "radio"
             ],
-            "description": "题目类型，如单选、复选、文本"
+            "description": "当前小程序支持的题型"
         },
         "ablls_r_section": {
             "bsonType": "string",
-            "description": "ABLLS-R领域分类名，如语言理解"
+            "description": "子分类名称"
         },
         "ablls_r_section_alphabet": {
             "bsonType": "string",
-            "description": "ABLLS-R领域分类字母，如 C"
+            "description": "子分类编码"
         },
         "ablls_r_section_order": {
             "bsonType": "int",
             "minimum": 0,
-            "description": "ABLLS-R小分类顺序标识，如 1"
+            "description": "子分类内排序"
         },
         "task_name": {
             "bsonType": "string",
-            "description": "任务名称，简要描述评估任务"
+            "description": "任务名称"
         },
         "task_name_eng": {
             "bsonType": "string",
-            "description": "任务名称（英文），简要描述评估任务"
+            "description": "任务英文名称"
         },
         "task_object": {
             "bsonType": "string",
-            "description": "任务目标，详细描述评估任务的具体目标"
+            "description": "任务目标"
         },
         "content": {
             "bsonType": "string",
-            "description": "题目的内容（题干）"
+            "description": "题干"
         },
         "task_sample": {
             "bsonType": "string",
-            "description": "(可选) 示例描述，可用于展示例子",
-            "default": ""
+            "description": "示例"
         },
         "description": {
             "bsonType": "string",
-            "description": "(可选) 备注或其他补充说明",
-            "default": ""
+            "description": "备注"
         },
         "options": {
             "bsonType": "array",
-            "description": "选项列表，每个选项包含文本及对应得分",
+            "description": "评分选项",
             "items": {
                 "bsonType": "object",
                 "required": [
@@ -77,14 +85,15 @@
                     },
                     "score": {
                         "bsonType": "int",
-                        "description": "该选项对应的得分"
+                        "minimum": 0,
+                        "description": "选项得分"
                     }
                 }
             }
         },
         "age_standards": {
             "bsonType": "array",
-            "description": "各年龄段的期望得分标准",
+            "description": "各年龄的预期得分，0表示该年龄不展示题目",
             "items": {
                 "bsonType": "object",
                 "required": [
@@ -94,14 +103,28 @@
                 "properties": {
                     "age": {
                         "bsonType": "int",
-                        "description": "适用的年龄（整数，单位岁）"
+                        "minimum": 0,
+                        "maximum": 30,
+                        "description": "年龄（岁）"
                     },
                     "expected_score": {
                         "bsonType": "int",
-                        "description": "该年龄段预期达到的分数"
+                        "minimum": 0,
+                        "description": "预期得分"
                     }
                 }
             }
+        },
+        "create_time": {
+            "bsonType": "timestamp",
+            "defaultValue": {
+                "$env": "now"
+            },
+            "description": "创建时间"
+        },
+        "update_time": {
+            "bsonType": "timestamp",
+            "description": "最后更新时间"
         }
     }
 }
