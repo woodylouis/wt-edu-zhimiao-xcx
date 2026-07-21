@@ -1,0 +1,50 @@
+{
+  "bsonType": "object",
+  "required": ["user_id", "channel", "event_type", "create_time"],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "活动日志ID" },
+    "user_id": {
+      "bsonType": "string",
+      "foreignKey": "uni-id-users._id",
+      "description": "用户ID"
+    },
+    "user_name": { "bsonType": "string", "description": "记录时的用户显示名" },
+    "username": { "bsonType": "string", "description": "记录时的登录账号" },
+    "channel": {
+      "bsonType": "string",
+      "enum": ["miniapp", "admin"],
+      "description": "活动来源：miniapp 小程序，admin 后台"
+    },
+    "event_type": {
+      "bsonType": "string",
+      "enum": ["login", "app_show", "page_view", "user_action"],
+      "description": "活动类型"
+    },
+    "action": { "bsonType": "string", "description": "活动动作标识" },
+    "action_detail": { "bsonType": "string", "description": "业务操作的可读说明" },
+    "result": {
+      "bsonType": "string",
+      "enum": ["success", "failure"],
+      "description": "业务操作结果"
+    },
+    "duration_ms": { "bsonType": "int", "description": "业务操作耗时，单位毫秒" },
+    "target_type": { "bsonType": "string", "description": "业务对象类型" },
+    "target_id": { "bsonType": "string", "description": "业务对象ID" },
+    "page": { "bsonType": "string", "description": "页面路由" },
+    "page_title": { "bsonType": "string", "description": "页面名称" },
+    "session_id": { "bsonType": "string", "description": "客户端会话ID" },
+    "appid": { "bsonType": "string", "description": "DCloud AppId" },
+    "platform": { "bsonType": "string", "description": "客户端平台" },
+    "device_model": { "bsonType": "string", "description": "设备型号" },
+    "device_id": { "bsonType": "string", "description": "设备标识" },
+    "ip": { "bsonType": "string", "description": "服务端识别的IP地址" },
+    "user_agent": { "bsonType": "string", "description": "客户端User-Agent" },
+    "create_time": { "bsonType": "timestamp", "description": "活动时间" }
+  }
+}

@@ -13,6 +13,20 @@ const {
 } = require('./logout')
 const PasswordUtils = require('./password')
 
+const activityLogCollection = uniCloud.database().collection('wtdb-user-activity-log')
+const MINI_PROGRAM_APP_ID = '__UNI__0FAB82A'
+const ADMIN_APP_ID = '__UNI__B9C18F8'
+
+function safeText (value, maxLength = 100) {
+  return String(value == null ? '' : value).trim().slice(0, maxLength)
+}
+
+function getLoginChannel (appId) {
+  if (appId === MINI_PROGRAM_APP_ID) return 'miniapp'
+  if (appId === ADMIN_APP_ID) return 'admin'
+  return ''
+}
+
 async function realPreLogin (params = {}) {
   const {
     user
@@ -184,15 +198,29 @@ async function postLogin (params = {}) {
     extraData,
     isThirdParty = false
   } = params
+  const clientInfo = this.getUniversalClientInfo()
   const {
-    clientIP
-  } = this.getUniversalClientInfo()
+    clientIP,
+    appId,
+    uniPlatform,
+    deviceId,
+    userAgent
+  } = clientInfo
   const uniIdToken = this.getUniversalUniIdToken()
   const uid = user._id
+  const loginTime = Date.now()
+  const loginChannel = getLoginChannel(appId)
   const updateData = {
-    last_login_date: Date.now(),
+    last_login_date: loginTime,
     last_login_ip: clientIP,
     ...extraData
+  }
+  if (loginChannel === 'miniapp') {
+    updateData.last_miniapp_login_date = loginTime
+    updateData.last_miniapp_activity_date = loginTime
+  } else if (loginChannel === 'admin') {
+    updateData.last_admin_login_date = loginTime
+    updateData.last_admin_activity_date = loginTime
   }
   const createTokenRes = await this.uniIdCommon.createToken({
     uid
@@ -214,6 +242,30 @@ async function postLogin (params = {}) {
   }
 
   await userCollection.doc(uid).update(updateData)
+  if (loginChannel) {
+    try {
+      await activityLogCollection.add({
+        user_id: uid,
+        user_name: safeText(user.nickname || user.username, 80) || '未命名用户',
+        username: safeText(user.username, 80),
+        channel: loginChannel,
+        event_type: 'login',
+        action: 'login_success',
+        page: '',
+        page_title: '用户登录',
+        session_id: '',
+        appid: safeText(appId, 80),
+        platform: safeText(uniPlatform, 40),
+        device_model: '',
+        device_id: safeText(deviceId, 160),
+        ip: safeText(clientIP, 80),
+        user_agent: safeText(userAgent, 500),
+        create_time: loginTime
+      })
+    } catch (error) {
+      console.error('写入用户登录活动日志失败:', error)
+    }
+  }
   await this.middleware.uniIdLog({
     data: {
       user_id: uid

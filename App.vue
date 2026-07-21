@@ -7,6 +7,7 @@ openApp() //创建在h5端全局悬浮引导用户下载app的功能
 import checkIsAgree from '@/pages/uni-agree/utils/uni-agree.js';
 import uniIdPageInit from '@/uni_modules/uni-id-pages/init.js';
 import { ALPHABET_AGE_MAP } from '@/lib/types/local_storage.js';
+import { trackAppShow } from '@/common/user-activity-tracker.js';
 
 export default {
 	globalData: {
@@ -51,6 +52,7 @@ export default {
 	},
 	onShow: function () {
 		console.log('App Show')
+		trackAppShow()
 	},
 	onHide: function () {
 		console.log('App Hide')

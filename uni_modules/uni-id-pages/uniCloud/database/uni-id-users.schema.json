@@ -157,6 +157,38 @@
 				"write": "'CREATE_UNI_ID_USERS' in auth.permission || 'UPDATE_UNI_ID_USERS' in auth.permission"
 			}
 		},
+		"last_miniapp_login_date": {
+			"bsonType": "timestamp",
+			"description": "小程序最近登录时间",
+			"permission": {
+				"read": "doc._id == auth.uid || 'READ_UNI_ID_USERS' in auth.permission",
+				"write": "'CREATE_UNI_ID_USERS' in auth.permission || 'UPDATE_UNI_ID_USERS' in auth.permission"
+			}
+		},
+		"last_miniapp_activity_date": {
+			"bsonType": "timestamp",
+			"description": "小程序最近活动时间",
+			"permission": {
+				"read": "doc._id == auth.uid || 'READ_UNI_ID_USERS' in auth.permission",
+				"write": "'CREATE_UNI_ID_USERS' in auth.permission || 'UPDATE_UNI_ID_USERS' in auth.permission"
+			}
+		},
+		"last_admin_login_date": {
+			"bsonType": "timestamp",
+			"description": "后台最近登录时间",
+			"permission": {
+				"read": "doc._id == auth.uid || 'READ_UNI_ID_USERS' in auth.permission",
+				"write": "'CREATE_UNI_ID_USERS' in auth.permission || 'UPDATE_UNI_ID_USERS' in auth.permission"
+			}
+		},
+		"last_admin_activity_date": {
+			"bsonType": "timestamp",
+			"description": "后台最近活动时间",
+			"permission": {
+				"read": "doc._id == auth.uid || 'READ_UNI_ID_USERS' in auth.permission",
+				"write": "'CREATE_UNI_ID_USERS' in auth.permission || 'UPDATE_UNI_ID_USERS' in auth.permission"
+			}
+		},
 		"last_login_ip": {
 			"bsonType": "string",
 			"description": "最后登录时 IP 地址",

@@ -1,0 +1,53 @@
+[
+  {
+    "IndexName": "user_time",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "user_id", "Direction": "1" },
+        { "Name": "create_time", "Direction": "-1" }
+      ],
+      "MgoIsUnique": false
+    }
+  },
+  {
+    "IndexName": "channel_time",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "channel", "Direction": "1" },
+        { "Name": "create_time", "Direction": "-1" }
+      ],
+      "MgoIsUnique": false
+    }
+  },
+  {
+    "IndexName": "event_time",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "event_type", "Direction": "1" },
+        { "Name": "create_time", "Direction": "-1" }
+      ],
+      "MgoIsUnique": false
+    }
+  },
+  {
+    "IndexName": "channel_event_time",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "channel", "Direction": "1" },
+        { "Name": "event_type", "Direction": "1" },
+        { "Name": "create_time", "Direction": "-1" }
+      ],
+      "MgoIsUnique": false
+    }
+  },
+  {
+    "IndexName": "result_time",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "result", "Direction": "1" },
+        { "Name": "create_time", "Direction": "-1" }
+      ],
+      "MgoIsUnique": false
+    }
+  }
+]
