@@ -258,19 +258,21 @@ export default {
     async confirmBinding() {
       if (this.submitting || !this.selectedChildIds.length) return
       this.submitting = true
+      const selectedChildIds = [...this.selectedChildIds]
       const boundResults = []
       try {
-        for (const childId of this.selectedChildIds) {
+        for (const childId of selectedChildIds) {
           const result = await this.callBinding({ action: 'bind', childId })
           if (result.code !== 200) throw new Error(result.message || result.msg || '加入班级失败')
           boundResults.push(result.data)
         }
+        this.applyBindingResults(boundResults)
         const first = boundResults[0]
         this.storeCurrentClass(first.classInfo, first.child, first.membership)
         uni.showModal({
           title: '🎉 加入成功',
-          content: this.selectedChildIds.length > 1
-            ? `已绑定 ${this.selectedChildIds.length} 个孩子，老师也收到通知了。`
+          content: selectedChildIds.length > 1
+            ? `已绑定 ${selectedChildIds.length} 个孩子，老师也收到通知了。`
             : '你已经加入班级，老师也收到通知了。',
           showCancel: false,
           confirmText: '查看成长报告',
@@ -288,6 +290,31 @@ export default {
       } finally {
         this.submitting = false
       }
+    },
+    applyBindingResults(results = []) {
+      const bindingsByChildId = new Map()
+      results.forEach(data => {
+        const childId = String(data?.child?._id || '')
+        if (!childId) return
+        bindingsByChildId.set(childId, data)
+        if (data.classInfo) this.classInfo = data.classInfo
+      })
+      if (!bindingsByChildId.size) return
+
+      this.children = this.children.map(child => {
+        const binding = bindingsByChildId.get(String(child._id || ''))
+        if (!binding) return child
+        return {
+          ...child,
+          ...binding.child,
+          alreadyBound: true,
+          membershipId: binding.membership?._id || binding.child?.membershipId || child.membershipId || ''
+        }
+      })
+      this.selectedChildIds = this.selectedChildIds.filter(childId =>
+        !bindingsByChildId.has(String(childId))
+      )
+      this.state = this.children.length ? 'ready' : this.state
     },
     storeCurrentClass(classInfo, child, membership) {
       uni.setStorageSync(CURRENT_CLASS, {
