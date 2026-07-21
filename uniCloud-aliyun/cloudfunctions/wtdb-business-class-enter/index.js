@@ -11,10 +11,6 @@ exports.main = async (event = {}) => {
 				classCode: event.classCode || event.code,
 				requestedRole: event.requestedRole || event.role,
 				nickname: event.nickname,
-				childName: event.childName || event.child_name,
-				childGender: event.childGender || event.child_gender,
-				childBirthdate: event.childBirthdate || event.child_birthdate,
-				relationship: event.relationship,
 				uniIdToken: event.uniIdToken
 			}
 		})

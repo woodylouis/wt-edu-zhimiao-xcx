@@ -2,7 +2,8 @@
   "name": "wtdb-business-children-edit",
   "dependencies": {
     "uni-id-common": "file:../../../uni_modules/uni-id-common/uniCloud/cloudfunctions/common/uni-id-common",
-    "business-subject-auth": "file:../common/business-subject-auth"
+    "business-subject-auth": "file:../common/business-subject-auth",
+    "guardian-core": "file:../common/guardian-core"
   },
   "extensions": {
     "uni-cloud-jql": {}

@@ -34,18 +34,6 @@
       "title": "申请身份"
     },
     "nickname": { "bsonType": "string", "title": "班级内昵称" },
-    "child_name": { "bsonType": "string", "title": "申请关联的儿童姓名" },
-    "child_gender": {
-      "bsonType": "string",
-      "enum": ["男孩", "女孩"],
-      "title": "申请关联的儿童性别"
-    },
-    "child_birthdate": { "bsonType": "timestamp", "title": "申请关联的儿童出生日期" },
-    "relationship": {
-      "bsonType": "string",
-      "enum": ["father", "mother", "grandfather", "grandmother", "other"],
-      "title": "申请人与儿童关系"
-    },
     "status": {
       "bsonType": "string",
       "enum": ["pending", "approved", "rejected"],
@@ -57,20 +45,6 @@
     "review_remark": { "bsonType": "string", "title": "审批备注" },
     "review_time": { "bsonType": "timestamp", "title": "审批时间" },
     "update_time": { "bsonType": "timestamp", "title": "更新时间" }
-  },
-  "validator": {
-    "$or": [
-      { "requested_role": { "$ne": "parent" } },
-      {
-        "requested_role": "parent",
-        "$and": [
-          { "child_name": { "$exists": true } },
-          { "child_gender": { "$in": ["男孩", "女孩"] } },
-          { "child_birthdate": { "$exists": true } },
-          { "relationship": { "$in": ["father", "mother", "grandfather", "grandmother", "other"] } }
-        ]
-      }
-    ]
   },
   "indexes": [
     {
@@ -88,17 +62,6 @@
     {
       "name": "applicant_class_status",
       "key": { "applicant_user_id": 1, "class_id": 1, "status": 1 }
-    },
-    {
-      "name": "applicant_parent_child_status",
-      "key": {
-        "applicant_user_id": 1,
-        "class_id": 1,
-        "requested_role": 1,
-        "child_name": 1,
-        "child_birthdate": 1,
-        "status": 1
-      }
     }
   ]
 }

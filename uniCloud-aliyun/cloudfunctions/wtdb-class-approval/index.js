@@ -13,18 +13,8 @@ const APPROVAL_COLLECTION = 'wtdb-business-class-approval'
 const CLASS_COLLECTION = 'wtdb-business-class-list'
 const SCHOOL_COLLECTION = 'wtdb-business-school-list'
 const MEMBER_COLLECTION = 'wtdb-business-class-member'
-const CHILD_COLLECTION = 'wtdb-business-children'
 const USER_COLLECTION = 'uni-id-users'
 const REVIEW_STATUSES = ['pending', 'approved', 'rejected']
-const REQUESTED_ROLES = ['teacher', 'parent']
-const PARENT_RELATIONSHIPS = ['father', 'mother', 'grandfather', 'grandmother', 'other']
-const RELATIONSHIP_ALIASES = {
-	'爸爸': 'father',
-	'妈妈': 'mother',
-	'爷爷': 'grandfather',
-	'奶奶': 'grandmother',
-	'其他': 'other'
-}
 const QUERY_BATCH_SIZE = 100
 
 function sanitizeText(value, maxLength = 100) {
@@ -33,105 +23,6 @@ function sanitizeText(value, maxLength = 100) {
 
 function throwBusinessError(code, message) {
 	throw new businessAuth.AuthError(code, message)
-}
-
-function normalizeParentApplication(event = {}) {
-	const childInput = event.child || event.parentData || {}
-	const childName = sanitizeText(
-		event.childName || event.child_name || childInput.childName || childInput.name,
-		40
-	)
-	const rawGender = sanitizeText(
-		event.childGender || event.child_gender || childInput.gender,
-		20
-	)
-	const gender = {
-		'男': '男孩',
-		'male': '男孩',
-		'boy': '男孩',
-		'女': '女孩',
-		'female': '女孩',
-		'girl': '女孩'
-	}[rawGender] || rawGender
-	const birthdate = Number(
-		event.childBirthdate || event.child_birthdate || childInput.birthdate
-	)
-	const rawRelationship = sanitizeText(
-		event.relationship || childInput.relationship,
-		20
-	)
-	const relationship = RELATIONSHIP_ALIASES[rawRelationship] || rawRelationship
-
-	if (!childName) throwBusinessError(400, '请填写孩子姓名')
-	if (!['男孩', '女孩'].includes(gender)) throwBusinessError(400, '请选择孩子性别')
-	if (!Number.isFinite(birthdate) || birthdate <= 0 || birthdate > Date.now()) {
-		throwBusinessError(400, '孩子出生日期不正确')
-	}
-	if (!PARENT_RELATIONSHIPS.includes(relationship)) {
-		throwBusinessError(400, '请选择您与孩子的关系')
-	}
-
-	return {
-		childName,
-		childGender: gender,
-		childBirthdate: Math.trunc(birthdate),
-		relationship
-	}
-}
-
-function buildAge(birthdate) {
-	const birth = new Date(birthdate)
-	const today = new Date()
-	let years = today.getFullYear() - birth.getFullYear()
-	let months = today.getMonth() - birth.getMonth()
-	if (today.getDate() < birth.getDate()) months--
-	if (months < 0) {
-		years--
-		months += 12
-	}
-	return { age: `${years}岁${months}个月`, ageInt: years }
-}
-
-function formatBirthdate(birthdate) {
-	const date = new Date(birthdate)
-	const pad = value => String(value).padStart(2, '0')
-	return `${date.getFullYear()}年${pad(date.getMonth() + 1)}月${pad(date.getDate())}日`
-}
-
-function buildParentChildData(parentApplication, classId, applicantUserId, now) {
-	const calculatedAge = buildAge(parentApplication.childBirthdate)
-	return {
-		name: parentApplication.childName,
-		class_id: classId,
-		birthdate: parentApplication.childBirthdate,
-		gender: parentApplication.childGender,
-		age: calculatedAge.age,
-		ageInt: calculatedAge.ageInt,
-		formatBirthdate: formatBirthdate(parentApplication.childBirthdate),
-		avatar: '',
-		created_by: applicantUserId,
-		create_time: now,
-		update_time: now
-	}
-}
-
-function buildMembershipData({ request, classId, applicantUserId, applicantNickname, childId, now, reviewerId, approvalId }) {
-	const memberData = {
-		class_id: classId,
-		user_id: applicantUserId,
-		role: request.requested_role,
-		nickname: applicantNickname,
-		join_time: now,
-		approved_by: reviewerId,
-		approval_id: approvalId
-	}
-	if (request.requested_role === 'parent') {
-		if (!childId) throwBusinessError(409, '家长成员缺少关联儿童')
-		const parentApplication = normalizeParentApplication(request)
-		memberData.child_id = childId
-		memberData.relationship = parentApplication.relationship
-	}
-	return memberData
 }
 
 async function findRecordByCompactId(source, collectionName, recordId) {
@@ -226,44 +117,6 @@ async function findClassMember(classId, userId, role) {
 	}
 }
 
-async function findParentMemberForChild(classId, userId, parentApplication) {
-	const directRes = await db.collection(MEMBER_COLLECTION)
-		.where({ class_id: classId, user_id: userId, role: 'parent' })
-		.limit(QUERY_BATCH_SIZE)
-		.get()
-	let members = directRes.data || []
-
-	if (!members.length) {
-		for (let skip = 0; ; skip += QUERY_BATCH_SIZE) {
-			const res = await db.collection(MEMBER_COLLECTION)
-				.where({ role: 'parent' })
-				.skip(skip)
-				.limit(QUERY_BATCH_SIZE)
-				.get()
-			const rows = res.data || []
-			members.push(...rows.filter(item =>
-				businessAuth.compactId(item.class_id) === classId &&
-				businessAuth.compactId(item.user_id) === userId
-			))
-			if (rows.length < QUERY_BATCH_SIZE) break
-		}
-	}
-
-	for (const member of members) {
-		const childId = businessAuth.compactId(member.child_id)
-		if (!childId) continue
-		const child = await findRecordByCompactId(db, CHILD_COLLECTION, childId)
-		if (
-			child &&
-			sanitizeText(child.name, 40) === parentApplication.childName &&
-			Number(child.birthdate) === parentApplication.childBirthdate
-		) {
-			return member
-		}
-	}
-	return null
-}
-
 async function getSchoolByBusinessId(schoolId, source = db) {
 	const res = await source.collection(SCHOOL_COLLECTION)
 		.where({ school_id: schoolId })
@@ -309,7 +162,8 @@ async function buildScopeWhere(scope, status, requestedSchoolId = '') {
 		throwBusinessError(403, '您不是班主任或学校负责人，无权查看审批')
 	}
 
-	const conditions = []
+	// 家长通过手机号匹配直接入班；审批中心始终只处理老师申请。
+	const conditions = [{ requested_role: 'teacher' }]
 	if (status === 'processed') {
 		conditions.push({ status: dbCmd.in(['approved', 'rejected']) })
 	} else if (status && status !== 'all') {
@@ -328,12 +182,9 @@ async function buildScopeWhere(scope, status, requestedSchoolId = '') {
 
 async function submitApproval(event, scope) {
 	const requestedRole = sanitizeText(event.requestedRole || event.role, 20)
-	if (!REQUESTED_ROLES.includes(requestedRole)) {
-		throwBusinessError(400, '申请身份无效')
+	if (requestedRole !== 'teacher') {
+		throwBusinessError(400, '当前仅支持老师提交入班申请')
 	}
-	const parentApplication = requestedRole === 'parent'
-		? normalizeParentApplication(event)
-		: null
 	const classCode = sanitizeText(event.classCode || event.class_code || event.code, 20)
 	if (!classCode) throwBusinessError(400, '请输入班级码')
 
@@ -345,47 +196,35 @@ async function submitApproval(event, scope) {
 	const profile = await getUserProfile(scope.uid)
 	if (!profile) throwBusinessError(404, '申请人账号不存在')
 
-	let applicantName = sanitizeText(profile.nickname || profile.username, 30)
-	if (!applicantName && requestedRole === 'teacher') {
-		throwBusinessError(400, '请先在个人资料中设置昵称')
-	}
-	if (!applicantName) applicantName = `${parentApplication.childName}家长`
+	const applicantName = sanitizeText(profile.nickname, 30)
+	if (!applicantName) throwBusinessError(400, '请先在个人资料中设置昵称')
 
-	const classId = businessAuth.compactId(classInfo._id)
-	const existingMember = requestedRole === 'parent'
-		? await findParentMemberForChild(classId, scope.uid, parentApplication)
-		: await findClassMember(classId, scope.uid, requestedRole)
-	if (existingMember) throwBusinessError(409, '该身份已经加入班级')
+	const memberRes = await db.collection(MEMBER_COLLECTION)
+		.where({
+			class_id: businessAuth.compactId(classInfo._id),
+			user_id: scope.uid
+		})
+		.limit(1)
+		.get()
+	if (memberRes.data && memberRes.data.length) {
+		throwBusinessError(409, '您已经是该班级成员')
+	}
 
-	const pendingWhere = {
-		class_id: classId,
-		applicant_user_id: scope.uid,
-		requested_role: requestedRole,
-		status: 'pending'
-	}
-	if (parentApplication) {
-		pendingWhere.child_name = parentApplication.childName
-		pendingWhere.child_birthdate = parentApplication.childBirthdate
-	}
 	const pendingRes = await db.collection(APPROVAL_COLLECTION)
-		.where(pendingWhere)
+		.where({
+			class_id: businessAuth.compactId(classInfo._id),
+			applicant_user_id: scope.uid,
+			requested_role: requestedRole,
+			status: 'pending'
+		})
 		.limit(1)
 		.get()
 	if (pendingRes.data && pendingRes.data[0]) {
-		const pendingUpdate = {
+		await db.collection(APPROVAL_COLLECTION).doc(pendingRes.data[0]._id).update({
 			applicant_name: applicantName,
 			nickname: applicantName,
 			update_time: Date.now()
-		}
-		if (parentApplication) {
-			Object.assign(pendingUpdate, {
-				child_name: parentApplication.childName,
-				child_gender: parentApplication.childGender,
-				child_birthdate: parentApplication.childBirthdate,
-				relationship: parentApplication.relationship
-			})
-		}
-		await db.collection(APPROVAL_COLLECTION).doc(pendingRes.data[0]._id).update(pendingUpdate)
+		})
 		return {
 			code: 200,
 			msg: '申请已提交，请等待班主任或学校负责人审批',
@@ -399,8 +238,8 @@ async function submitApproval(event, scope) {
 	}
 
 	const now = Date.now()
-	const approvalData = {
-		class_id: classId,
+	const addRes = await db.collection(APPROVAL_COLLECTION).add({
+		class_id: businessAuth.compactId(classInfo._id),
 		class_code: classInfo.code || '',
 		class_name: classInfo.nickname || (classInfo.grade || '') + (classInfo.class || '') + '班',
 		school_id: school.school_id,
@@ -413,16 +252,7 @@ async function submitApproval(event, scope) {
 		status: 'pending',
 		apply_time: now,
 		update_time: now
-	}
-	if (parentApplication) {
-		Object.assign(approvalData, {
-			child_name: parentApplication.childName,
-			child_gender: parentApplication.childGender,
-			child_birthdate: parentApplication.childBirthdate,
-			relationship: parentApplication.relationship
-		})
-	}
-	const addRes = await db.collection(APPROVAL_COLLECTION).add(approvalData)
+	})
 
 	return {
 		code: 200,
@@ -568,12 +398,9 @@ async function reviewApproval(event, scope) {
 	if (request.status !== 'pending') {
 		throwBusinessError(409, '该申请已处理，请刷新列表')
 	}
-	if (!REQUESTED_ROLES.includes(request.requested_role)) {
-		throwBusinessError(400, '申请身份无效')
+	if (request.requested_role !== 'teacher') {
+		throwBusinessError(400, '当前仅支持审批老师入班申请')
 	}
-	const parentApplication = request.requested_role === 'parent'
-		? normalizeParentApplication(request)
-		: null
 
 	const classInfo = await getClassInfo({
 		classId: businessAuth.compactId(request.class_id),
@@ -586,18 +413,14 @@ async function reviewApproval(event, scope) {
 	const applicantUserId = businessAuth.compactId(request.applicant_user_id)
 	let existingMember = null
 	if (decision === 'approve') {
-		existingMember = request.requested_role === 'parent'
-			? await findParentMemberForChild(classId, applicantUserId, parentApplication)
-			: await findClassMember(classId, applicantUserId, request.requested_role)
+		existingMember = await findClassMember(classId, applicantUserId, request.requested_role)
 	}
 
 	const now = Date.now()
 	const nextStatus = decision === 'approve' ? 'approved' : 'rejected'
 	let approvalUpdated = false
 	let addedMemberId = ''
-	let addedChildId = ''
 	let memberId = existingMember ? businessAuth.compactId(existingMember._id) : ''
-	let childId = existingMember ? businessAuth.compactId(existingMember.child_id) : ''
 	const memberAlreadyExists = Boolean(existingMember)
 
 	try {
@@ -625,23 +448,15 @@ async function reviewApproval(event, scope) {
 				applicantProfile && applicantProfile.nickname,
 				30
 			) || sanitizeText(request.applicant_name || request.nickname, 30)
-			if (parentApplication) {
-				const childRes = await db.collection(CHILD_COLLECTION).add(
-					buildParentChildData(parentApplication, classId, applicantUserId, now)
-				)
-				addedChildId = childRes.id
-				childId = childRes.id
-			}
-			const addRes = await db.collection(MEMBER_COLLECTION).add(buildMembershipData({
-				request,
-				classId,
-				applicantUserId,
-				applicantNickname,
-				childId,
-				now,
-				reviewerId: scope.uid,
-				approvalId
-			}))
+			const addRes = await db.collection(MEMBER_COLLECTION).add({
+				class_id: classId,
+				user_id: applicantUserId,
+				role: request.requested_role,
+				nickname: applicantNickname,
+				join_time: now,
+				approved_by: scope.uid,
+				approval_id: approvalId
+			})
 			addedMemberId = addRes.id
 			memberId = addRes.id
 		}
@@ -651,10 +466,9 @@ async function reviewApproval(event, scope) {
 			msg: decision === 'approve' ? '已通过申请' : '已拒绝申请',
 			data: {
 				approvalId,
-					status: nextStatus,
-					memberId,
-					childId,
-					memberAlreadyExists
+				status: nextStatus,
+				memberId,
+				memberAlreadyExists
 			}
 		}
 	} catch (error) {
@@ -663,13 +477,6 @@ async function reviewApproval(event, scope) {
 				await db.collection(MEMBER_COLLECTION).doc(addedMemberId).remove()
 			} catch (rollbackError) {
 				console.error('审批新增成员回滚失败:', rollbackError)
-			}
-		}
-		if (addedChildId) {
-			try {
-				await db.collection(CHILD_COLLECTION).doc(addedChildId).remove()
-			} catch (rollbackError) {
-				console.error('审批新增儿童回滚失败:', rollbackError)
 			}
 		}
 		if (approvalUpdated) {
@@ -710,10 +517,4 @@ exports.main = async (event = {}, context) => {
 		console.error('班级审批操作失败:', error)
 		return businessAuth.toErrorResponse(error, '班级审批操作失败')
 	}
-}
-
-exports._test = {
-	normalizeParentApplication,
-	buildParentChildData,
-	buildMembershipData
 }

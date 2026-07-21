@@ -1,0 +1,11 @@
+{
+  "bsonType": "object",
+  "required": ["access_token", "expires_at"],
+  "permission": { "read": false, "create": false, "update": false, "delete": false },
+  "properties": {
+    "_id": { "description": "固定缓存键" },
+    "access_token": { "bsonType": "string", "title": "微信接口令牌" },
+    "expires_at": { "bsonType": "timestamp", "title": "过期时间" },
+    "update_time": { "bsonType": "timestamp", "title": "更新时间" }
+  }
+}

@@ -19,7 +19,7 @@ exports.main = async (event = {}, context) => {
 		await subjectAuth.assertClassTeacherAccess(scope, classId)
 		const childrenRes = await db.collection('wtdb-business-children')
 			.where({ class_id: classId })
-			.field({ _id: true, name: true, avatar: true, gender: true, birthdate: true, class_id: true })
+			.field({ _id: true, name: true, avatar: true, gender: true, birthdate: true, class_id: true, guardians: true })
 			.limit(500)
 			.get()
 
@@ -123,6 +123,8 @@ exports.main = async (event = {}, context) => {
 				age: age.text,
 				ageInt: age.years,
 				class_id: child.class_id,
+				guardianCount: Array.isArray(child.guardians) ? child.guardians.length : 0,
+				guardianConfigured: Array.isArray(child.guardians) && child.guardians.length > 0,
 				hasAssessments: stats.count > 0,
 				lastAssessmentTime: stats.time,
 				lastAssessmentDate: formatDate(stats.time),

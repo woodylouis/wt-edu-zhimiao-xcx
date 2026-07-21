@@ -46,6 +46,18 @@
                     <text class="assessor-label">最近评估老师</text>
                     <text class="assessor-name">{{ latestAssessorName }}</text>
                 </view>
+                <view
+                    class="guardian-state"
+                    :class="{ 'guardian-state--missing': !student.guardianConfigured }"
+                    @click.stop="handleAvatarClick"
+                >
+                    <text>{{ student.guardianConfigured ? '👪' : '⚠️' }}</text>
+                    <text>
+                        {{ student.guardianConfigured
+                            ? `已登记 ${student.guardianCount} 位监护人`
+                            : '未登记监护人手机号，点击补充' }}
+                    </text>
+                </view>
             </view>
         </view>
         
@@ -258,6 +270,28 @@ const handleAssessClick = () => {
     color: #FF7043;
     font-weight: 600;
     line-height: 1;
+}
+
+.guardian-state {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    margin-top: 9rpx;
+    padding: 6rpx 11rpx;
+    color: #286c5d;
+    border: 2rpx solid #67af9c;
+    border-radius: 999rpx;
+    background: #e2f8f1;
+    font-size: 18rpx;
+    font-weight: 800;
+    gap: 6rpx;
+    box-sizing: border-box;
+}
+
+.guardian-state--missing {
+    color: #a95b34;
+    border-color: #e19369;
+    background: #fff0df;
 }
 
 // 操作按钮区域

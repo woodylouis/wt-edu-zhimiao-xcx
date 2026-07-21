@@ -86,7 +86,11 @@ function comparableProfile(value = {}) {
     name: String(value.name || '').trim(),
     gender: normalizedGender,
     birthdate: Number(value.birthdate) || 0,
-    avatar: String(value.avatar || '')
+    avatar: String(value.avatar || ''),
+    guardians: (Array.isArray(value.guardians) ? value.guardians : []).map(item => ({
+      relationship: item.relationship,
+      mobile: String(item.mobile || '')
+    }))
   })
 }
 
@@ -104,7 +108,8 @@ export default {
         name: '',
         gender: '',
         birthdate: 0,
-        avatar: ''
+        avatar: '',
+        guardians: [{ relationship: 'father', mobile: '' }]
       },
       initialProfile: '',
       currentClass: uni.getStorageSync(CURRENT_CLASS) || {},
@@ -162,7 +167,10 @@ export default {
           name: result.data?.name || '',
           gender: result.data?.gender || '',
           birthdate: Number(result.data?.birthdate) || 0,
-          avatar: result.data?.avatar || ''
+          avatar: result.data?.avatar || '',
+          guardians: Array.isArray(result.data?.guardians) && result.data.guardians.length
+            ? result.data.guardians
+            : [{ relationship: 'father', mobile: '' }]
         }
         this.initialProfile = comparableProfile(this.formData)
       } catch (error) {

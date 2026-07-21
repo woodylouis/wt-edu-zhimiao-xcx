@@ -37,8 +37,18 @@
     },
     "relationship": {
       "bsonType": "string",
-      "enum": ["father", "mother", "grandfather", "grandmother", "other"],
+      "enum": ["father", "mother", "grandfather", "grandmother", "other", "other_guardian"],
       "title": "与儿童关系"
+    },
+    "guardian_mobile": {
+      "bsonType": "string",
+      "pattern": "^1[3-9]\\d{9}$",
+      "title": "绑定时匹配的监护人手机号"
+    },
+    "join_source": {
+      "bsonType": "string",
+      "enum": ["approval", "mobile_match", "legacy"],
+      "title": "加入来源"
     },
     "join_time": {
       "bsonType": "timestamp",
@@ -70,7 +80,7 @@
           },
           {
             "relationship": {
-              "$in": ["father", "mother", "grandfather", "grandmother", "other"]
+              "$in": ["father", "mother", "grandfather", "grandmother", "other", "other_guardian"]
             }
           }
         ]

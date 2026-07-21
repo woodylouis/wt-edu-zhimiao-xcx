@@ -145,6 +145,16 @@ export const mutations = {
 		// 异步更新用户信息
 		await this.updateUserInfo()
 
+		// 扫码邀请等显式业务回跳应优先于默认班级首页。
+		// 未传入回跳地址时，原有老师登录与班级跳转逻辑保持不变。
+		if (uniIdRedirectUrl) {
+			uni.$emit('uni-id-pages-login-success')
+			return uni.redirectTo({
+				url: uniIdRedirectUrl,
+				fail: () => uni.reLaunch({ url: uniIdRedirectUrl })
+			})
+		}
+
 		// 新增：检查班级信息
 		try {
 			const classRes = await uniCloud.callFunction({

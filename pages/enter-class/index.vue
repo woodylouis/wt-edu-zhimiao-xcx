@@ -561,7 +561,9 @@
           this.onInitModal();
           try {
             uni.navigateTo({
-              url: `/pages/enter-class/applyClassForm1?role=${role}`,
+              url: role === "parent"
+                ? "/pages/guardian/join"
+                : "/pages/enter-class/applyClassForm1?role=teacher",
             });
           } catch (e) {
             uni.showToast({ title: "跳转失败，请重试", icon: "none" });

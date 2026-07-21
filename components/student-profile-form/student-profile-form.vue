@@ -103,9 +103,69 @@
       </picker>
     </view>
 
+    <view class="field-card field-card--guardian">
+      <view class="field-heading guardian-heading">
+        <view class="field-number">4</view>
+        <view class="guardian-heading-copy">
+          <text class="field-label">孩子的监护人</text>
+          <text class="field-hint">家长将通过手机号自动识别并加入班级</text>
+        </view>
+        <view class="guardian-count">{{ localData.guardians.length }}/4</view>
+      </view>
+
+      <view
+        v-for="(guardian, index) in localData.guardians"
+        :key="`guardian-${index}`"
+        class="guardian-card"
+      >
+        <view class="guardian-card-top">
+          <text class="guardian-index">监护人 {{ index + 1 }}</text>
+          <view
+            v-if="localData.guardians.length > 1"
+            class="guardian-remove"
+            @click="removeGuardian(index)"
+          >移除</view>
+        </view>
+        <view class="relationship-options">
+          <view
+            v-for="option in relationshipOptions"
+            :key="option.value"
+            class="relationship-option"
+            :class="{ 'relationship-option--active': guardian.relationship === option.value }"
+            @click="setGuardianRelationship(index, option.value)"
+          >
+            <text>{{ option.emoji }}</text>
+            <text>{{ option.label }}</text>
+          </view>
+        </view>
+        <view class="guardian-mobile-wrap">
+          <text class="guardian-mobile-prefix">+86</text>
+          <input
+            v-model="guardian.mobile"
+            class="guardian-mobile-input"
+            type="number"
+            maxlength="11"
+            placeholder="请填写监护人手机号"
+            placeholder-class="input-placeholder"
+            @input="emitChange"
+          />
+        </view>
+      </view>
+
+      <button
+        v-if="localData.guardians.length < 4"
+        class="guardian-add"
+        hover-class="guardian-add--pressed"
+        @click="addGuardian"
+      >
+        <text class="guardian-add-icon">+</text>
+        <text>再添加一位监护人</text>
+      </button>
+    </view>
+
     <view class="privacy-note">
       <text class="privacy-icon">🛡️</text>
-      <text>孩子资料仅用于班级成长评估，请确保信息真实准确</text>
+      <text>孩子资料和监护人手机号仅用于班级身份匹配，不会向其他家长展示</text>
     </view>
   </view>
 </template>
@@ -150,7 +210,12 @@ export default {
     return {
       localData: this.normalizeValue(this.modelValue),
       avatarPreview: '',
-      uploading: false
+      uploading: false,
+      relationshipOptions: [
+        { value: 'father', label: '爸爸', emoji: '👨' },
+        { value: 'mother', label: '妈妈', emoji: '👩' },
+        { value: 'other_guardian', label: '其他监护人', emoji: '🧑' }
+      ]
     }
   },
   computed: {
@@ -189,16 +254,43 @@ export default {
   },
   methods: {
     normalizeValue(value = {}) {
+      const guardians = Array.isArray(value.guardians) && value.guardians.length
+        ? value.guardians.slice(0, 4).map(item => ({
+          relationship: ['father', 'mother', 'other_guardian'].includes(item?.relationship)
+            ? item.relationship
+            : 'other_guardian',
+          mobile: String(item?.mobile || '').replace(/\D/g, '').slice(-11)
+        }))
+        : [{ relationship: 'father', mobile: '' }]
       return {
         ...value,
         name: String(value.name || ''),
         gender: normalizeGender(value.gender),
         birthdate: Number(value.birthdate) || defaultBirthdate(),
-        avatar: String(value.avatar || '')
+        avatar: String(value.avatar || ''),
+        guardians
       }
     },
     emitChange() {
-      this.$emit('update:modelValue', { ...this.localData })
+      this.$emit('update:modelValue', {
+        ...this.localData,
+        guardians: this.localData.guardians.map(item => ({ ...item }))
+      })
+    },
+    addGuardian() {
+      if (this.localData.guardians.length >= 4) return
+      this.localData.guardians.push({ relationship: 'other_guardian', mobile: '' })
+      this.emitChange()
+    },
+    removeGuardian(index) {
+      if (this.localData.guardians.length <= 1) return
+      this.localData.guardians.splice(index, 1)
+      this.emitChange()
+    },
+    setGuardianRelationship(index, relationship) {
+      if (!this.localData.guardians[index]) return
+      this.localData.guardians[index].relationship = relationship
+      this.emitChange()
     },
     setGender(gender) {
       const wasDefaultAvatar = !this.localData.avatar ||
@@ -306,11 +398,29 @@ export default {
         uni.showToast({ title: '请选择正确的出生日期', icon: 'none' })
         return null
       }
+      if (!this.localData.guardians.length || this.localData.guardians.length > 4) {
+        uni.showToast({ title: '请填写1至4位监护人', icon: 'none' })
+        return null
+      }
+      const guardians = this.localData.guardians.map(item => ({
+        relationship: item.relationship,
+        mobile: String(item.mobile || '').replace(/\D/g, '')
+      }))
+      const invalidIndex = guardians.findIndex(item => !/^1[3-9]\d{9}$/.test(item.mobile))
+      if (invalidIndex >= 0) {
+        uni.showToast({ title: `第${invalidIndex + 1}位监护人手机号不正确`, icon: 'none' })
+        return null
+      }
+      if (new Set(guardians.map(item => item.mobile)).size !== guardians.length) {
+        uni.showToast({ title: '同一手机号不能重复填写', icon: 'none' })
+        return null
+      }
       const value = {
         ...this.localData,
         name,
         birthdate,
-        avatar: this.localData.avatar || this.defaultAvatar
+        avatar: this.localData.avatar || this.defaultAvatar,
+        guardians
       }
       this.localData = value
       this.emitChange()
@@ -679,6 +789,157 @@ export default {
   margin-left: auto;
   font-size: 36rpx;
   font-weight: 900;
+}
+
+.field-card--guardian {
+  box-shadow: 7rpx 7rpx 0 #a58bff;
+}
+
+.guardian-heading-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.guardian-count {
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  padding: 6rpx 13rpx;
+  color: #fff;
+  border: 3rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #ff765f;
+  font-size: 20rpx;
+  font-weight: 900;
+}
+
+.guardian-card {
+  padding: 18rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 24rpx;
+  background: #fffaf0;
+
+  & + & {
+    margin-top: 18rpx;
+  }
+}
+
+.guardian-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14rpx;
+}
+
+.guardian-index {
+  color: #392f59;
+  font-size: 23rpx;
+  font-weight: 900;
+}
+
+.guardian-remove {
+  padding: 5rpx 12rpx;
+  color: #b33b38;
+  border: 2rpx solid #b33b38;
+  border-radius: 999rpx;
+  background: #fff0ef;
+  font-size: 19rpx;
+  font-weight: 900;
+}
+
+.relationship-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.relationship-option {
+  display: flex;
+  align-items: center;
+  gap: 5rpx;
+  min-height: 54rpx;
+  padding: 0 15rpx;
+  color: #685f78;
+  border: 2rpx solid #a79fb2;
+  border-radius: 18rpx;
+  background: #fff;
+  font-size: 20rpx;
+  font-weight: 800;
+  box-sizing: border-box;
+}
+
+.relationship-option--active {
+  color: #392f59;
+  border: 3rpx solid #392f59;
+  background: #ffd447;
+  box-shadow: 3rpx 3rpx 0 #a58bff;
+}
+
+.guardian-mobile-wrap {
+  display: flex;
+  align-items: center;
+  height: 78rpx;
+  margin-top: 15rpx;
+  padding: 0 17rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 20rpx;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.guardian-mobile-prefix {
+  margin-right: 14rpx;
+  padding-right: 14rpx;
+  color: #7c63e8;
+  border-right: 2rpx solid #ddd5e8;
+  font-size: 23rpx;
+  font-weight: 900;
+}
+
+.guardian-mobile-input {
+  flex: 1;
+  height: 72rpx;
+  color: #31284f;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.guardian-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  width: 100%;
+  height: 72rpx;
+  margin-top: 18rpx;
+  padding: 0;
+  color: #392f59;
+  border: 3rpx dashed #392f59;
+  border-radius: 22rpx;
+  background: #eee9ff;
+  font-size: 23rpx;
+  font-weight: 900;
+
+  &::after {
+    border: 0;
+  }
+}
+
+.guardian-add-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 35rpx;
+  height: 35rpx;
+  color: #fff;
+  border: 2rpx solid #392f59;
+  border-radius: 50%;
+  background: #7c63e8;
+  font-size: 28rpx;
+}
+
+.guardian-add--pressed {
+  transform: translateY(2rpx);
+  background: #dfd7ff;
 }
 
 .privacy-note {

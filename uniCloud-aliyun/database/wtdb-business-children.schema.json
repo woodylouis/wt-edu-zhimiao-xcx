@@ -57,6 +57,35 @@
     "created_by": {
       "bsonType": "string",
       "title": "创建者ID"
+    },
+    "guardians": {
+      "bsonType": "array",
+      "title": "监护人绑定信息",
+      "description": "最多4位，仅用于手机号匹配家长身份",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "bsonType": "object",
+        "required": ["mobile", "relationship"],
+        "properties": {
+          "mobile": {
+            "bsonType": "string",
+            "pattern": "^1[3-9]\\d{9}$",
+            "title": "监护人手机号"
+          },
+          "relationship": {
+            "bsonType": "string",
+            "enum": ["father", "mother", "other_guardian"],
+            "title": "监护关系"
+          }
+        }
+      }
     }
-  }
+  },
+  "indexes": [
+    {
+      "name": "class_guardian_mobile",
+      "key": { "class_id": 1, "guardians.mobile": 1 }
+    }
+  ]
 }

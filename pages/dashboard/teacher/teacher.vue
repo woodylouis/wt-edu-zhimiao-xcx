@@ -42,6 +42,7 @@
               <button
                 class="invite-btn"
                 open-type="share"
+                data-share-type="teacher"
                 :disabled="!currentClass.code"
                 hover-class="invite-btn--pressed"
                 :hover-stay-time="80"
@@ -49,6 +50,16 @@
               >
                 <text class="share-mark">↗</text>
                 <text class="btn-text">分享</text>
+              </button>
+              <button
+                class="invite-btn invite-btn--parent"
+                :disabled="!currentClass.code"
+                hover-class="invite-btn--pressed"
+                :hover-stay-time="80"
+                @click.stop="openClassInvite"
+              >
+                <text class="share-mark">▣</text>
+                <text class="btn-text">家长码</text>
               </button>
             </view>
           </view>
@@ -85,10 +96,18 @@
         <text class="count-num">{{ totalStudents }}</text>
         <text class="count-label">名学生</text>
       </view>
-      <view class="class-teachers-entry" @click="openClassTeachers">
-        <view class="class-teachers-icon">👩‍🏫</view>
-        <text>本班老师</text>
-        <text class="class-teachers-arrow">›</text>
+      <view class="list-header-actions">
+        <view class="notification-entry" @click="openNotifications">
+          <text>🔔</text>
+          <view v-if="notificationUnread" class="notification-badge">
+            {{ notificationUnread > 99 ? '99+' : notificationUnread }}
+          </view>
+        </view>
+        <view class="class-teachers-entry" @click="openClassTeachers">
+          <view class="class-teachers-icon">👩‍🏫</view>
+          <text>本班老师</text>
+          <text class="class-teachers-arrow">›</text>
+        </view>
       </view>
     </view>
     
@@ -143,6 +162,12 @@
       @close="showClassTeacherModal = false"
     />
 
+    <ClassInviteModal
+      :visible="showClassInviteModal"
+      :classInfo="currentClass"
+      @close="showClassInviteModal = false"
+    />
+
     <DopamineLoading
       :show="loading || actionLoading"
       :text="loading ? '正在召集小朋友' : '正在寻找成长报告'"
@@ -166,6 +191,7 @@
   import StudentList from "./components/student-list.vue";
   import AssessModal from "./components/assess-modal.vue";
   import ClassTeacherModal from "./components/class-teacher-modal.vue";
+  import ClassInviteModal from "./components/class-invite-modal.vue";
   import DopamineLoading from "@/components/dopamine-loading/index.vue";
   import btnConfig from "@/common/suspen-btn/config.js";
 
@@ -187,6 +213,8 @@
   const showAssessModal = ref(false);
   const selectedStudent = ref({});
   const showClassTeacherModal = ref(false);
+  const showClassInviteModal = ref(false);
+  const notificationUnread = ref(0);
     
   // 计算属性：过滤后的学生列表
   const filteredStudentList = computed(() => {
@@ -365,6 +393,24 @@
     showClassTeacherModal.value = true;
   };
 
+  const openNotifications = () => {
+    uni.navigateTo({ url: "/pages/notification/list" });
+  };
+
+  const loadNotificationSummary = async () => {
+    const token = uni.getStorageSync("uni_id_token");
+    if (!token) return;
+    try {
+      const { result } = await uniCloud.callFunction({
+        name: "wtdb-notification-center",
+        data: { action: "summary", uniIdToken: token },
+      });
+      if (result?.code === 200) notificationUnread.value = Number(result.data?.unread) || 0;
+    } catch (error) {
+      console.warn("通知未读数加载失败:", error);
+    }
+  };
+
   const onClickInvite = () => {
     if (!currentClass.value?.code) {
       uni.showToast({ title: "暂无班级码", icon: "none" });
@@ -381,6 +427,14 @@
         uni.showToast({ title: "复制失败", icon: "none" });
       },
     });
+  };
+
+  const openClassInvite = () => {
+    if (!currentClass.value?.code || !(currentClass.value?._id || currentClass.value?.id)) {
+      uni.showToast({ title: "暂无班级邀请信息", icon: "none" });
+      return;
+    }
+    showClassInviteModal.value = true;
   };
   // 修改班级显示逻辑
   const classDisplay = computed(() => {
@@ -534,6 +588,7 @@
     
     if (checkLoginStatus()) {
       loadCurrentMembership();
+      loadNotificationSummary();
     }
   });
 
@@ -564,17 +619,20 @@
     // 页面卸载时的清理工作
   });
 
-  onShareAppMessage(() => {
+  onShareAppMessage((event) => {
     const classCode = currentClass.value?.code || "";
-    const query = classCode
-      ? `?classCode=${encodeURIComponent(classCode)}&role=teacher`
-      : "";
+    const isParentInvite = event?.target?.dataset?.shareType === "parent";
+    const query = classCode ? `?classCode=${encodeURIComponent(classCode)}` : "";
 
     return {
       title: classCode
-        ? `邀请你加入${classDisplay.value}，一起记录成长`
+        ? isParentInvite
+          ? `邀请家长加入${classDisplay.value}，查看孩子的成长`
+          : `邀请你加入${classDisplay.value}，一起记录成长`
         : "知苗成长｜看见孩子的每一次进步",
-      path: `/pages/enter-class/applyClassForm1${query}`,
+      path: isParentInvite
+        ? `/pages/guardian/join${query}`
+        : `/pages/enter-class/applyClassForm1${query}${query ? '&role=teacher' : '?role=teacher'}`,
     };
   });
 
@@ -831,6 +889,11 @@
 
             &::after {
               border: 0;
+            }
+
+            &.invite-btn--parent {
+              background: linear-gradient(135deg, #a58bff 0%, #7c63e8 100%);
+              box-shadow: 0 2rpx 6rpx rgba(124, 99, 232, 0.28);
             }
 
             &[disabled] {
@@ -1319,6 +1382,49 @@
   color: #7c63e8;
   font-size: 38rpx;
   font-weight: 900;
+}
+
+.dashboard .list-header .list-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.dashboard .list-header .notification-entry {
+  position: relative;
+  display: flex;
+  width: 58rpx;
+  height: 58rpx;
+  align-items: center;
+  justify-content: center;
+  border: 3rpx solid #392f59;
+  border-radius: 50%;
+  background: #ffd447;
+  box-shadow: 4rpx 4rpx 0 #79dfc2;
+  font-size: 25rpx;
+
+  &:active {
+    transform: translate(3rpx, 3rpx);
+    box-shadow: 1rpx 1rpx 0 #79dfc2;
+  }
+}
+
+.dashboard .list-header .notification-badge {
+  position: absolute;
+  top: -13rpx;
+  right: -13rpx;
+  min-width: 30rpx;
+  height: 30rpx;
+  padding: 0 5rpx;
+  color: #fff;
+  border: 3rpx solid #392f59;
+  border-radius: 999rpx;
+  background: #ff5260;
+  font-size: 16rpx;
+  font-weight: 900;
+  line-height: 30rpx;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .dashboard .list-header .class-teachers-entry {

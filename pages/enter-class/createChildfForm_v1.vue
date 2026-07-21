@@ -99,6 +99,7 @@
           birthdate: Number(
             new Date().setFullYear(new Date().getFullYear() - 4)
           ),
+          guardians: [{ relationship: "father", mobile: "" }],
         },
         assessmentId: "",
         assessmentTitle: "",
@@ -212,6 +213,10 @@
           {
             label: "出生日期：",
             name: this.$refs.profileForm.formatBirthday(this.formData.birthdate),
+          },
+          {
+            label: "监护人：",
+            name: `已填写 ${this.formData.guardians.length} 位`,
           },
         ];
       },

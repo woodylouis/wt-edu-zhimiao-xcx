@@ -1,0 +1,12 @@
+{
+  "name": "wtdb-guardian-binding",
+  "version": "1.0.0",
+  "dependencies": {
+    "business-auth": "file:../common/business-auth",
+    "guardian-core": "file:../common/guardian-core",
+    "uni-id-common": "file:../../../uni_modules/uni-id-common/uniCloud/cloudfunctions/common/uni-id-common"
+  },
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

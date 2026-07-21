@@ -7,7 +7,34 @@ try {
 	subjectAuth = require('../common/business-subject-auth')
 }
 
+let guardianCore
+try {
+	guardianCore = require('guardian-core')
+} catch (_) {
+	guardianCore = require('../common/guardian-core')
+}
+
 const db = uniCloud.database()
+
+async function syncGuardianMemberships(childId, guardians) {
+	const memberRes = await db.collection('wtdb-business-class-member')
+		.where({ child_id: childId, role: 'parent', join_source: 'mobile_match' })
+		.field({ guardian_mobile: true, relationship: true })
+		.limit(20)
+		.get()
+	const guardianMap = new Map(guardians.map(item => [item.mobile, item]))
+	await Promise.all((memberRes.data || []).map(member => {
+		const guardian = guardianMap.get(guardianCore.normalizeMobile(member.guardian_mobile))
+		if (!guardian) {
+			return db.collection('wtdb-business-class-member').doc(subjectAuth.compactId(member._id)).remove()
+		}
+		const relationship = guardianCore.membershipRelationship(guardian.relationship)
+		if (member.relationship !== relationship) {
+			return db.collection('wtdb-business-class-member').doc(subjectAuth.compactId(member._id)).update({ relationship })
+		}
+		return Promise.resolve()
+	}))
+}
 
 function clean(value, maxLength) {
 	return String(value == null ? '' : value).trim().slice(0, maxLength)
@@ -36,6 +63,7 @@ function safeChild(child = {}) {
 		avatar: child.avatar || '',
 		age: child.age || '',
 		ageInt: Number(child.ageInt) || 0,
+		guardians: guardianCore.normalizeGuardians(child.guardians, { required: false }),
 		update_time: child.update_time || null
 	}
 }
@@ -49,7 +77,13 @@ function validateChildInput(input = {}) {
 	}
 	const gender = clean(input.gender, 20)
 	if (!gender) throw new subjectAuth.AuthError(400, '请选择儿童性别')
-	return { name, birthdate, gender }
+	let guardians
+	try {
+		guardians = guardianCore.normalizeGuardians(input.guardians)
+	} catch (error) {
+		throw new subjectAuth.AuthError(400, error.message)
+	}
+	return { name, birthdate, gender, guardians }
 }
 
 exports.main = async (event = {}, context) => {
@@ -65,7 +99,7 @@ exports.main = async (event = {}, context) => {
 		}
 
 		const input = event.submitChildrenData || {}
-		const { name, birthdate, gender } = validateChildInput(input)
+		const { name, birthdate, gender, guardians } = validateChildInput(input)
 		const calculatedAge = buildAge(birthdate)
 
 		if (action === 'update') {
@@ -75,12 +109,14 @@ exports.main = async (event = {}, context) => {
 				name,
 				birthdate,
 				gender,
+				guardians,
 				avatar: input.avatar === undefined ? child.avatar || '' : clean(input.avatar, 1000),
 				age: calculatedAge.age,
 				ageInt: calculatedAge.ageInt,
 				update_time: Date.now()
 			}
 			await db.collection('wtdb-business-children').doc(childId).update(childData)
+			await syncGuardianMemberships(childId, guardians)
 			return {
 				code: 200,
 				message: '学生资料更新成功',
@@ -96,6 +132,7 @@ exports.main = async (event = {}, context) => {
 			class_id: classId,
 			birthdate,
 			gender,
+			guardians,
 			avatar: clean(input.avatar, 1000),
 			age: calculatedAge.age,
 			ageInt: calculatedAge.ageInt,

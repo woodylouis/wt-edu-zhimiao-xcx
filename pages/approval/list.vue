@@ -16,7 +16,7 @@
       <view class="approval-hero">
         <view>
           <text class="hero-kicker">SCHOOL APPROVAL</text>
-          <text class="hero-title">老师与家长入班申请</text>
+          <text class="hero-title">老师入班申请</text>
           <text class="hero-subtitle">班主任处理本班，学校负责人处理本校申请</text>
         </view>
         <view class="pending-bubble">
@@ -47,7 +47,7 @@
       <view v-else-if="!loading && approvals.length === 0" class="empty-state">
         <view class="empty-icon">{{ activeStatus === 'pending' ? '🌱' : '📚' }}</view>
         <text class="empty-title">{{ activeStatus === 'pending' ? '暂时没有待审批申请' : '暂无已处理记录' }}</text>
-        <text class="empty-copy">{{ activeStatus === 'pending' ? '有新的老师或家长申请时会显示在这里' : '完成审批后可在这里回看记录' }}</text>
+        <text class="empty-copy">{{ activeStatus === 'pending' ? '有新的老师申请时会显示在这里' : '完成审批后可在这里回看记录' }}</text>
       </view>
 
       <view v-else class="approval-list">
@@ -57,9 +57,7 @@
             <view class="applicant-info">
               <view class="applicant-name-row">
                 <text class="applicant-name">{{ item.applicant_name || '未设置昵称' }}</text>
-                <view class="role-chip" :class="{ 'role-chip--parent': item.requested_role === 'parent' }">
-                  {{ roleText(item.requested_role) }}
-                </view>
+                <view class="role-chip">老师</view>
               </view>
               <text class="apply-time">{{ formatTime(item.apply_time) }}</text>
             </view>
@@ -81,20 +79,6 @@
               <text class="target-label">手机</text>
               <text class="target-value">{{ item.applicant_mobile || '未绑定' }}</text>
             </view>
-            <template v-if="item.requested_role === 'parent'">
-              <view class="target-row">
-                <text class="target-label">孩子</text>
-                <text class="target-value">{{ item.child_name }} · {{ item.child_gender }}</text>
-              </view>
-              <view class="target-row">
-                <text class="target-label">生日</text>
-                <text class="target-value">{{ formatDate(item.child_birthdate) }}</text>
-              </view>
-              <view class="target-row">
-                <text class="target-label">关系</text>
-                <text class="target-value">{{ relationshipText(item.relationship) }}</text>
-              </view>
-            </template>
           </view>
 
           <view v-if="item.status === 'pending'" class="card-actions">
@@ -231,9 +215,7 @@ export default {
         title: isReject ? '拒绝这条申请？' : '确认通过申请？',
         content: isReject
           ? ''
-          : item.requested_role === 'parent'
-            ? `通过后，将为孩子“${item.child_name}”建立档案，并关联${relationshipText(item.relationship)}的班级家长身份。`
-            : `通过后，${item.applicant_name} 将成为「${item.class_name}」的老师。`,
+          : `通过后，${item.applicant_name} 将成为「${item.class_name}」的老师。`,
         editable: isReject,
         placeholderText: isReject ? '请填写拒绝原因' : '',
         confirmText: isReject ? '确认拒绝' : '确认通过',
@@ -277,26 +259,8 @@ export default {
         rejected: '已拒绝'
       }[status] || status
     },
-    roleText(role) {
-      return role === 'parent' ? '家长' : '老师'
-    },
-    relationshipText(value) {
-      return {
-        father: '爸爸',
-        mother: '妈妈',
-        grandfather: '爷爷',
-        grandmother: '奶奶',
-        other: '其他家长'
-      }[value] || '-'
-    },
     firstChar(value) {
       return String(value || '师').charAt(0)
-    },
-    formatDate(value) {
-      if (!value) return '-'
-      const date = new Date(Number(value))
-      const pad = number => String(number).padStart(2, '0')
-      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
     },
     formatTime(value) {
       if (!value) return '-'
@@ -508,11 +472,6 @@ export default {
   color: #6d55d9;
   font-size: 19rpx;
   font-weight: 700;
-}
-
-.role-chip--parent {
-  background: #ddf7eb;
-  color: #187d57;
 }
 
 .apply-time {

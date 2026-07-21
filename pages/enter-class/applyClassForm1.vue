@@ -208,6 +208,11 @@ export default {
 
     // 在script部分添加onLoad生命周期
     onLoad(options) {
+        if (options.role === 'parent') {
+            const classCode = options.classCode ? `?classCode=${encodeURIComponent(options.classCode)}` : '';
+            uni.redirectTo({ url: `/pages/guardian/join${classCode}` });
+            return;
+        }
         const cacheData = uni.getStorageSync('tempFormData') || {};
         this.formData = {
             role: '',

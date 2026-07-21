@@ -31,6 +31,21 @@
       }
     },
     {
+      "path": "pages/guardian/join",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "家长加入班级"
+      }
+    },
+    {
+      "path": "pages/notification/list",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "班级通知",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
       "path": "pages/enter-class/createClassForm1",
       "style": {
         "navigationStyle": "custom",
