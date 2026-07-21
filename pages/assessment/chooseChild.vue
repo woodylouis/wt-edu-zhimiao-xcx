@@ -38,6 +38,7 @@ import search from '../../uni_modules/z-search/components/z-search/z-search'
 import { ref, onMounted, computed } from "vue";
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import modalBox from '../../components/modalBox-v2/modalBox';
+import { trackUserAction } from '@/common/user-activity-tracker.js'
 
 //需要用vue3的方式引入modalBox组件
 
@@ -214,7 +215,15 @@ const handleConfirm = () => {
             `&childAge=${age}` +
             `&ageInt=${ageInt}` +
             `&assessmentId=${assessmentId.value}` +
-            `&assessmentTitle=${assessmentTitle.value}`
+            `&assessmentTitle=${assessmentTitle.value}`,
+        success: () => {
+            trackUserAction('assessment:start_or_continue', {
+                actionDetail: '进入学生评估流程',
+                resultStatus: 'success',
+                targetType: 'student',
+                targetId: id
+            })
+        }
     });
 
     show.value = false;

@@ -66,6 +66,7 @@
 import { ref, computed, watch } from 'vue'
 import { shouldBypassAssessmentLocationCheck } from '@/common/debug.js'
 import DopamineLoading from '@/components/dopamine-loading/index.vue'
+import { trackUserAction } from '@/common/user-activity-tracker.js'
 
 const props = defineProps({
     visible: {
@@ -384,7 +385,18 @@ const onStartAssess = async () => {
             `&ageInt=${ageInt.value}` +
             `&assessmentId=${selectedAssessment.value.id}` +
             `&assessmentTitle=${selectedAssessment.value.title}`,
-        success: () => emit('close'),
+        success: () => {
+            trackUserAction(
+                isContinuing.value ? 'assessment:continue' : 'assessment:start',
+                {
+                    actionDetail: isContinuing.value ? '继续学生评估' : '开始学生评估',
+                    resultStatus: 'success',
+                    targetType: 'student',
+                    targetId: props.student._id
+                }
+            )
+            emit('close')
+        },
         fail: () => {
             uni.showToast({ title: '打开评估失败，请重试', icon: 'none' })
         },

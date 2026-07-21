@@ -63,6 +63,32 @@ const TARGET_FIELDS = [
   ['task', 'taskId']
 ]
 
+// 评估答题页会频繁加载题目、切换模块和自动保存，这些不属于需要审计的主要业务步骤。
+const ASSESSMENT_DETAIL_FUNCTIONS = new Set([
+  'wtdb-ablls-standard-by-age',
+  'wt-fetch-assessment-list',
+  'wt-fetch-assessment-section',
+  'wt-fetch-assessment-v2',
+  'wt-fetch-assess-id',
+  'wt-upload-assess-record',
+  'wtdb-fetch-assess-history',
+  'wtdb-upload-assess-history',
+  'wtdb-check-school-location',
+  'wt-fetch-report-history',
+  'wt-get-report-task-status',
+  'wt-run-report-tasks'
+])
+
+const ASSESSMENT_DETAIL_PAGES = new Set([
+  'pages/assessment/listMoudules',
+  'pages/assessment/form'
+])
+
+const ASSESSMENT_REPORT_PAGES = new Set([
+  'pages/assessment/report',
+  'pages/assessment/report-v2'
+])
+
 function buildPageTitleMap() {
   const result = {}
   ;(pagesJson.pages || []).forEach(page => {
@@ -149,12 +175,24 @@ function recordCloudOperation(operation, resultStatus, startedAt) {
   } catch (error) {}
 }
 
+function shouldSkipCloudAudit(functionName, options = {}) {
+  if (functionName === ACTIVITY_FUNCTION_NAME) return true
+  if (ASSESSMENT_DETAIL_FUNCTIONS.has(functionName)) return true
+  if (functionName === 'wt-fetch-child-report-history') {
+    return !ASSESSMENT_REPORT_PAGES.has(getCurrentRoute())
+  }
+  if (functionName === 'wt-business-report-gen-v2') {
+    return options.data && options.data.confirmToGenerateReport !== true
+  }
+  return false
+}
+
 function installCloudFunctionAudit() {
   if (cloudAuditInstalled || !uniCloud || typeof uniCloud.callFunction !== 'function') return
   const originalCallFunction = uniCloud.callFunction.bind(uniCloud)
   uniCloud.callFunction = options => {
     const functionName = String(options && options.name || '')
-    if (!functionName || functionName === ACTIVITY_FUNCTION_NAME || !hasValidSession()) {
+    if (!functionName || shouldSkipCloudAudit(functionName, options) || !hasValidSession()) {
       return originalCallFunction(options)
     }
     const operation = resolveCloudOperation(options)
@@ -218,6 +256,7 @@ export function trackAppShow() {
 export function trackPageView() {
   const page = getCurrentRoute()
   if (!page) return Promise.resolve(false)
+  if (ASSESSMENT_DETAIL_PAGES.has(page)) return Promise.resolve(false)
   return trackUserActivity('page_view', { page })
 }
 
