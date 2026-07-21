@@ -11,6 +11,11 @@
 		"留言板"
 	],
 	"repository": "https://gitcode.net/dcloud/uni-starter",
+	"scripts": {
+		"test": "node --test tests/*.test.js",
+		"test:parent-auth": "node --test tests/parent-resource-auth.test.js",
+		"test:parent-approval": "node --test tests/parent-class-approval.test.js"
+	},
 	"engines": {
 		"HBuilderX": "^3.2.6"
 	},

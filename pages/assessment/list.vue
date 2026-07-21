@@ -5,7 +5,7 @@
         <view class="page-spark page-spark--one">✦</view>
         <view class="page-spark page-spark--two">+</view>
 
-        <custom-nav :xcxName="'成长评估'" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" />
+        <custom-nav :xcxName="pageTitle" :navCustomStyle="navCustomStyle" :needBar="false" :needBack="true" />
 
         <view class="user-profile">
             <view class="profile-left" @click="onClickProfile">
@@ -16,7 +16,7 @@
                 <view class="info">
                     <view class="name-row">
                         <text class="name">{{ displayName }}</text>
-                        <text v-if="role === 'teacher'" class="role-tag">老师</text>
+                        <text class="role-tag">{{ role === 'parent' ? '家长' : '老师' }}</text>
                     </view>
                     <view class="class-row">
                         <text class="class-icon">🏫</text>
@@ -82,7 +82,72 @@
             </view>
         </view>
 
-        <view v-if="role === 'parent'" class="parent-empty">
+        <view v-if="role === 'parent'" class="parent-report-section">
+            <view class="section-heading parent-report-heading">
+                <view class="heading-copy">
+                    <text class="section-eyebrow">GROWTH ARCHIVE</text>
+                    <text class="section-title">{{ parentChildName }}的成长报告</text>
+                    <text class="section-subtitle">仅展示当前家长班级关系所关联孩子的已完成报告</text>
+                </view>
+                <view class="count-pill count-pill--parent">
+                    <text class="count-number">{{ parentReports.length }}</text>
+                    <text class="count-label">份报告</text>
+                </view>
+            </view>
+
+            <view v-if="parentReportError && !parentReportLoading" class="parent-empty parent-empty--error">
+                <view class="parent-empty-art parent-empty-art--error">!</view>
+                <text class="empty-title">报告暂时迷路了</text>
+                <text class="empty-desc">{{ parentReportError }}</text>
+                <button class="retry-button" hover-class="retry-button--pressed" @click="loadParentReports">
+                    重新整理报告
+                </button>
+            </view>
+
+            <view v-else-if="!parentReportLoading && parentReports.length" class="parent-report-list">
+                <view
+                    v-for="(report, index) in parentReports"
+                    :key="getReportKey(report)"
+                    class="parent-report-card"
+                    :class="[
+                        `parent-report-card--${index % 4}`,
+                        { 'parent-report-card--opening': openingReportId === getReportKey(report) }
+                    ]"
+                    hover-class="parent-report-card--pressed"
+                    :hover-stay-time="80"
+                    @click="openParentReport(report)"
+                >
+                    <view class="report-card-accent"></view>
+                    <view class="report-card-topline">
+                        <view class="report-complete-badge">
+                            <view class="report-complete-dot"></view>
+                            <text>已完成</text>
+                        </view>
+                        <text class="report-card-index">{{ String(index + 1).padStart(2, '0') }}</text>
+                    </view>
+                    <view class="report-card-body">
+                        <view class="report-card-copy">
+                            <text class="report-card-kicker">ASSESSMENT REPORT</text>
+                            <text class="report-card-title">{{ getReportTitle(report) }}</text>
+                            <text v-if="report.reportSummary" class="report-card-summary">{{ report.reportSummary }}</text>
+                            <view class="report-card-meta">
+                                <text class="report-meta-chip">📅 {{ formatReportDate(report.completionTime || report.createTime) }}</text>
+                                <text v-if="report.assessorName" class="report-meta-chip">✦ {{ report.assessorName }}</text>
+                            </view>
+                        </view>
+                        <view class="report-open-action">
+                            <view v-if="openingReportId === getReportKey(report)" class="report-opening-spinner"></view>
+                            <text v-else>↗</text>
+                        </view>
+                    </view>
+                    <view class="report-card-footer">
+                        <text>{{ openingReportId === getReportKey(report) ? '正在打开报告' : '查看完整成长报告' }}</text>
+                        <text class="report-footer-arrow">→</text>
+                    </view>
+                </view>
+            </view>
+
+            <view v-else-if="!parentReportLoading" class="parent-empty">
             <view class="parent-empty-art">
                 <view class="report-sheet">
                     <view class="report-line report-line--long"></view>
@@ -91,7 +156,8 @@
                 </view>
             </view>
             <text class="empty-title">成长报告正在蓄力</text>
-            <text class="empty-desc">暂时还没有评估报告，完成评估后就能在这里查看</text>
+                <text class="empty-desc">{{ parentChildName }}暂时还没有已完成的评估报告，报告生成后会第一时间出现在这里</text>
+            </view>
         </view>
 
         <view class="help-container" hover-class="help-container--pressed" @click="onClick">
@@ -100,9 +166,9 @@
         </view>
 
         <DopamineLoading
-            :show="assessmentLoading || locationChecking"
-            :text="locationChecking ? '正在确认评估位置' : '正在整理成长量表'"
-            :subtext="locationChecking ? '小芽正在核对是否在学校范围内' : '一张张成长任务卡正在排队入场'"
+            :show="assessmentLoading || locationChecking || parentReportLoading || reportOpening"
+            :text="loadingText"
+            :subtext="loadingSubtext"
         />
     </view>
 </template>
@@ -113,12 +179,20 @@ import { ref, onMounted, onUnmounted, computed } from "vue";
 import { onShow, onLoad } from '@dcloudio/uni-app'
 import DopamineLoading from '@/components/dopamine-loading/index.vue'
 import { shouldBypassAssessmentLocationCheck } from '@/common/debug.js'
+import { CURRENT_STUDENT } from '@/lib/types/local_storage.js'
 const CACHE_KEY = 'teacher_assessment_list';
 const CACHE_EXPIRY = 3600 * 1000; // 1小时有效期
 const assessmentList = ref([]);
 const pagination = ref({ page: 1, pageSize: 10, total: 0 });
 const assessmentLoading = ref(false);
 const locationChecking = ref(false);
+const parentReports = ref([]);
+const parentReportLoading = ref(false);
+const parentReportError = ref('');
+const parentContext = ref({});
+const openingReportId = ref('');
+const reportOpening = ref(false);
+let parentRequestVersion = 0;
 const navCustomStyle = 'background: linear-gradient(135deg, #FFF2A8 0%, #FFC9BF 52%, #CEC1FF 100%);height: calc(100vh / 8)'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
 
@@ -131,6 +205,26 @@ let userNickname = ref('');
 const displayName = computed(() => {
 	return userNickname.value || userInfo.value.nickname ||
 		currentClass.value.memberNickname || '未设置昵称';
+});
+
+const pageTitle = computed(() => role.value === 'parent' ? '成长报告' : '成长评估');
+const parentChildName = computed(() =>
+    parentContext.value.childName ||
+    currentClass.value.childName ||
+    parentReports.value[0]?.childName ||
+    '孩子'
+);
+const loadingText = computed(() => {
+    if (locationChecking.value) return '正在确认评估位置';
+    if (reportOpening.value) return '正在打开成长报告';
+    if (parentReportLoading.value) return `正在整理${parentChildName.value}的报告`;
+    return '正在整理成长量表';
+});
+const loadingSubtext = computed(() => {
+    if (locationChecking.value) return '小芽正在核对是否在学校范围内';
+    if (reportOpening.value) return '报告内容就要出现啦';
+    if (parentReportLoading.value) return '只会带回当前关联孩子的已完成报告';
+    return '一张张成长任务卡正在排队入场';
 });
 
 const avatarUrl = computed(() => {
@@ -170,6 +264,200 @@ const classDisplay = computed(() => {
     }
     return '暂无班级信息';
 });
+
+const normalizeIdentifier = (value) => {
+    if (!value) return '';
+    if (typeof value === 'object') {
+        return normalizeIdentifier(value.$oid || value._id || value.id);
+    }
+    return String(value);
+};
+
+const getClassIdentifiers = (classInfo = {}) =>
+    [classInfo.code, classInfo._id, classInfo.id]
+        .map(normalizeIdentifier)
+        .filter(Boolean);
+
+const getReportKey = (report = {}) =>
+    normalizeIdentifier(report.reportId || report._id || report.recordId || report.childId);
+
+const getReportTitle = (report = {}) =>
+    String(report.assessmentTitle || report.title || '成长评估报告').trim();
+
+const toTimestamp = (value) => {
+    if (!value) return 0;
+    if (typeof value === 'number') return value < 1e12 ? value * 1000 : value;
+    if (value instanceof Date) return value.getTime();
+    if (typeof value === 'object') {
+        return toTimestamp(value.$date || value.$numberLong || value.value);
+    }
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const formatReportDate = (value) => {
+    const timestamp = toTimestamp(value);
+    if (!timestamp) return '完成日期待补全';
+    const date = new Date(timestamp);
+    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const resolveParentMembership = (memberships = []) => {
+    const requestedClassIds = getClassIdentifiers(currentClass.value);
+    const requestedMemberId = normalizeIdentifier(currentClass.value.memberId);
+    const requestedChildId = normalizeIdentifier(currentClass.value.childId);
+    const parentMemberships = memberships.filter((item) => item?.role === 'parent');
+    const classMemberships = parentMemberships.filter((item) =>
+        getClassIdentifiers(item.classInfo).some((identifier) => requestedClassIds.includes(identifier))
+    );
+
+    if (requestedMemberId) {
+        const selected = classMemberships.find((item) => normalizeIdentifier(item._id) === requestedMemberId);
+        if (selected) return selected;
+    }
+    if (requestedChildId) {
+        const selected = classMemberships.find((item) =>
+            normalizeIdentifier(item.child_id || item.childInfo?._id) === requestedChildId
+        );
+        if (selected) return selected;
+    }
+    if (classMemberships.length === 1) return classMemberships[0];
+    if (classMemberships.length > 1) {
+        throw new Error('该班级关联了多个孩子，请重新切换并选择具体的家长班级关系');
+    }
+    throw new Error('未找到当前班级的家长关系，请重新选择班级');
+};
+
+const loadParentReports = async () => {
+    if (role.value !== 'parent') return;
+    const requestVersion = ++parentRequestVersion;
+    parentReportLoading.value = true;
+    parentReportError.value = '';
+
+    try {
+        const token = uni.getStorageSync('uni_id_token');
+        const membershipResponse = await uniCloud.callFunction({
+            name: 'wtdb-business-member-class',
+            data: { uniIdToken: token }
+        });
+        const membershipResult = membershipResponse?.result || {};
+        if (membershipResult.code !== 200 || !Array.isArray(membershipResult.data)) {
+            throw new Error(membershipResult.message || '家长班级关系加载失败');
+        }
+
+        const membership = resolveParentMembership(membershipResult.data);
+        const childId = normalizeIdentifier(membership.child_id || membership.childInfo?._id);
+        if (!childId) {
+            throw new Error('该家长班级关系尚未关联孩子，请联系班级老师');
+        }
+
+        const context = {
+            membershipId: normalizeIdentifier(membership._id),
+            childId,
+            childName: membership.childInfo?.name || currentClass.value.childName || '',
+            childAvatar: membership.childInfo?.avatar || currentClass.value.childAvatar || '',
+            childBirthdate: membership.childInfo?.birthdate || currentClass.value.childBirthdate || ''
+        };
+        parentContext.value = context;
+        currentClass.value = {
+            ...currentClass.value,
+            memberRole: 'parent',
+            memberId: context.membershipId,
+            childId: context.childId,
+            childName: context.childName,
+            childAvatar: context.childAvatar,
+            childBirthdate: context.childBirthdate,
+            relationship: membership.relationship || currentClass.value.relationship || ''
+        };
+        uni.setStorageSync('currentClass', currentClass.value);
+
+        const reportResponse = await uniCloud.callFunction({
+            name: 'wt-fetch-child-report-history',
+            data: {
+                childId,
+                uniIdToken: token
+            }
+        });
+        const reportResult = reportResponse?.result || {};
+        if (reportResult.code !== 200 || !Array.isArray(reportResult.data)) {
+            const error = new Error(reportResult.msg || reportResult.message || '报告加载失败');
+            error.code = reportResult.code;
+            throw error;
+        }
+
+        const reports = reportResult.data.filter((report) =>
+            normalizeIdentifier(report.childId || report.child_id) === childId
+        );
+        if (reports.length !== reportResult.data.length) {
+            throw new Error('报告归属校验失败，请稍后重试');
+        }
+        reports.sort((a, b) =>
+            toTimestamp(b.completionTime || b.createTime) - toTimestamp(a.completionTime || a.createTime)
+        );
+        if (requestVersion === parentRequestVersion) {
+            parentReports.value = reports;
+        }
+    } catch (error) {
+        console.error('家长报告加载失败:', error);
+        if (requestVersion === parentRequestVersion) {
+            parentReports.value = [];
+            parentReportError.value = error?.code === 403
+                ? '当前账号无权查看该孩子的报告，请重新选择班级'
+                : error?.message || '暂时无法加载报告，请稍后重试';
+        }
+    } finally {
+        if (requestVersion === parentRequestVersion) {
+            parentReportLoading.value = false;
+        }
+    }
+};
+
+const openParentReport = (report) => {
+    if (reportOpening.value) return;
+    const childId = normalizeIdentifier(parentContext.value.childId);
+    const reportChildId = normalizeIdentifier(report?.childId || report?.child_id);
+    if (!childId || reportChildId !== childId) {
+        uni.showToast({ title: '无权打开该报告', icon: 'none' });
+        return;
+    }
+
+    const reportKey = getReportKey(report);
+    if (!reportKey) {
+        uni.showToast({ title: '报告标识不完整', icon: 'none' });
+        return;
+    }
+
+    openingReportId.value = reportKey;
+    reportOpening.value = true;
+    uni.setStorageSync(CURRENT_STUDENT, {
+        _id: childId,
+        name: report.childName || parentContext.value.childName,
+        avatar: report.avatar || parentContext.value.childAvatar,
+        birthdate: parentContext.value.childBirthdate,
+        age: report.childAge || ''
+    });
+
+    const query = [
+        'isHistory=true',
+        `childId=${encodeURIComponent(childId)}`
+    ];
+    if (report.reportId) {
+        query.push(`reportId=${encodeURIComponent(normalizeIdentifier(report.reportId))}`);
+    } else if (report._id) {
+        query.push(`documentId=${encodeURIComponent(normalizeIdentifier(report._id))}`);
+    } else if (report.recordId) {
+        query.push(`recordId=${encodeURIComponent(normalizeIdentifier(report.recordId))}`);
+    }
+
+    uni.navigateTo({
+        url: `/pages/assessment/report-v2?${query.join('&')}`,
+        fail: () => {
+            reportOpening.value = false;
+            openingReportId.value = '';
+            uni.showToast({ title: '报告打开失败，请稍后重试', icon: 'none' });
+        }
+    });
+};
 
 const onClickSwitch = () => {
     uni.navigateTo({
@@ -232,9 +520,13 @@ let cacheTimer = null;
 
 onShow(() => {
     // 新增用户信息更新逻辑
+    reportOpening.value = false;
+    openingReportId.value = '';
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
     currentClass.value = uni.getStorageSync('currentClass') || {};
-    checkLoginStatus();
+	if (currentClass.value.memberRole) role.value = currentClass.value.memberRole;
+    if (!checkLoginStatus()) return;
+	if (role.value === 'parent') loadParentReports();
 })
 
 onLoad((options) => {
@@ -248,9 +540,7 @@ onLoad((options) => {
             console.error('解析selectedClass参数失败:', e);
         }
     }
-    if (options.role) {
-        role.value = options.role;
-    }
+    role.value = options.role || currentClass.value.memberRole || 'teacher';
 
     // 保持原有的currentClass逻辑不变
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
@@ -288,7 +578,7 @@ const navigateToLogin = () => {
 }
 
 onMounted(() => {
-    loadAssessments();
+    if (role.value === 'teacher') loadAssessments();
     userInfo.value = uni.getStorageSync('uni-id-pages-userInfo') || {};
     currentClass.value = uni.getStorageSync('currentClass') || {};
     cacheTimer = setInterval(() => {
@@ -305,6 +595,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    parentRequestVersion++;
     if (cacheTimer) clearInterval(cacheTimer);
 });
 
@@ -700,10 +991,24 @@ const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
     font-weight: 800;
 }
 
-.library-section {
+.library-section,
+.parent-report-section {
     position: relative;
     z-index: 1;
     padding: 42rpx 28rpx 0;
+}
+
+.parent-report-heading {
+	align-items: flex-start;
+}
+
+.count-pill--parent {
+	border-color: #bde9d9;
+	background: #e9fbf5;
+}
+
+.count-pill--parent .count-number {
+	color: #258a68;
 }
 
 .section-heading {
@@ -942,6 +1247,192 @@ const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
     font-weight: 900;
 }
 
+.parent-report-list {
+	display: flex;
+	flex-direction: column;
+	gap: 24rpx;
+}
+
+.parent-report-card {
+	position: relative;
+	overflow: hidden;
+	box-sizing: border-box;
+	padding: 25rpx 26rpx 0;
+	border: 3rpx solid #3f345f;
+	border-radius: 34rpx;
+	box-shadow: 8rpx 9rpx 0 rgba(63, 52, 95, 0.14);
+	transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.parent-report-card--0 {
+	background: linear-gradient(145deg, #fff1a9 0%, #fff9dc 52%, #ffffff 100%);
+}
+
+.parent-report-card--1 {
+	background: linear-gradient(145deg, #ffd3cb 0%, #fff0ed 52%, #ffffff 100%);
+}
+
+.parent-report-card--2 {
+	background: linear-gradient(145deg, #ddd2ff 0%, #f3efff 52%, #ffffff 100%);
+}
+
+.parent-report-card--3 {
+	background: linear-gradient(145deg, #c8f3e3 0%, #eafaf4 52%, #ffffff 100%);
+}
+
+.parent-report-card--pressed,
+.parent-report-card--opening {
+	transform: translateY(3rpx) scale(0.988);
+	box-shadow: 4rpx 5rpx 0 rgba(63, 52, 95, 0.12);
+}
+
+.report-card-accent {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 9rpx;
+	background: linear-gradient(90deg, #ffd447 0 28%, #ff786f 28% 53%, #8168ef 53% 77%, #68d9b4 77% 100%);
+}
+
+.report-card-topline,
+.report-card-body,
+.report-card-footer,
+.report-card-meta {
+	display: flex;
+	align-items: center;
+}
+
+.report-card-topline {
+	justify-content: space-between;
+}
+
+.report-complete-badge {
+	display: flex;
+	align-items: center;
+	padding: 7rpx 13rpx;
+	border: 2rpx solid rgba(42, 117, 88, 0.18);
+	border-radius: 18rpx;
+	background: rgba(255, 255, 255, 0.68);
+	color: #28795d;
+	font-size: 19rpx;
+	font-weight: 900;
+}
+
+.report-complete-dot {
+	width: 12rpx;
+	height: 12rpx;
+	margin-right: 8rpx;
+	border-radius: 50%;
+	background: #55d3a7;
+	box-shadow: 0 0 0 5rpx rgba(85, 211, 167, 0.16);
+}
+
+.report-card-index {
+	color: rgba(55, 45, 83, 0.42);
+	font-size: 26rpx;
+	font-weight: 900;
+	letter-spacing: 2rpx;
+}
+
+.report-card-body {
+	align-items: flex-end;
+	margin-top: 24rpx;
+}
+
+.report-card-copy {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.report-card-kicker {
+	color: #7657f6;
+	font-size: 17rpx;
+	font-weight: 900;
+	letter-spacing: 2rpx;
+}
+
+.report-card-title {
+	margin-top: 8rpx;
+	color: #31294f;
+	font-size: 34rpx;
+	font-weight: 900;
+	line-height: 1.32;
+}
+
+.report-card-summary {
+	display: -webkit-box;
+	max-width: 510rpx;
+	margin-top: 12rpx;
+	overflow: hidden;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	color: #756d83;
+	font-size: 22rpx;
+	line-height: 1.55;
+}
+
+.report-card-meta {
+	flex-wrap: wrap;
+	gap: 10rpx;
+	margin-top: 20rpx;
+}
+
+.report-meta-chip {
+	padding: 7rpx 12rpx;
+	border: 1rpx solid rgba(63, 52, 95, 0.12);
+	border-radius: 15rpx;
+	background: rgba(255, 255, 255, 0.64);
+	color: #655d75;
+	font-size: 19rpx;
+	font-weight: 700;
+}
+
+.report-open-action {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 74rpx;
+	height: 74rpx;
+	margin-left: 20rpx;
+	border: 3rpx solid #3f345f;
+	border-radius: 24rpx;
+	background: #ffffff;
+	box-shadow: 5rpx 6rpx 0 rgba(63, 52, 95, 0.14);
+	color: #7657f6;
+	font-size: 34rpx;
+	font-weight: 900;
+}
+
+.report-opening-spinner {
+	width: 28rpx;
+	height: 28rpx;
+	border: 5rpx solid #e6e0fa;
+	border-top-color: #7657f6;
+	border-radius: 50%;
+	animation: report-spin 0.75s linear infinite;
+}
+
+.report-card-footer {
+	justify-content: space-between;
+	margin: 25rpx -26rpx 0;
+	padding: 17rpx 26rpx;
+	border-top: 2rpx solid rgba(63, 52, 95, 0.11);
+	background: rgba(255, 255, 255, 0.52);
+	color: #4d4263;
+	font-size: 22rpx;
+	font-weight: 850;
+}
+
+.report-footer-arrow {
+	color: #7657f6;
+	font-size: 28rpx;
+	font-weight: 900;
+}
+
 .empty-card,
 .parent-empty {
     position: relative;
@@ -992,6 +1483,45 @@ const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
     border-style: solid;
     background: linear-gradient(145deg, #fff0b6 0%, #ffe0da 46%, #e8e0ff 100%);
     box-shadow: 0 15rpx 32rpx rgba(75, 57, 112, 0.13);
+}
+
+.parent-report-section .parent-empty {
+	margin: 20rpx 0 0;
+}
+
+.parent-empty--error {
+	background: linear-gradient(145deg, #ffe3dc 0%, #fff3d1 52%, #eee8ff 100%);
+}
+
+.parent-empty-art--error {
+	border: 3rpx solid #493b70;
+	background: #ff796f;
+	box-shadow: 7rpx 8rpx 0 rgba(73, 59, 112, 0.14);
+	color: #ffffff;
+	font-size: 70rpx;
+	font-weight: 900;
+}
+
+.retry-button {
+	margin-top: 26rpx;
+	padding: 18rpx 30rpx;
+	border: 3rpx solid #443663;
+	border-radius: 23rpx;
+	background: #7657f6;
+	box-shadow: 6rpx 7rpx 0 #ffd447;
+	color: #ffffff;
+	font-size: 23rpx;
+	font-weight: 900;
+	line-height: 1.2;
+}
+
+.retry-button::after {
+	border: 0;
+}
+
+.retry-button--pressed {
+	transform: translate(3rpx, 3rpx);
+	box-shadow: 2rpx 3rpx 0 #ffd447;
 }
 
 .parent-empty-art {
@@ -1087,5 +1617,11 @@ const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
         opacity: 1;
         transform: scale(1.12) rotate(-4deg);
     }
+}
+
+@keyframes report-spin {
+	to {
+		transform: rotate(360deg);
+	}
 }
 </style>

@@ -116,7 +116,7 @@
                     <view class="class-list" v-if="expandedSchoolId === school.schoolId">
                         <view 
                             v-for="(item, classIndex) in school.classes" 
-                            :key="item.classCode"
+                            :key="item.membershipId || item.classCode"
                             class="class-item"
                             :class="{ 'class-item-selected': isSelected(school.schoolId, classIndex) }"
                             @click.stop="handleSelectClass(school.schoolId, classIndex)"
@@ -167,6 +167,9 @@
                 <view class="selected-class-row">
                     <text class="selected-label">已选择：</text>
                     <text class="selected-name">{{ selectedClass.name }}</text>
+                    <text v-if="selectedClass.role === 'parent' && selectedClass.childName" class="selected-child">
+                        · {{ selectedClass.childName }}
+                    </text>
                 </view>
                 <view class="selected-school-row">
                     <!-- <text class="school-tag">🏫</text> -->
@@ -237,6 +240,10 @@ export default {
         },
         enterConfirmContent() {
             if (!this.selectedClass) return ''
+			if (this.selectedClass.role === 'parent') {
+				const childName = this.selectedClass.childName || '关联孩子'
+				return `进入「${this.selectedClass.name}」后，只会展示「${childName}」已完成的成长报告。`
+			}
             return `即将进入「${this.selectedClass.name}」，进入后可以查看学生并开始成长评估。`
         }
     },
@@ -255,6 +262,8 @@ export default {
             selectedClassIndex: 0,
             expandedSchoolId: null,
             currentClassCode: '',
+			currentMembershipId: '',
+			currentChildId: '',
             classes: {
                 parent: [],
                 teacher: []
@@ -376,12 +385,22 @@ export default {
                         ...result.data,
                         memberRole: this.selectedClass.role,
                         memberNickname: this.selectedClass.nickname,
+						memberId: this.selectedClass.membershipId,
+						childId: this.selectedClass.childId,
+						childName: this.selectedClass.childName,
+						childAvatar: this.selectedClass.childAvatar,
+						childBirthdate: this.selectedClass.childBirthdate,
+						relationship: this.selectedClass.relationship,
                         schoolName: this.selectedSchoolName
                     }
                     this.currentClassCode = currentClass.code || ''
+					this.currentMembershipId = currentClass.memberId || ''
+					this.currentChildId = currentClass.childId || ''
                     uni.setStorageSync('currentClass', currentClass)
                     uni.redirectTo({
-						url: `/pages/dashboard/teacher/teacher?role=${this.selectedClass.role}`
+						url: this.selectedClass.role === 'parent'
+							? '/pages/assessment/list?role=parent'
+							: '/pages/dashboard/teacher/teacher?role=teacher'
                     })
                 }
             } catch (e) {
@@ -396,7 +415,14 @@ export default {
         },
 
         isCurrentClass(item) {
-            return !!this.currentClassCode && item.classCode === this.currentClassCode
+			if (item.role === 'parent') {
+				if (this.currentMembershipId && item.membershipId) {
+					return item.membershipId === this.currentMembershipId
+				}
+				return !!this.currentClassCode && item.classCode === this.currentClassCode &&
+					(!this.currentChildId || item.childId === this.currentChildId)
+			}
+			return !!this.currentClassCode && item.classCode === this.currentClassCode
         },
         
         getClassColor(index) {
@@ -404,7 +430,7 @@ export default {
         },
 
         getClassRoleLabel(item) {
-            if (item.role === 'parent') return '家长'
+			if (item.role === 'parent') return item.childName ? `家长 · ${item.childName}` : '家长'
             return item.isHeadTeacher ? '班主任' : '老师'
         },
         
@@ -433,10 +459,16 @@ export default {
                     this.classes.parent = res.result.data
                         .filter(item => item.role === 'parent')
                         .map(item => ({
+							membershipId: item._id,
                             name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
                             nickname: item.nickname || '家长',
                             role: item.role,
+							childId: item.child_id || item.childInfo?._id || '',
+							childName: item.childInfo?.name || '',
+							childAvatar: item.childInfo?.avatar || '',
+							childBirthdate: item.childInfo?.birthdate || '',
+							relationship: item.relationship || '',
                             schoolId: item.classInfo.school_id || item.schoolInfo?.school_id || 'unknown',
                             schoolName: item.schoolInfo?.name || '未分配学校',
                             schoolLatitude: item.schoolInfo?.latitude,
@@ -448,6 +480,7 @@ export default {
                     this.classes.teacher = res.result.data
                         .filter(item => item.role === 'teacher')
                         .map(item => ({
+							membershipId: item._id,
                             name: item.classInfo.nickname,
                             classCode: item.classInfo.code,
 							nickname: item.nickname || '老师',
@@ -463,19 +496,19 @@ export default {
                     this.selectedRole = this.defaultRole
                     this.calculateSchoolDistances()
                     
-                    this.$nextTick(() => {
-                        const groups = this.groupedClasses[this.selectedRole]
-                        if (groups.length > 0) {
-                            this.expandedSchoolId = groups[0].schoolId
-                            this.selectedSchoolId = groups[0].schoolId
-                            this.selectedClassIndex = 0
-                        }
-                    })
-                    
-                    const currentClass = uni.getStorageSync('currentClass')
-                    if (currentClass?.code) {
-                        this.restoreSelection(currentClass.code)
-                    }
+					const currentClass = uni.getStorageSync('currentClass') || {}
+					this.$nextTick(() => {
+						if (currentClass.code) {
+							this.restoreSelection(currentClass)
+							return
+						}
+						const groups = this.groupedClasses[this.selectedRole]
+						if (groups.length > 0) {
+							this.expandedSchoolId = groups[0].schoolId
+							this.selectedSchoolId = groups[0].schoolId
+							this.selectedClassIndex = 0
+						}
+					})
                 }
             } catch (error) {
                 console.error('班级数据加载失败', error)
@@ -485,9 +518,15 @@ export default {
             }
         },
         
-        restoreSelection(classCode) {
+		restoreSelection(currentClass) {
+			const classCode = currentClass?.code || ''
+			const memberId = currentClass?.memberId || ''
+			const childId = currentClass?.childId || ''
             for (const school of this.groupedClasses.parent) {
-                const classIndex = school.classes.findIndex(c => c.classCode === classCode)
+				const classIndex = school.classes.findIndex(c =>
+					(memberId && c.membershipId === memberId) ||
+					(!memberId && c.classCode === classCode && (!childId || c.childId === childId))
+				)
                 if (classIndex > -1) {
                     this.selectedRole = 'parent'
                     this.selectedSchoolId = school.schoolId
@@ -590,6 +629,8 @@ export default {
     onLoad() {
         const currentClass = uni.getStorageSync('currentClass') || {}
         this.currentClassCode = currentClass.code || ''
+		this.currentMembershipId = currentClass.memberId || ''
+		this.currentChildId = currentClass.childId || ''
         this.getUserLocation()
         this.loadClasses()
     },
@@ -1056,12 +1097,23 @@ export default {
         color: #888;
     }
     
-    .selected-name {
-        font-size: 30rpx;
-        font-weight: 600;
-        color: #1a1a1a;
-        margin-left: 8rpx;
-    }
+	.selected-name {
+		font-size: 30rpx;
+		font-weight: 600;
+		color: #1a1a1a;
+		margin-left: 8rpx;
+	}
+
+	.selected-child {
+		min-width: 0;
+		margin-left: 8rpx;
+		overflow: hidden;
+		color: #7c63e8;
+		font-size: 26rpx;
+		font-weight: 800;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
     
     .selected-school-row {
         display: flex;

@@ -869,6 +869,7 @@
         childId: options.childId || student._id || "",
         reportId: options.reportId || "",
         recordId: options.recordId || "",
+		documentId: options.documentId || "",
       });
 
       if (historyReports.value.length > 0) {

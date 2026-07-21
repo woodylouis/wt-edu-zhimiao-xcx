@@ -1,6 +1,7 @@
 'use strict';
 const uniID = require('uni-id-common')
 const db = uniCloud.database()
+const dbCmd = db.command
 
 function compactId(value) {
 	if (!value) return ''
@@ -19,10 +20,31 @@ exports.main = async (event, context) => {
 	}
 
 	try {
+		// 与 business-subject-auth 保持一致：同一手机号下的关联账号共享同一批班级关系。
+		const userRes = await db.collection('uni-id-users')
+			.where({ _id: payload.uid })
+			.field({ nickname: true, mobile: true })
+			.limit(1)
+			.get()
+		const account = userRes.data?.[0] || {}
+		const accountNickname = String(account.nickname || '').trim()
+		const linkedUserIds = new Set([compactId(payload.uid)])
+		const mobile = String(account.mobile || '').trim()
+		if (mobile) {
+			const linkedRes = await db.collection('uni-id-users')
+				.where({ mobile })
+				.field({ _id: true })
+				.get()
+			;(linkedRes.data || []).forEach(user => {
+				const userId = compactId(user._id)
+				if (userId) linkedUserIds.add(userId)
+			})
+		}
+
 		const res = await db.collection('wtdb-business-class-member')
 			.aggregate()
 			.match({
-				user_id: payload.uid // 根据当前用户ID筛选
+				user_id: dbCmd.in([...linkedUserIds])
 			})
 			.lookup({
 				from: 'wtdb-business-class-list',
@@ -42,9 +64,21 @@ exports.main = async (event, context) => {
 				path: '$schoolInfo',
 				preserveNullAndEmptyArrays: true // 保留没有学校信息的班级
 			})
+			// 家长班级关系必须保留关联儿童，客户端后续只能以该 child_id 请求报告。
+			.lookup({
+				from: 'wtdb-business-children',
+				localField: 'child_id',
+				foreignField: '_id',
+				as: 'childInfo'
+			})
+			.unwind({
+				path: '$childInfo',
+				preserveNullAndEmptyArrays: true
+			})
 			.project({
 				_id: 1,
 				role: 1,
+				child_id: 1,
 				relationship: 1,
 				join_time: 1,
 				nickname: 1,
@@ -66,30 +100,18 @@ exports.main = async (event, context) => {
 					latitude: 1,
 					longitude: 1,
 					director_user_id: 1
+				},
+				childInfo: {
+					_id: 1,
+					name: 1,
+					avatar: 1,
+					birthdate: 1,
+					class_id: 1
 				}
 			})
 			.end()
 
 		const rows = res.data || []
-		const userRes = await db.collection('uni-id-users')
-			.where({ _id: payload.uid })
-			.field({ nickname: true, mobile: true })
-			.limit(1)
-			.get()
-		const account = userRes.data?.[0] || {}
-		const accountNickname = String(account.nickname || '').trim()
-		const linkedUserIds = new Set([compactId(payload.uid)])
-		const mobile = String(account.mobile || '').trim()
-		if (mobile) {
-			const linkedRes = await db.collection('uni-id-users')
-				.where({ mobile })
-				.field({ _id: true })
-				.get()
-			;(linkedRes.data || []).forEach(user => {
-				const userId = compactId(user._id)
-				if (userId) linkedUserIds.add(userId)
-			})
-		}
 		const data = rows.map(item => {
 			const classInfo = item.classInfo || {}
 			const schoolInfo = item.schoolInfo || {}

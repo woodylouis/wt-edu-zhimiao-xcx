@@ -445,7 +445,9 @@
           this.currentMembership?.role ||
           "teacher";
         uni.navigateTo({
-          url: `/pages/dashboard/teacher/teacher?role=${role}`,
+		  url: role === "parent"
+			? "/pages/assessment/list?role=parent"
+			: "/pages/dashboard/teacher/teacher?role=teacher",
         });
       },
       handleSecondaryAction() {
@@ -554,14 +556,6 @@
       async onConfirm(selectedRole) {
         const role = selectedRole === 0 ? "teacher" : "parent";
         console.log("role: ", role);
-        if (selectedRole !== 0) {
-          uni.showToast({
-            title: "请家长敬请期待",
-            duration: 2000,
-            icon: "none",
-          });
-          return;
-        }
         if (this.isJoinClass) {
           this.show = false;
           this.onInitModal();

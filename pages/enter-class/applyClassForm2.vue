@@ -4,7 +4,7 @@
             <custom-nav :needBack="true" :needBar="false" :xcxName="'申请加入'" :backHandler="handleNavBack"
                 navCustomStyle="background: linear-gradient(135deg, #D8CDFF 0%, #A98CFF 48%, #FFB8AC 100%);height: calc(100vh / 8);" />
         </u-sticky>
-        <dopamine-flow-header eyebrow="JOIN THE GROWTH CLASS" title="确认加入资料" subtitle="昵称与手机号会用于班级身份确认" badge="02" tone="mint" :step="2" :total-steps="2" />
+        <dopamine-flow-header eyebrow="JOIN THE GROWTH CLASS" title="确认加入资料" subtitle="申请资料只用于班级身份确认" badge="02" tone="mint" :step="2" :total-steps="2" />
         <view class="form-container">
             <view class="form-description">您正在加入<span style="font-weight: bold;">【{{ formData.className
             }}】</span>，请填写以下信息</view>
@@ -12,24 +12,18 @@
                 <view class="form-content">
                     <view class="input-group">
                         <text class="input-label">我的身份</text>
-                        <view
-                            v-for="(item, index) in role"
-                            :key="index"
-                            class="role-choice-card"
-                            :class="{ 'role-choice-card--active': formData.role === item.role }"
-                            @click="radioChange(item.role)"
-                        >
-                            <view class="role-choice-icon">师</view>
+                        <view class="role-choice-card" :class="{ 'role-choice-card--parent': formData.role === 'parent' }">
+                            <view class="role-choice-icon">{{ selectedRoleInfo.icon }}</view>
                             <view class="role-choice-copy">
-                                <text class="role-choice-title">{{ item.name }}</text>
-                                <text class="role-choice-desc">参与班级管理与成长评估</text>
+                                <text class="role-choice-title">{{ selectedRoleInfo.name }}</text>
+                                <text class="role-choice-desc">{{ selectedRoleInfo.description }}</text>
                             </view>
                             <view class="role-choice-check">✓</view>
                         </view>
                     </view>
-                    <!-- <view v-if="formData.role === 'parent'">
+                    <view v-if="formData.role === 'parent'">
                         <view class="input-group">
-                            <text class="input-label">孩子称呼</text>
+                            <text class="input-label">孩子姓名</text>
                             <u-form-item prop="parentData.childName" :borderBottom="false">
                                 <u--input v-model="formData.parentData.childName" placeholder="请输入孩子的真实名字"
                                     border="false" :custom-style="inputStyle" clearable />
@@ -38,21 +32,20 @@
                         <view class="input-group">
                             <text class="input-label">孩子性别</text>
                             <u-form-item prop="parentData.gender" :borderBottom="false">
-                                <view @click="onChooseGender"> 
+                                <view @click="onChooseGender">
                                     <u--input v-model="formData.parentData.gender" placeholder="请选择孩子的性别" border="false"
                                         :custom-style="inputStyle" disabled />
                                 </view>
                                 <u--picker :show="showGenderPicker" :columns="genderColumns" @confirm="onConfirmGender"
                                     @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker>
-                           
                             </u-form-item>
                         </view>
 
                         <view class="input-group">
-                            <text class="input-label">出生年月</text>
-                            <u-form-item :borderBottom="false">
+                            <text class="input-label">出生日期</text>
+                            <u-form-item prop="parentData.birthdate" :borderBottom="false">
                                 <view @click="onClickDatetime">
-                                    <u--input v-model="showDateStr" placeholder="请输入孩子的生日" border="false"
+                                    <u--input v-model="showDateStr" placeholder="请选择孩子的生日" border="false"
                                         :custom-style="inputStyle" disabled clearable />
                                 </view>
                                 <u-datetime-picker v-model="formData.parentData.birthdate" :show="showDatetimePicker"
@@ -65,14 +58,14 @@
                         <view class="input-group">
                             <text class="input-label">我是孩子的</text>
                             <u-form-item prop="parentData.relationship" :borderBottom="false">
-                                <view @click="onChooseRelationship"><u--input v-model="formData.parentData.relationship"
-                                        placeholder="请输入您和孩子的关系" border="false" :custom-style="inputStyle" disabled />
+                                <view @click="onChooseRelationship"><u--input v-model="formData.parentData.relationshipLabel"
+                                        placeholder="请选择您和孩子的关系" border="false" :custom-style="inputStyle" disabled />
                                 </view>
                                 <u--picker :show="showRelationship" :columns="columns" @confirm="onConfirmRelationship"
                                     @cancel="onCancel" :closeOnClickOverlay="true" @close="onCancel"></u--picker>
                             </u-form-item>
                         </view>
-                    </view> -->
+                    </view>
                     <view v-if="formData.role === 'teacher'">
                         <view class="input-group">
                             <text class="input-label">昵称</text>
@@ -91,7 +84,7 @@
                         </u-form-item>
                     </view>
 
-                    <u-button @click="handleSubmit" :custom-style="buttonStyle">下一步</u-button>
+                    <u-button @click="handleSubmit" :custom-style="buttonStyle">提交入班申请</u-button>
 
                     <text class="help-link" @click="handleHelp">遇到问题？查看帮助</text>
                 </view>
@@ -135,6 +128,11 @@ export default {
         userInfo() {
             return store.userInfo
         },
+        selectedRoleInfo() {
+            return this.formData.role === 'parent'
+                ? { name: '家长', icon: '家', description: '关联孩子，查看已完成的成长报告' }
+                : { name: '老师', icon: '师', description: '参与班级管理与成长评估' }
+        },
     },
     components: {
         modalBox,
@@ -170,7 +168,8 @@ export default {
                     childName: "",
                     gender: "",
                     birthdate: Number(new Date().setFullYear(new Date().getFullYear() - 4)),
-                    relationship: ""
+                    relationship: "",
+                    relationshipLabel: ""
                 },
                 // 老师专属字段
                 teacherData: {
@@ -183,19 +182,6 @@ export default {
             maxDate: Number(
                 new Date(new Date().setFullYear(new Date().getFullYear() - 1))
             ),
-            // role: [{
-            //     name: '家长',
-            //     role: 'parent'
-            // },
-            // {
-            //     name: '老师',
-            //     role: 'teacher'
-            // }],
-            role: [
-                {
-                    name: '老师',
-                    role: 'teacher'
-                }],
             genderColumns: [
                 ['男孩', '女孩']
             ],
@@ -239,6 +225,13 @@ export default {
                     {
                         required: true,
                         message: "请输入你和孩子的关系",
+                        trigger: ["change", "blur"],
+                    },
+                ],
+                'parentData.birthdate': [
+                    {
+                        required: true,
+                        message: "请选择孩子出生日期",
                         trigger: ["change", "blur"],
                     },
                 ],
@@ -301,24 +294,32 @@ export default {
         // 模态框确认按钮点击事件
         async handleConfirm() {
             if (this.submitting) return;
-            if (this.formData.role !== 'teacher') {
-                uni.showToast({ title: '家长入班功能敬请期待', icon: 'none' });
-                return;
-            }
-
             const cacheData = uni.getStorageSync('tempFormData') || {};
             const classInfo = cacheData.classInfo || {};
+            if (!classInfo._id || !cacheData.code) {
+                uni.showToast({ title: '班级信息已失效，请重新查找', icon: 'none' });
+                return;
+            }
             this.submitting = true;
             try {
+                const requestData = {
+                    action: 'submit',
+                    classId: classInfo._id,
+                    classCode: cacheData.code,
+                    requestedRole: this.formData.role,
+                    uniIdToken: uni.getStorageSync('uni_id_token')
+                };
+                if (this.formData.role === 'parent') {
+                    Object.assign(requestData, {
+                        childName: this.formData.parentData.childName,
+                        childGender: this.formData.parentData.gender,
+                        childBirthdate: this.formData.parentData.birthdate,
+                        relationship: this.formData.parentData.relationship
+                    });
+                }
                 const { result } = await uniCloud.callFunction({
                     name: 'wtdb-class-approval',
-                    data: {
-                        action: 'submit',
-                        classId: classInfo._id,
-                        classCode: cacheData.code,
-                        requestedRole: 'teacher',
-                        uniIdToken: uni.getStorageSync('uni_id_token')
-                    }
+                    data: requestData
                 });
 
                 if (result.code !== 200) {
@@ -334,7 +335,7 @@ export default {
                 this.submitting = false;
             }
         },
-        // 申请提交后不直接入班，审批通过后才会生成教师成员记录
+        // 申请提交后不直接入班，审批通过后才会创建对应的成员关系
         handleApplySuccess(existing) {
             this.show = false;
             uni.removeStorageSync('tempFormData');
@@ -343,60 +344,39 @@ export default {
                 type: 'success',
                 eyebrow: '申请已送达',
                 title: existing ? '申请正在审批中' : '申请提交成功',
-                content: '通过后，该班级会自动出现在您的班级列表中。',
+                content: this.formData.role === 'parent'
+                    ? '审批通过后会建立孩子档案与亲子班级关系，随后即可查看已完成的成长报告。'
+                    : '通过后，该班级会自动出现在您的班级列表中。',
                 confirmText: '我知道了',
                 showCancel: false
             };
         },
         async handleSubmit() {
-            if (this.formData.role === 'parent') {
-                console.log('parent');
-                // 校验
-                try {
-                    const valid = await this.$refs.uForm.validate()
-                    if (valid) {
-                        console.log('表单数据校验 parent', valid);
-                        this.show = true;
-                        this.confirmInfo = [
-                            { label: "您正在申请加入：", name: this.formData.className },
-                            { label: "孩子称呼：", name: this.formData.parentData.childName },
-                            { label: "孩子性别：", name: this.formData.parentData.gender },
-                            { label: "出生年月：", name: this.showDateStr },
-                            { label: "我是孩子的：", name: this.formData.parentData.relationship },
-                            // 修正手机号绑定
-                            { label: "我的手机号码：", name: this.formData.mobile }
-                        ];
-                    }
-                } catch (error) {
-                    // 处理数组类型的错误对象
-                    console.log('error', error);
-                    uni.showToast({
-                        title: `请输入必要的信息1`,
-                        icon: "none"
-                    })
-                }
-            } else if (this.formData.role === 'teacher') {
-                try {
-                    const valid = await this.$refs.uForm.validate()
-                    if (valid) {
-                        console.log('表单数据校验 teacher', valid);
-                        this.show = true;
-                        this.confirmInfo = [
-                            { label: "您正在申请加入：", name: this.formData.className },
-                            { label: "我的昵称：", name: `${this.formData.teacherData.user_name}` },
-                            { label: "我的手机号码：", name: this.userInfo.mobile }
-                        ];
-                    }
-                } catch (error) {
-                    // 处理数组类型的错误对象
-                    uni.showToast({
-                        title: `请输入必要的信息2`,
-                        icon: "none"
-                    })
-                }
-
+            try {
+                const valid = await this.$refs.uForm.validate()
+                if (!valid) return
+                this.confirmInfo = this.formData.role === 'parent'
+                    ? [
+                        { label: "您正在申请加入：", name: this.formData.className },
+                        { label: "孩子姓名：", name: this.formData.parentData.childName },
+                        { label: "孩子性别：", name: this.formData.parentData.gender },
+                        { label: "出生日期：", name: this.showDateStr },
+                        { label: "我是孩子的：", name: this.formData.parentData.relationshipLabel },
+                        { label: "我的手机号码：", name: this.formData.mobile }
+                    ]
+                    : [
+                        { label: "您正在申请加入：", name: this.formData.className },
+                        { label: "我的昵称：", name: `${this.formData.teacherData.user_name}` },
+                        { label: "我的手机号码：", name: this.formData.mobile }
+                    ];
+                this.show = true;
+            } catch (error) {
+                const firstError = Array.isArray(error) ? error[0]?.message : error?.message;
+                uni.showToast({
+                    title: firstError || '请完善申请资料',
+                    icon: "none"
+                })
             }
-
         },
         bindMobile() {
             //#ifdef MP-WEIXIN
@@ -456,42 +436,18 @@ export default {
         },
         onConfirmRelationship(e) {
             this.showRelationship = false;
-            this.formData.parentData.relationship = e.value[0];
+            const label = e.value[0];
+            const relationshipMap = {
+                '爸爸': 'father',
+                '妈妈': 'mother',
+                '爷爷': 'grandfather',
+                '奶奶': 'grandmother',
+                '其他': 'other'
+            };
+            this.formData.parentData.relationshipLabel = label;
+            this.formData.parentData.relationship = relationshipMap[label] || '';
             // 添加关系字段验证触发
             this.$refs.uForm.validateField('parentData.relationship');
-        },
-        radioChange(n) {
-            // 保留已有数据
-            const currentData = this.formData;
-            const oldData = {
-                ...currentData,
-                teacherData: currentData.role === 'teacher'
-                    ? currentData.teacherData
-                    : this.formData.teacherData
-            };
-
-            // 重置表单结构
-            this.formData = {
-                role: n,
-                className: oldData.className,
-                mobile: oldData.mobile,
-                parentData: n === 'parent' ? {
-                    ...oldData.parentData,
-                    user_name: `${oldData.parentData.childName}${oldData.parentData.relationship}`
-                } : oldData.parentData,
-                teacherData: n === 'teacher'
-                    ? { ...oldData.teacherData }
-                    : currentData.teacherData  // 使用当前老师数据
-            };
-
-            // 更新缓存
-            const cacheData = uni.getStorageSync('tempFormData') || {};
-            uni.setStorageSync('tempFormData', {
-                ...cacheData,
-                role: n,
-                // 保留所有数据
-                ...this.formData
-            });
         },
         // onCloseDate() {
         //     this.showDatetimePicker = false;
@@ -515,11 +471,20 @@ export default {
     async onLoad() {
         // 新增缓存读取逻辑
         const cacheData = uni.getStorageSync('tempFormData') || {};
+        const classInfo = cacheData.classInfo || {};
+        if (!classInfo._id) {
+            uni.showToast({ title: '班级信息已失效，请重新查找', icon: 'none' });
+            setTimeout(() => uni.navigateBack(), 800);
+            return;
+        }
+        const selectedRole = ['teacher', 'parent'].includes(cacheData.role)
+            ? cacheData.role
+            : 'parent';
         this.formData = {
             ...this.formData,
             className: cacheData.nickname || '',
-            class_id: cacheData.classInfo._id,
-            role: cacheData.role || 'parent'
+            class_id: classInfo._id,
+            role: selectedRole
         };
 		const accountInfo = uni.getStorageSync('uni-id-pages-userInfo') || {};
 		this.formData.teacherData.user_name = accountInfo.nickname || '';
@@ -629,7 +594,7 @@ export default {
     box-shadow: 4rpx 5rpx 0 rgba(47, 40, 84, 0.16);
 }
 
-.role-choice-card--active {
+.role-choice-card--parent {
     background: #eee9ff;
     box-shadow: 5rpx 6rpx 0 #2f2854;
 }
