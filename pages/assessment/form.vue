@@ -198,6 +198,16 @@
   const taskObject = computed(
     () => questions.value[currentIndex.value]?.task_object || ""
   );
+  const normalizeQuestionOptions = (questionList) =>
+    (Array.isArray(questionList) ? questionList : []).map((question) => ({
+      ...question,
+      options: (Array.isArray(question.options) ? question.options : []).map(
+        (option) => {
+          const text = String(option?.text || option?.name || "").trim();
+          return { ...option, text, name: text };
+        }
+      ),
+    }));
   const assessmentRecords = ref({}); // 每个ablls section的缓存，存储所有已加载的题目记录，例如：{ LANG_1_E: [] }
   const assessmentRecordForm = ref({}); // 组织提交的表单数据
   const history = ref([]); // 记录每个ablls section的历史记录
@@ -949,7 +959,7 @@
     const cacheKey = `${sectionId}_${abllsSectionAlphabet}`;
     if (assessmentRecords.value[cacheKey]) {
       console.log("使用缓存的题目:", assessmentRecords.value);
-      questions.value = assessmentRecords.value[cacheKey];
+      questions.value = normalizeQuestionOptions(assessmentRecords.value[cacheKey]);
       return;
     }
 
@@ -962,8 +972,9 @@
     console.log("historyQuestions:", historyQuestions);
     try {
       if (historyQuestions.length > 0) {
-        questions.value = historyQuestions;
-        assessmentRecords.value[cacheKey] = historyQuestions;
+        const normalizedQuestions = normalizeQuestionOptions(historyQuestions);
+        questions.value = normalizedQuestions;
+        assessmentRecords.value[cacheKey] = normalizedQuestions;
       } else {
         const res = await uniCloud.callFunction({
           name: "wt-fetch-assessment-v2",
@@ -971,10 +982,13 @@
         });
 
         if (res.result && res.result.data) {
-          questions.value = res.result.data.questions;
+          const normalizedQuestions = normalizeQuestionOptions(
+            res.result.data.questions
+          );
+          questions.value = normalizedQuestions;
           // console.log('正常拉取的题目:', questions.value)
           // 缓存题目数据
-          assessmentRecords.value[cacheKey] = res.result.data.questions;
+          assessmentRecords.value[cacheKey] = normalizedQuestions;
           // console.log('assessmentRecords:', assessmentRecords.value)
         }
       }

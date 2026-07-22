@@ -83,6 +83,10 @@
                         "bsonType": "string",
                         "description": "选项文本"
                     },
+                    "name": {
+                        "bsonType": "string",
+                        "description": "选项文本（兼容旧版小程序）"
+                    },
                     "score": {
                         "bsonType": "int",
                         "minimum": 0,

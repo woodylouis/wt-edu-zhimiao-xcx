@@ -113,6 +113,9 @@
                                 "text": {
                                     "bsonType": "string"
                                 },
+                                "name": {
+                                    "bsonType": "string"
+                                },
                                 "score": {
                                     "bsonType": "int"
                                 }

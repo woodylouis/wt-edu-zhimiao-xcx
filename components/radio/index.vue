@@ -16,7 +16,7 @@
                     <view v-if="option.selected" class="radio-check">✓</view>
                     <view v-else class="radio-empty"></view>
                 </view>
-                <text class="radio-text">{{ option.name }}</text>
+                <text class="radio-text">{{ option.text || option.name }}</text>
                 <text v-if="option.selected" class="selected-spark">✦</text>
             </view>
         </view>
