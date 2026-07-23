@@ -28,7 +28,7 @@ exports.main = async (event = {}, context) => {
 		}
 
 		const childIds = childrenRes.data.map(child => child._id)
-		const [statsRes, activeRes] = await Promise.all([
+		const [statsRes, activeRes, reportsRes] = await Promise.all([
 			db.collection('wtdb-business-assess-record')
 				.aggregate()
 				.match(dbCmd.or([
@@ -73,10 +73,46 @@ exports.main = async (event = {}, context) => {
 					createTime: true
 				})
 				.limit(500)
-				.get()
+				.get(),
+			db.collection('wtdb-business-assess-report')
+				.aggregate()
+				.match(dbCmd.or([
+					{ childId: dbCmd.in(childIds) },
+					{ child_id: dbCmd.in(childIds) }
+				]))
+				.project({
+					childId: { $ifNull: ['$childId', '$child_id'] },
+					documentId: '$_id',
+					reportId: '$reportId',
+					recordId: '$recordId',
+					assessmentId: '$assessmentId',
+					assessmentTitle: '$assessmentTitle',
+					reportTime: { $ifNull: ['$completionTime', '$createTime'] },
+					interventionPlanStatus: '$interventionPlanStatus',
+					interventionPlanGeneration: '$interventionPlanGeneration'
+				})
+				.sort({ reportTime: -1 })
+				.group({
+					_id: '$childId',
+					documentId: dbCmd.aggregate.first('$documentId'),
+					reportId: dbCmd.aggregate.first('$reportId'),
+					recordId: dbCmd.aggregate.first('$recordId'),
+					assessmentId: dbCmd.aggregate.first('$assessmentId'),
+					assessmentTitle: dbCmd.aggregate.first('$assessmentTitle'),
+					reportTime: dbCmd.aggregate.first('$reportTime'),
+					interventionPlanStatus: dbCmd.aggregate.first('$interventionPlanStatus'),
+					interventionPlanGeneration: dbCmd.aggregate.first('$interventionPlanGeneration')
+				})
+				.end()
 		])
 
 		const assessorNameMap = await loadAssessorNames(statsRes.data || [], [scope.uid])
+		let assessmentTitleMap = new Map()
+		try {
+			assessmentTitleMap = await loadAssessmentTitles(reportsRes.data || [])
+		} catch (error) {
+			console.warn('补全教师首页最新报告量表名称失败:', error)
+		}
 		const statsMap = new Map((statsRes.data || []).map(item => [
 			subjectAuth.compactId(item._id),
 			{
@@ -106,10 +142,31 @@ exports.main = async (event = {}, context) => {
 				})
 			}
 		}
+		const latestReportMap = new Map()
+		for (const report of reportsRes.data || []) {
+			const childId = subjectAuth.compactId(report._id)
+			if (!childId || latestReportMap.has(childId)) continue
+			const assessmentId = subjectAuth.compactId(report.assessmentId)
+			const completionTime = toTimestamp(report.reportTime)
+			latestReportMap.set(childId, {
+				documentId: subjectAuth.compactId(report.documentId),
+				reportId: String(report.reportId || ''),
+				recordId: String(report.recordId || ''),
+				assessmentId,
+				assessmentTitle: String(report.assessmentTitle || '').trim() ||
+					assessmentTitleMap.get(assessmentId) ||
+					'成长评估',
+				completionTime,
+				reportDate: formatDate(completionTime),
+				interventionPlanStatus: String(report.interventionPlanStatus || ''),
+				interventionPlanGeneration: report.interventionPlanGeneration || null
+			})
+		}
 		const list = childrenRes.data.map(child => {
 			const childId = subjectAuth.compactId(child._id)
 			const stats = statsMap.get(childId) || { count: 0, time: 0, assessorName: '' }
 			const inProgressAssessment = activeMap.get(childId) || null
+			const latestReport = latestReportMap.get(childId) || null
 			const latestAssessorName = inProgressAssessment?.updatedAt >= stats.time
 				? assessorNameMap.get(subjectAuth.compactId(inProgressAssessment.assessorId)) || stats.assessorName
 				: stats.assessorName
@@ -126,8 +183,10 @@ exports.main = async (event = {}, context) => {
 				guardianCount: Array.isArray(child.guardians) ? child.guardians.length : 0,
 				guardianConfigured: Array.isArray(child.guardians) && child.guardians.length > 0,
 				hasAssessments: stats.count > 0,
-				lastAssessmentTime: stats.time,
-				lastAssessmentDate: formatDate(stats.time),
+				lastAssessmentTime: latestReport?.completionTime || 0,
+				lastAssessmentDate: latestReport?.reportDate || '',
+				latestReportDate: latestReport?.reportDate || '',
+				latestReport,
 				latestAssessorName,
 				assessmentCount: stats.count,
 				assessmentNumber: `共评估${stats.count}次`,
@@ -144,6 +203,27 @@ exports.main = async (event = {}, context) => {
 		console.error('查询班级评估历史失败:', error)
 		return subjectAuth.toErrorResponse(error, '查询失败')
 	}
+}
+
+async function loadAssessmentTitles(reports) {
+	const assessmentIds = [...new Set((reports || [])
+		.map(report => subjectAuth.compactId(report.assessmentId))
+		.filter(Boolean))]
+	const titleMap = new Map()
+	if (!assessmentIds.length) return titleMap
+
+	for (let index = 0; index < assessmentIds.length; index += 50) {
+		const assessmentRes = await db.collection('wtdb-business-assessment-list')
+			.where({ _id: dbCmd.in(assessmentIds.slice(index, index + 50)) })
+			.field({ _id: true, title: true })
+			.get()
+		for (const assessment of assessmentRes.data || []) {
+			const id = subjectAuth.compactId(assessment._id)
+			const title = String(assessment.title || '').trim()
+			if (id && title) titleMap.set(id, title)
+		}
+	}
+	return titleMap
 }
 
 async function loadAssessorNames(statsRows, extraUserIds = []) {

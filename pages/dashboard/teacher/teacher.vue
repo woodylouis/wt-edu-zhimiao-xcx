@@ -127,6 +127,7 @@
         v-if="!loading && filteredStudentList.length > 0"
         :studentList="filteredStudentList"
         @handleStudentClick="handleStudentClick"
+        @handlePlanClick="handlePlanClick"
         @handleAssessClick="handleAssessClick"
         @handleStudentEdit="handleStudentEdit"
       />
@@ -360,6 +361,28 @@
     } finally {
       actionLoading.value = false;
     }
+  };
+
+  const handlePlanClick = (student) => {
+    const report = student?.latestReport;
+    if (!report?.reportId && !report?.documentId) {
+      uni.showToast({
+        title: student?.hasAssessments
+          ? "最近评估尚未生成报告"
+          : "请先完成评估并生成报告",
+        icon: "none",
+      });
+      return;
+    }
+
+    uni.setStorageSync(CURRENT_STUDENT, { ...student });
+    const query = [];
+    if (report.reportId) query.push(`reportId=${encodeURIComponent(report.reportId)}`);
+    else query.push(`documentId=${encodeURIComponent(report.documentId)}`);
+    if (student?._id) query.push(`childId=${encodeURIComponent(student._id)}`);
+    uni.navigateTo({
+      url: `/pages/assessment/intervention-plan?${query.join("&")}`,
+    });
   };
   
       // 开始评估入口 - 显示评估列表弹窗

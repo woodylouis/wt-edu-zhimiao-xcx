@@ -26,10 +26,13 @@
                 </view>
                 <view class="assessment-meta" :class="{ 'assessment-meta--empty': !hasAssessmentActivity }">
                     <view class="assessment-stat date-stat">
-                        <text class="stat-label">最近评估</text>
+                        <text class="stat-label">报告日期</text>
                         <view class="stat-value-row">
-                            <text class="date-icon">📅</text>
-                            <text class="date-value">{{ lastAssessmentText }}</text>
+                            <view class="date-icon" aria-hidden="true">
+                                <view class="date-icon-binding date-icon-binding--left"></view>
+                                <view class="date-icon-binding date-icon-binding--right"></view>
+                            </view>
+                            <text class="date-value">{{ latestReportDateText }}</text>
                         </view>
                     </view>
                     <view class="stat-divider"></view>
@@ -90,6 +93,25 @@
                 <text class="action-arrow">›</text>
             </button>
         </view>
+        <button
+            class="plan-entry"
+            :class="`plan-entry--${trainingPlanEntry.tone}`"
+            hover-class="plan-entry--pressed"
+            @click="handlePlanClick"
+        >
+            <view class="plan-entry-icon">
+                <view class="plan-target-ring"><view class="plan-target-core"></view></view>
+                <text class="plan-target-spark">✦</text>
+            </view>
+            <view class="plan-entry-copy">
+                <view class="plan-entry-title-row">
+                    <text class="plan-entry-title">{{ trainingPlanEntry.title }}</text>
+                    <text class="plan-entry-badge">{{ trainingPlanEntry.badge }}</text>
+                </view>
+                <text class="plan-entry-source">{{ trainingPlanEntry.source }}</text>
+            </view>
+            <text class="action-arrow">›</text>
+        </button>
     </view>
 </template>
 
@@ -144,14 +166,73 @@ const latestAssessorName = computed(() =>
     String(props.student.latestAssessorName || props.student.lastAssessorName || '').trim()
 )
 
-const lastAssessmentText = computed(() => {
-    if (isAssessing.value) return '评估进行中'
-    if (!hasAssessments.value) return '尚未评估'
-    const value = props.student.lastAssessmentDate
-    return value && value !== '暂无评估记录' ? value : '尚未评估'
+const latestReportDateText = computed(() => {
+    const value = props.student.latestReportDate || props.student.lastAssessmentDate
+    if (value && !['暂无评估记录', '尚未评估'].includes(value)) return value
+    if (hasAssessments.value) return '报告生成中'
+    return '暂无报告'
 })
 
-const emit = defineEmits(['reportClick', 'assessClick', 'avatarClick']);
+const trainingPlanEntry = computed(() => {
+    const report = props.student.latestReport || null
+    if (!report) {
+        return {
+            tone: 'empty',
+            title: '训练计划',
+            badge: '暂无报告',
+            source: hasAssessments.value
+                ? '最近评估尚未生成报告'
+                : '完成评估并生成报告后可制定'
+        }
+    }
+
+    const assessmentTitle = String(report.assessmentTitle || '成长评估').trim()
+    const reportDate = report.reportDate || props.student.latestReportDate || '日期未知'
+    const source = `基于 ${assessmentTitle} · 报告日期 ${reportDate}`
+    const task = report.interventionPlanGeneration || {}
+    const taskStatus = String(task.status || '')
+    if (['pending', 'generating_overview', 'generating_weeks', 'assembling'].includes(taskStatus) ||
+        report.interventionPlanStatus === 'generating') {
+        return {
+            tone: 'progress',
+            title: '训练计划生成中',
+            badge: `${Number(task.progress) || 0}%`,
+            source
+        }
+    }
+    if (['failed', 'timed_out'].includes(taskStatus) || report.interventionPlanStatus === 'failed') {
+        return {
+            tone: 'danger',
+            title: '继续生成训练计划',
+            badge: taskStatus === 'timed_out' ? '已超时' : '生成失败',
+            source
+        }
+    }
+    if (report.interventionPlanStatus === 'stale') {
+        return {
+            tone: 'warning',
+            title: '更新训练计划',
+            badge: '需更新',
+            source
+        }
+    }
+    if (report.interventionPlanStatus === 'completed') {
+        return {
+            tone: 'ready',
+            title: '查看训练计划',
+            badge: '已生成',
+            source
+        }
+    }
+    return {
+        tone: 'create',
+        title: '制定训练计划',
+        badge: '未生成',
+        source
+    }
+})
+
+const emit = defineEmits(['reportClick', 'planClick', 'assessClick', 'avatarClick']);
 
 const handleAvatarClick = () => {
     console.log('student-card: 点击编辑学生资料');
@@ -161,6 +242,11 @@ const handleAvatarClick = () => {
 const handleReportClick = () => {
     console.log('student-card: 点击查看报告');
     emit('reportClick');
+};
+
+const handlePlanClick = () => {
+    console.log('student-card: 点击训练计划');
+    emit('planClick');
 };
 
 const handleAssessClick = () => {
@@ -461,9 +547,36 @@ const handleAssessClick = () => {
 }
 
 .date-icon {
-    margin-right: 5rpx;
-    font-size: 18rpx;
-    line-height: 1;
+    position: relative;
+    width: 22rpx;
+    height: 20rpx;
+    flex-shrink: 0;
+    margin-right: 7rpx;
+    border: 2rpx solid #6752b2;
+    border-radius: 4rpx;
+    background: linear-gradient(180deg, #ffb6ad 0 6rpx, #fff 6rpx 100%);
+    box-sizing: border-box;
+}
+
+.date-stat .stat-value-row {
+    align-items: center;
+}
+
+.date-icon-binding {
+    position: absolute;
+    top: -4rpx;
+    width: 3rpx;
+    height: 7rpx;
+    border-radius: 2rpx;
+    background: #392f59;
+}
+
+.date-icon-binding--left {
+    left: 4rpx;
+}
+
+.date-icon-binding--right {
+    right: 4rpx;
 }
 
 .date-value {
@@ -659,5 +772,148 @@ const handleAssessClick = () => {
     font-size: 38rpx;
     font-weight: 900;
     line-height: 1;
+}
+
+.plan-entry {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    height: 100rpx;
+    margin: 16rpx 0 0;
+    padding: 0 18rpx;
+    align-items: center;
+    border: 3rpx solid #392f59;
+    border-radius: 24rpx;
+    background: #eee9ff;
+    box-shadow: 5rpx 5rpx 0 #392f59;
+    box-sizing: border-box;
+    line-height: 1;
+
+    &::after {
+        border: none;
+    }
+}
+
+.plan-entry--pressed {
+    transform: translate(3rpx, 3rpx);
+    box-shadow: 2rpx 2rpx 0 #392f59;
+}
+
+.plan-entry--ready {
+    background: #dff8ef;
+}
+
+.plan-entry--progress {
+    background: #e7e0ff;
+}
+
+.plan-entry--warning,
+.plan-entry--danger {
+    background: #ffe4d7;
+}
+
+.plan-entry--empty {
+    background: #f3f0f6;
+}
+
+.plan-entry-icon {
+    position: relative;
+    display: flex;
+    width: 54rpx;
+    height: 54rpx;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    margin-right: 14rpx;
+    border: 2rpx solid #392f59;
+    border-radius: 17rpx;
+    background: #7c63e8;
+}
+
+.plan-target-ring {
+    display: flex;
+    width: 29rpx;
+    height: 29rpx;
+    align-items: center;
+    justify-content: center;
+    border: 4rpx solid #fff;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.plan-target-core {
+    width: 8rpx;
+    height: 8rpx;
+    border-radius: 50%;
+    background: #ffd447;
+}
+
+.plan-target-spark {
+    position: absolute;
+    top: 3rpx;
+    right: 5rpx;
+    color: #ffd447;
+    font-size: 14rpx;
+    font-weight: 950;
+}
+
+.plan-entry-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.plan-entry-title-row {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    gap: 10rpx;
+}
+
+.plan-entry-title {
+    overflow: hidden;
+    color: #31284f;
+    font-size: 25rpx;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.plan-entry-badge {
+    flex-shrink: 0;
+    padding: 5rpx 10rpx;
+    border-radius: 999rpx;
+    background: rgba(103, 82, 178, 0.12);
+    color: #6752b2;
+    font-size: 17rpx;
+    font-weight: 900;
+}
+
+.plan-entry--ready .plan-entry-badge {
+    background: #c6eddf;
+    color: #25765e;
+}
+
+.plan-entry--warning .plan-entry-badge,
+.plan-entry--danger .plan-entry-badge {
+    background: #ffd0bd;
+    color: #a84b2e;
+}
+
+.plan-entry-source {
+    display: block;
+    overflow: hidden;
+    width: 100%;
+    margin-top: 9rpx;
+    color: #716986;
+    font-size: 18rpx;
+    font-weight: 700;
+    line-height: 1.15;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 </style>

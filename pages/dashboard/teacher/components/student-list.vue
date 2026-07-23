@@ -5,6 +5,7 @@
                 <StudentCard 
                     :student="student" 
                     @reportClick="onReportClick(student)"
+                    @planClick="onPlanClick(student)"
                     @assessClick="onAssessClick(student)"
                     @avatarClick="onAvatarClick(student)"
                 />
@@ -26,7 +27,7 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['handleStudentClick', 'handleAssessClick', 'handleStudentEdit'])
+const emit = defineEmits(['handleStudentClick', 'handlePlanClick', 'handleAssessClick', 'handleStudentEdit'])
 
 const onAvatarClick = (student) => {
     emit('handleStudentEdit', student)
@@ -36,6 +37,11 @@ const onAvatarClick = (student) => {
 const onReportClick = (student) => {
     console.log('student-list: 查看报告', student.name);
     emit('handleStudentClick', student);
+}
+
+const onPlanClick = (student) => {
+    console.log('student-list: 查看训练计划', student.name);
+    emit('handlePlanClick', student);
 }
 
 // 开始评估

@@ -151,7 +151,12 @@
         :class="`training-plan-entry--${trainingPlanEntry.tone}`"
         @click="openInterventionPlanPage"
       >
-        <view class="training-entry-icon"><text class="training-entry-day">7</text></view>
+        <view class="training-entry-icon" aria-label="训练计划">
+          <view class="training-target-ring">
+            <view class="training-target-core"></view>
+          </view>
+          <view class="training-target-spark">✦</view>
+        </view>
         <view class="training-entry-copy">
           <view class="training-entry-topline">
             <text class="training-entry-title">{{ trainingPlanEntry.title }}</text>
@@ -1983,6 +1988,7 @@
 }
 
 .training-entry-icon {
+  position: relative;
   display: flex;
   width: 66rpx;
   height: 66rpx;
@@ -1996,9 +2002,32 @@
   box-shadow: 3rpx 3rpx 0 #ff8f82;
 }
 
-.training-entry-day {
-  font-size: 28rpx;
+.training-target-ring {
+  display: flex;
+  width: 34rpx;
+  height: 34rpx;
+  align-items: center;
+  justify-content: center;
+  border: 5rpx solid #fff;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.training-target-core {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #ffd447;
+}
+
+.training-target-spark {
+  position: absolute;
+  top: 5rpx;
+  right: 7rpx;
+  color: #ffd447;
+  font-size: 17rpx;
   font-weight: 950;
+  line-height: 1;
 }
 
 .training-entry-copy {
