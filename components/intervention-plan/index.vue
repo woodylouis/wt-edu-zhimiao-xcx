@@ -899,7 +899,7 @@ export default {
       this.manualErrorMessage = ''
       try {
         const response = await uniCloud.callFunction({
-          name: 'wtdb-generate-intervention-plan',
+          name: 'wtdb-gen-intervention-plan',
           data: {
             action: 'update-manual',
             reportId: this.reportId,
@@ -1076,7 +1076,7 @@ export default {
       this.statusRequestInFlight = true
       try {
         const response = await uniCloud.callFunction({
-          name: 'wtdb-generate-intervention-plan',
+          name: 'wtdb-gen-intervention-plan',
           data: {
             action: 'status',
             reportId: this.reportId,
@@ -1103,7 +1103,7 @@ export default {
       this.workerKickAt = Date.now()
       this.workerRunning = true
       uniCloud.callFunction({
-        name: 'wtdb-run-intervention-plan-task',
+        name: 'wtdb-run-intervention-task',
         data: {
           taskId,
           uniIdToken: uni.getStorageSync('uni_id_token')
@@ -1122,7 +1122,7 @@ export default {
       this.errorMessage = ''
       try {
         const response = await uniCloud.callFunction({
-          name: 'wtdb-generate-intervention-plan',
+          name: 'wtdb-gen-intervention-plan',
           data: {
             action: 'retry',
             reportId: this.reportId,
@@ -1220,7 +1220,7 @@ export default {
       this.errorMessage = ''
       try {
         const response = await uniCloud.callFunction({
-          name: 'wtdb-generate-intervention-plan',
+          name: 'wtdb-gen-intervention-plan',
           data: {
             action: 'start',
             reportId: this.reportId,

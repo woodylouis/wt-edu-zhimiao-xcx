@@ -1,5 +1,5 @@
 {
-  "name": "wtdb-run-intervention-plan-task",
+  "name": "wtdb-run-intervention-task",
   "dependencies": {
     "business-subject-auth": "file:../common/business-subject-auth",
     "intervention-plan-service": "file:../common/intervention-plan-service"

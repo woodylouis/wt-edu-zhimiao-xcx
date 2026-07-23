@@ -1,5 +1,5 @@
 {
-  "name": "wtdb-generate-intervention-plan",
+  "name": "wtdb-gen-intervention-plan",
   "dependencies": {
     "business-subject-auth": "file:../common/business-subject-auth",
     "intervention-plan-service": "file:../common/intervention-plan-service"
