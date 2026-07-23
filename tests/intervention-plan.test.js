@@ -5,6 +5,7 @@ const test = require('node:test')
 const {
 	addDays,
 	assemblePlanFromParts,
+	buildInterventionDirectionSummary,
 	buildOverviewPrompt,
 	buildUserPrompt,
 	buildWeekPrompt,
@@ -15,7 +16,8 @@ const {
 	normalizePlan,
 	normalizePlanOverview,
 	normalizeWeeksCount,
-	parsePlainDate
+	parsePlainDate,
+	rankInterventionSections
 } = require('../uniCloud-aliyun/cloudfunctions/common/intervention-plan-service/lib/intervention-plan')
 const {
 	buildInitialReportData,
@@ -116,6 +118,64 @@ test('prompt contains report evidence and strict schedule counts', () => {
 	assert.match(prompt, /听从一步指令/)
 	assert.match(prompt, /weeklyPlans必须恰好有5项/)
 	assert.match(prompt, /dailyPlans必须恰好有7项/)
+})
+
+test('summarizes intervention direction from below-standard skills', () => {
+	const report = {
+		assessmentTitle: 'ABLLS-R',
+		sectionSummaryList: [{
+			sectionName: '语言与沟通',
+			abllsSectionSummaryList: [{
+				sectioName: '接受性语言',
+				skillBelowStandard: [
+					{ task_name: '听从一步指令' },
+					{ task_name: '辨认常见物品' }
+				]
+			}]
+		}]
+	}
+	const summary = buildInterventionDirectionSummary(report)
+	assert.match(summary, /语言与沟通/)
+	assert.match(summary, /听从一步指令/)
+	assert.match(buildOverviewPrompt(report, {
+		startDate: '2026-07-23',
+		endDate: '2026-08-19',
+		weeksCount: 4
+	}), /干预方向摘要/)
+})
+
+test('ranks multiple intervention domains by relative score gap instead of report order', () => {
+	const makeSection = (sectionName, actual, expected, skills) => ({
+		sectionName,
+		abllsSectionSummaryList: [{
+			sectioName: `${sectionName}技能`,
+			actualTotalScore: actual,
+			expectedTotalScore: expected,
+			skillBelowStandard: skills.map(task_name => ({ task_name }))
+		}]
+	})
+	const report = {
+		assessmentTitle: '综合成长评估',
+		sectionSummaryList: [
+			makeSection('数学', 4, 10, ['点数物品', '按数取物', '数量比较']),
+			makeSection('语言与沟通', 1, 10, ['听从一步指令']),
+			makeSection('社会交往', 2, 10, ['回应同伴']),
+			makeSection('精细动作', 9, 10, ['双手配合'])
+		]
+	}
+
+	assert.deepEqual(
+		rankInterventionSections(report).slice(0, 3).map(section => section.name),
+		['语言与沟通', '社会交往', '数学']
+	)
+	const summary = buildInterventionDirectionSummary(report)
+	assert.match(summary, /语言与沟通、社会交往、数学/)
+	assert.match(summary, /听从一步指令/)
+	assert.match(summary, /回应同伴/)
+	assert.match(summary, /点数物品/)
+	assert.match(summary, /精细动作/)
+	assert.match(summary, /4个需要支持的领域/)
+	assert.match(summary, /全部纳入计划生成依据/)
 })
 
 test('split prompts and assembly generate one week per AI request', () => {

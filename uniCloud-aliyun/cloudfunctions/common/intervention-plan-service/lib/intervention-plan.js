@@ -61,31 +61,67 @@ function getExpectedOutcome(skill) {
 	return cleanText(skill.expectedOutcome || skill.task_object || skill.taskObject, 160)
 }
 
-function collectPrioritySkills(report, limit = 24) {
-	const result = []
-	const seen = new Set()
-	for (const section of report.sectionSummaryList || []) {
+function rankInterventionSections(report) {
+	return (report.sectionSummaryList || []).map((section, sectionIndex) => {
+		let actual = 0
+		let expected = 0
+		const skills = []
+		const seen = new Set()
 		for (const subsection of section.abllsSectionSummaryList || []) {
+			actual += Number(subsection.actualTotalScore) || 0
+			expected += Number(subsection.expectedTotalScore) || 0
 			const source = Array.isArray(subsection.skillBelowStandard) && subsection.skillBelowStandard.length
 				? subsection.skillBelowStandard
 				: (subsection.questions || []).filter(skill => skill && skill.isStandard === false)
 			for (const skill of source) {
 				const name = cleanText(skill.taskName || skill.task_name || skill.content, 100)
 				if (!name) continue
-				const key = `${cleanText(section.sectionName, 80)}|${cleanText(subsection.sectioName || subsection.sectionName, 80)}|${name}`
+				const skillGroup = cleanText(subsection.sectioName || subsection.sectionName, 80)
+				const key = `${skillGroup}|${name}`
 				if (seen.has(key)) continue
 				seen.add(key)
-				result.push({
-					领域: cleanText(section.sectionName, 80),
-					技能组: cleanText(subsection.sectioName || subsection.sectionName, 80),
+				skills.push({
+					领域: cleanText(section.sectionName, 80) || '综合能力',
+					技能组: skillGroup,
 					技能: name,
 					当前表现: getSelectedOutcome(skill) || '评估中未达到年龄期望',
 					期望表现: getExpectedOutcome(skill) || '逐步达到该技能目标',
 					已有建议: cleanText(skill.description, 180)
 				})
-				if (result.length >= limit) return result
 			}
 		}
+		const relativeGap = expected > 0
+			? Math.max(0, Math.min(1, (expected - actual) / expected))
+			: 0
+		return {
+			sectionIndex,
+			name: cleanText(section.sectionName, 80) || '综合能力',
+			actual,
+			expected,
+			relativeGap,
+			skills
+		}
+	}).filter(section => section.skills.length)
+		.sort((left, right) =>
+			right.relativeGap - left.relativeGap ||
+			right.skills.length - left.skills.length ||
+			left.sectionIndex - right.sectionIndex
+		)
+}
+
+function collectPrioritySkills(report, limit = 24) {
+	const sections = rankInterventionSections(report)
+	const result = []
+	for (let skillIndex = 0; result.length < limit; skillIndex++) {
+		let added = false
+		for (const section of sections) {
+			const skill = section.skills[skillIndex]
+			if (!skill) continue
+			result.push(skill)
+			added = true
+			if (result.length >= limit) break
+		}
+		if (!added) break
 	}
 	return result
 }
@@ -106,6 +142,32 @@ function collectSectionOverview(report) {
 	}).slice(0, 12)
 }
 
+function buildInterventionDirectionSummary(report) {
+	const prioritySections = rankInterventionSections(report)
+	const domains = prioritySections.map(section => section.name)
+	const totalSkills = prioritySections.reduce((total, section) => total + section.skills.length, 0)
+	const skills = []
+	for (let skillIndex = 0; skills.length < 12; skillIndex++) {
+		let added = false
+		for (const section of prioritySections) {
+			const skill = cleanText(section.skills[skillIndex]?.技能, 100)
+			if (!skill || skills.includes(skill)) continue
+			skills.push(skill)
+			added = true
+			if (skills.length >= 12) break
+		}
+		if (!added) break
+	}
+	if (skills.length) {
+		const skillText = totalSkills <= skills.length
+			? `涉及${skills.join('、')}，共${totalSkills}项待支持技能`
+			: `共识别${totalSkills}项待支持技能，包括${skills.join('、')}等`
+		return `本次评估发现${domains.length}个需要支持的领域：${domains.join('、')}，全部纳入计划生成依据；${skillText}。相对期望差距仅用于安排训练先后和比重，不用于排除领域。`
+	}
+	const assessmentTitle = cleanText(report.assessmentTitle, 60) || '当前成长评估'
+	return `本次计划将依据${assessmentTitle}的最新结果，优先选择报告中表现不稳定或尚未达到年龄期望的能力，从基础建立、情境应用到泛化维持逐周推进。`
+}
+
 function buildSystemPrompt() {
 	return `你是一名资深儿童发展干预计划师，熟悉ABLLS-R、自然情境教学、任务分析、正向强化和技能泛化。你的任务是把评估结果转化为家庭与教师每天都能照着执行的短时训练计划。
 
@@ -115,7 +177,8 @@ function buildSystemPrompt() {
 3. 难度逐周递进；先建立基础，再增加情境变化，最后进行泛化和维持。
 4. 每周7天都要有安排，其中至少1天为低强度复习、亲子游戏或自然情境泛化，不安排机械重复。
 5. 用正向、尊重儿童的语言；不得作医学诊断、承诺疗效或建议惩罚、强迫、剥夺基本需要。
-6. 只输出合法JSON，不要Markdown、代码围栏、解释或额外文本。`
+6. 只输出合法JSON，不要Markdown、代码围栏、解释或额外文本。
+7. 所有存在未达标技能的领域都必须纳入计划范围；相对期望差距只用于安排先后和训练比重，不得用于排除领域。周期较短时可设计跨领域综合活动，并把暂时无法深入训练的技能列入后续递进方向。`
 }
 
 function buildUserPrompt(report, { startDate, endDate, weeksCount }) {
@@ -126,8 +189,9 @@ function buildUserPrompt(report, { startDate, endDate, weeksCount }) {
 		年龄: String(age).includes('岁') ? age : `${age}岁`,
 		量表: cleanText(report.assessmentTitle, 100) || 'ABLLS-R',
 		报告总结: cleanText(report.reportSummary, 800),
+		干预方向摘要: buildInterventionDirectionSummary(report),
 		领域概览: collectSectionOverview(report),
-		优先关注技能: collectPrioritySkills(report)
+		优先关注技能: collectPrioritySkills(report, Math.max(24, rankInterventionSections(report).length))
 	}
 
 	return `请根据以下评估资料，为儿童制定${startDate}至${endDate}、连续${weeksCount}个完整周的训练计划。开始日期和结束日期当天都包含在计划内。
@@ -174,8 +238,9 @@ function getPromptContext(report) {
 		年龄: String(age).includes('岁') ? age : `${age}岁`,
 		量表: cleanText(report.assessmentTitle, 100) || 'ABLLS-R',
 		报告总结: cleanText(report.reportSummary, 800),
+		干预方向摘要: buildInterventionDirectionSummary(report),
 		领域概览: collectSectionOverview(report),
-		优先关注技能: collectPrioritySkills(report)
+		优先关注技能: collectPrioritySkills(report, Math.max(24, rankInterventionSections(report).length))
 	}
 }
 
@@ -390,7 +455,9 @@ module.exports = {
 	buildSystemPrompt,
 	buildUserPrompt,
 	buildWeekPrompt,
+	buildInterventionDirectionSummary,
 	collectPrioritySkills,
+	rankInterventionSections,
 	extractJsonObject,
 	getWeekdayName,
 	normalizeDateRange,

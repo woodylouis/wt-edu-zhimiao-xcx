@@ -13,6 +13,28 @@
         </view>
       </view>
 
+      <view v-if="!hasPlan || editing" class="direction-summary">
+        <view class="direction-summary-head">
+          <view class="direction-mark">
+            <view class="direction-ring"><view class="direction-core"></view></view>
+            <text class="direction-spark">✦</text>
+          </view>
+          <view class="direction-heading-copy">
+            <text class="direction-kicker">INTERVENTION FOCUS</text>
+            <text class="direction-title">本次干预方向</text>
+          </view>
+          <text class="direction-source">基于当前评估</text>
+        </view>
+        <text class="direction-text">{{ interventionDirectionSummary }}</text>
+        <view class="direction-basis">
+          <text class="direction-basis-label">范围规则</text>
+          <text class="direction-basis-text">所有存在未达标技能的领域都会纳入生成依据；相对差距只决定安排先后和训练比重，不限制方向数量。</text>
+        </view>
+        <view v-if="interventionFocusLabels.length" class="direction-tags">
+          <text v-for="item in interventionFocusLabels" :key="item" class="direction-tag">{{ item }}</text>
+        </view>
+      </view>
+
       <view v-if="hasVisibleGenerationTask" class="generation-card" :class="generationTone">
         <view class="generation-card-head">
           <view class="generation-state-icon">
@@ -260,6 +282,62 @@
 <script>
 import InterventionDatePicker from './intervention-date-picker.vue'
 
+function cleanDirectionText(value, maxLength = 100) {
+  return String(value || '').replace(/\s+/g, ' ').trim().slice(0, maxLength)
+}
+
+function collectInterventionFocus(report = {}) {
+  const sections = (report.sectionSummaryList || []).map((section, sectionIndex) => {
+    let actual = 0
+    let expected = 0
+    const skills = []
+    const seen = new Set()
+    for (const subsection of section.abllsSectionSummaryList || []) {
+      actual += Number(subsection.actualTotalScore) || 0
+      expected += Number(subsection.expectedTotalScore) || 0
+      const source = Array.isArray(subsection.skillBelowStandard) && subsection.skillBelowStandard.length
+        ? subsection.skillBelowStandard
+        : (subsection.questions || []).filter(skill => skill?.isStandard === false)
+      for (const skill of source) {
+        const skillName = cleanDirectionText(skill.taskName || skill.task_name || skill.content)
+        if (!skillName) continue
+        const skillGroup = cleanDirectionText(subsection.sectioName || subsection.sectionName, 40)
+        const key = `${skillGroup}|${skillName}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        skills.push({ skillGroup, skillName })
+      }
+    }
+    return {
+      sectionIndex,
+      name: cleanDirectionText(section.sectionName, 40) || '综合能力',
+      actual,
+      expected,
+      relativeGap: expected > 0 ? Math.max(0, Math.min(1, (expected - actual) / expected)) : 0,
+      skills
+    }
+  }).filter(section => section.skills.length)
+    .sort((left, right) =>
+      right.relativeGap - left.relativeGap ||
+      right.skills.length - left.skills.length ||
+      left.sectionIndex - right.sectionIndex
+    )
+
+  const items = []
+  for (let skillIndex = 0; items.length < 12; skillIndex++) {
+    let added = false
+    for (const section of sections) {
+      const skill = section.skills[skillIndex]
+      if (!skill) continue
+      items.push({ domain: section.name, ...skill })
+      added = true
+      if (items.length >= 12) break
+    }
+    if (!added) break
+  }
+  return { sections, items }
+}
+
 export default {
   name: 'InterventionPlan',
   components: { InterventionDatePicker },
@@ -300,6 +378,38 @@ export default {
     hasPlan() { return !!(this.plan && Array.isArray(this.plan.weeklyPlans) && this.plan.weeklyPlans.length) },
     reportId() { return this.report?.reportId || this.report?._id || '' },
     currentWeek() { return this.plan?.weeklyPlans?.[this.selectedWeek] || null },
+    interventionFocusData() { return collectInterventionFocus(this.report) },
+    interventionFocusItems() { return this.interventionFocusData.items },
+    interventionFocusDomains() {
+      return this.interventionFocusData.sections.map(section => section.name)
+    },
+    interventionFocusLabels() {
+      return this.interventionFocusData.sections.map(section =>
+        section.expected > 0
+          ? `${section.name} · ${section.actual}/${section.expected}`
+          : `${section.name} · ${section.skills.length}项待支持`
+      )
+    },
+    interventionDirectionSummary() {
+      const assessmentTitle = cleanDirectionText(this.report?.assessmentTitle, 60) || '当前成长评估'
+      const domains = this.interventionFocusDomains
+      const totalSkills = this.interventionFocusData.sections.reduce(
+        (total, section) => total + section.skills.length,
+        0
+      )
+      const skills = []
+      for (const item of this.interventionFocusItems) {
+        if (item.skillName && !skills.includes(item.skillName)) skills.push(item.skillName)
+        if (skills.length >= 12) break
+      }
+      if (skills.length) {
+        const skillText = totalSkills <= skills.length
+          ? `涉及${skills.join('、')}，共${totalSkills}项待支持技能`
+          : `共识别${totalSkills}项待支持技能，包括${skills.join('、')}等`
+        return `本次评估发现${domains.length}个需要支持的领域：${domains.join('、')}，全部纳入计划生成依据；${skillText}。相对期望差距仅用于安排训练先后和比重，不用于排除领域。`
+      }
+      return `本次计划将依据${assessmentTitle}的最新结果，优先选择报告中表现不稳定或尚未达到年龄期望的能力，从基础建立、情境应用到泛化维持逐周推进。`
+    },
     durationSelectOptions() { return this.durationOptions.map((option, index) => ({ text: option.label, value: index })) },
     selectedDuration() { return this.durationOptions[this.durationIndex] || this.durationOptions[0] },
     isCustomRange() { return !this.selectedDuration.weeks },
@@ -694,6 +804,7 @@ export default {
 .section-kicker { display: flex; align-items: center; justify-content: center; gap: 9px; margin-bottom: 18px; color: #9a8f78; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; }.kicker-line { width: 28px; height: 1px; background: #ded5c2; }
 .heading-row { display: flex; align-items: center; gap: 14px; }.calendar-mark { position: relative; display: flex; width: 48px; height: 48px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid #f2c77b; border-radius: 14px; background: #fff4d9; color: #76551f; }.calendar-rings { position: absolute; top: -8px; color: #d49a37; font-size: 18px; letter-spacing: 8px; transform: translateX(4px); }.calendar-day { font-size: 20px; font-weight: 900; }
 .heading-copy { min-width: 0; flex: 1; }.heading-title { display: block; color: #342c4c; font-size: 20px; font-weight: 850; }.heading-subtitle { display: block; margin-top: 5px; color: #827a8e; font-size: 12px; line-height: 1.5; }.ready-badge { display: flex; flex-shrink: 0; align-items: center; padding: 6px 9px; border-radius: 20px; background: #edf8f2; color: #43805f; font-size: 10px; font-weight: 800; }.ready-badge.warning { background: #fff0dc; color: #a66520; }.ready-dot { width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: #55af7c; }.warning .ready-dot { background: #e29138; }
+.direction-summary { margin-top: 17px; padding: 15px 16px; border: 1px solid #e6ddf4; border-radius: 14px; background: linear-gradient(135deg, #f8f5ff 0%, #fffdf6 100%); box-shadow: 0 5px 16px rgba(76,58,125,.05); }.direction-summary-head { display: flex; align-items: center; gap: 10px; }.direction-mark { position: relative; display: flex; width: 34px; height: 34px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 11px; background: #6b55ba; }.direction-ring { display: flex; width: 20px; height: 20px; align-items: center; justify-content: center; border: 3px solid #fff; border-radius: 50%; box-sizing: border-box; }.direction-core { width: 6px; height: 6px; border-radius: 50%; background: #ffd86b; }.direction-spark { position: absolute; top: 2px; right: 4px; color: #ffd86b; font-size: 10px; font-weight: 900; }.direction-heading-copy { min-width: 0; flex: 1; }.direction-kicker { display: block; color: #9682cb; font-size: 8px; font-weight: 900; letter-spacing: 1px; }.direction-title { display: block; margin-top: 2px; color: #413657; font-size: 13px; font-weight: 850; }.direction-source { flex-shrink: 0; padding: 4px 8px; border-radius: 20px; background: #eee8fb; color: #6752ad; font-size: 9px; font-weight: 800; }.direction-text { display: block; margin-top: 11px; color: #686072; font-size: 11px; line-height: 1.75; }.direction-basis { display: flex; align-items: flex-start; gap: 7px; margin-top: 9px; padding: 8px 9px; border-radius: 9px; background: rgba(103,82,178,.07); }.direction-basis-label { flex-shrink: 0; color: #6551a7; font-size: 9px; font-weight: 900; }.direction-basis-text { color: #847b91; font-size: 9px; line-height: 1.5; }.direction-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }.direction-tag { padding: 4px 8px; border: 1px solid #ddd3f2; border-radius: 20px; background: rgba(255,255,255,.8); color: #65529e; font-size: 9px; font-weight: 800; }
 .generation-card { margin-top: 18px; padding: 16px; border: 1px solid #dcd3f3; border-radius: 14px; background: linear-gradient(135deg, #f8f5ff, #fff); box-shadow: 0 6px 18px rgba(74,55,132,.07); }.generation-card.failed, .generation-card.timeout { border-color: #efc4bd; background: linear-gradient(135deg, #fff5f2, #fff); }.generation-card-head { display: flex; align-items: flex-start; gap: 11px; }.generation-state-icon { display: flex; width: 34px; height: 34px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 11px; background: #6954b5; color: #fff; font-size: 16px; font-weight: 900; }.failed .generation-state-icon, .timeout .generation-state-icon { background: #c8655d; }.state-spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }.generation-copy { min-width: 0; flex: 1; }.generation-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }.generation-title { color: #43375d; font-size: 14px; font-weight: 900; }.failed .generation-title, .timeout .generation-title { color: #8e403b; }.generation-percent { flex-shrink: 0; color: #6752b2; font-size: 14px; font-weight: 900; }.failed .generation-percent, .timeout .generation-percent { color: #b65b53; }.generation-message { display: block; margin-top: 4px; color: #7e7489; font-size: 11px; line-height: 1.5; }.progress-track { height: 7px; overflow: hidden; margin-top: 13px; border-radius: 999px; background: #ebe7f2; }.progress-value { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #745bc4, #9c84e4); transition: width .35s ease; }.failed .progress-value, .timeout .progress-value { background: linear-gradient(90deg, #d67970, #e9a29b); }.generation-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; color: #8e8597; font-size: 9px; }.background-note { display: flex; align-items: flex-start; gap: 7px; margin-top: 12px; padding: 9px 10px; border-radius: 9px; background: #eef7f3; color: #4f7765; font-size: 10px; line-height: 1.5; }.cloud-mark { flex-shrink: 0; color: #4f9b77; font-size: 13px; }.generation-error { display: flex; flex-direction: column; margin-top: 12px; padding: 10px 11px; border-radius: 9px; background: #fff0ed; }.generation-error-code { color: #bd625a; font-size: 8px; font-weight: 900; letter-spacing: .5px; }.generation-error-text { margin-top: 4px; color: #8b4b46; font-size: 11px; line-height: 1.5; }.generation-error-diagnostic { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e8b9b3; color: #8f625e; font-size: 9px; line-height: 1.45; word-break: break-all; }.generation-error-retained { margin-top: 5px; color: #a26b66; font-size: 9px; }.generation-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 12px; }.task-primary-button, .task-secondary-button { padding: 8px 11px; border-radius: 9px; font-size: 10px; font-weight: 850; }.task-primary-button { background: #6752b2; color: #fff; }.task-primary-button[disabled] { opacity: .55; }.task-secondary-button { border: 1px solid #ded8e8; background: #fff; color: #675c75; }
 .create-callout { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 15px; border: 1px solid #ede6d8; border-radius: 13px; background: rgba(255,255,255,.86); }.callout-copy { min-width: 0; flex: 1; }.callout-title { display: block; color: #493e2e; font-size: 14px; font-weight: 800; }.callout-text { display: block; margin-top: 4px; color: #8d8374; font-size: 11px; line-height: 1.5; }
 button { margin: 0; padding: 0; border: 0; background: none; line-height: normal; }button::after { border: 0; }.create-button { min-width: 108px; padding: 11px 13px; border-radius: 11px; background: #6650b7; color: #fff; font-size: 12px; font-weight: 800; box-shadow: 0 6px 13px rgba(80,60,154,.2); }
@@ -712,5 +823,5 @@ button { margin: 0; padding: 0; border: 0; background: none; line-height: normal
 .day-list { display: flex; flex-direction: column; gap: 9px; }.day-card { overflow: hidden; border: 1px solid #e9e5ed; border-radius: 12px; }.day-card.open { border-color: #cbbef1; box-shadow: 0 5px 16px rgba(67,51,119,.06); }.day-card-head { display: flex; align-items: center; gap: 11px; padding: 12px; }.day-date { display: flex; width: 46px; flex-shrink: 0; flex-direction: column; align-items: center; padding: 7px 3px; border-radius: 9px; background: #f2eff8; }.day-weekday { color: #604cac; font-size: 11px; font-weight: 850; }.day-month-date { margin-top: 3px; color: #958e9e; font-size: 8px; }.day-main { min-width: 0; flex: 1; }.activity-tag, .duration-tag { padding: 3px 6px; border-radius: 9px; font-size: 8px; }.activity-tag { background: #fff1d2; color: #8c6517; }.duration-tag { background: #edf7f2; color: #468064; }.day-title { display: block; margin-top: 5px; color: #3d3648; font-size: 13px; font-weight: 850; }.day-target { display: -webkit-box; overflow: hidden; margin-top: 3px; color: #817a88; font-size: 10px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }.expand-icon { display: flex; width: 24px; height: 24px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #f1edf9; color: #6954b6; font-size: 17px; }
 .day-detail { padding: 2px 13px 14px 70px; border-top: 1px dashed #e5dfeb; }.detail-block { margin-top: 12px; }.detail-label { display: block; margin-bottom: 7px; color: #80778a; font-size: 10px; font-weight: 850; }.material { padding: 4px 7px; border: 1px solid #e5dfeb; border-radius: 7px; background: #faf9fb; color: #665e6d; font-size: 9px; }.step-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 7px; }.step-number { display: flex; width: 19px; height: 19px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 6px; background: #6d57bb; color: #fff; font-size: 9px; font-weight: 850; }.step-text { flex: 1; color: #544d5b; font-size: 11px; line-height: 1.55; }.result-box { margin-top: 12px; padding: 10px; border-radius: 9px; background: #fff8e8; }.result-label { display: block; color: #94701e; font-size: 9px; font-weight: 850; }.result-text { display: block; margin-top: 3px; color: #705d35; font-size: 11px; line-height: 1.5; }.caregiver-tip { display: flex; align-items: flex-start; gap: 7px; margin-top: 9px; color: #6e6677; font-size: 10px; line-height: 1.5; }.tip-icon { display: flex; width: 17px; height: 17px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #eee9f8; color: #6854ae; font-size: 9px; font-weight: 900; }
 .caregiver-guide { margin: 0 18px 18px; padding: 14px; border-radius: 12px; background: #373144; color: #fff; }.guide-title { display: block; margin-bottom: 8px; color: #ffedb5; font-size: 12px; font-weight: 850; }.guide-item { display: flex; align-items: flex-start; gap: 8px; margin-top: 7px; color: rgba(255,255,255,.82); font-size: 11px; line-height: 1.5; }.guide-number { display: flex; width: 18px; height: 18px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.25); border-radius: 50%; color: #ffe39a; font-size: 8px; }.ai-note { display: block; margin-top: 11px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.5); font-size: 9px; line-height: 1.5; }
-@media screen and (max-width: 560px) { .training-plan { margin: 28px 12px 8px; border-radius: 16px; }.section-heading, .plan-editor { padding: 17px; }.heading-title { font-size: 17px; }.heading-subtitle { font-size: 10px; }.calendar-mark { width: 42px; height: 42px; }.ready-badge { display: none; }.create-callout, .compact-summary { align-items: stretch; flex-direction: column; }.create-button { width: 100%; }.compact-actions { width: 100%; }.secondary-button, .view-button { flex: 1; }.generation-card { padding: 13px; }.generation-title { font-size: 12px; }.generation-actions { justify-content: stretch; }.task-primary-button, .task-secondary-button { flex: 1; }.schedule-builder { padding-right: 10px; padding-left: 10px; }.schedule-control { gap: 9px; }.control-index { width: 25px; height: 25px; }.control-value { font-size: 12px; }.control-hint { max-width: 145px; }.duration-select-wrap { width: 118px; }.duration-select-wrap :deep(.uni-select__input-box) { padding: 0 7px; }.duration-select-wrap :deep(.uni-select__selector-scroll) { height: 220px; max-height: 220px !important; }.custom-weeks-row { margin-left: 34px; padding: 9px; }.custom-weeks-hint { display: none; }.custom-weeks-input-wrap { width: 104px; }.week-panel { padding: 15px; }.day-detail { padding-left: 13px; }.caregiver-guide { margin: 0 15px 15px; } }
+@media screen and (max-width: 560px) { .training-plan { margin: 28px 12px 8px; border-radius: 16px; }.section-heading, .plan-editor { padding: 17px; }.heading-title { font-size: 17px; }.heading-subtitle { font-size: 10px; }.calendar-mark { width: 42px; height: 42px; }.ready-badge { display: none; }.direction-summary { padding: 13px; }.direction-source { display: none; }.direction-text { font-size: 10px; }.create-callout, .compact-summary { align-items: stretch; flex-direction: column; }.create-button { width: 100%; }.compact-actions { width: 100%; }.secondary-button, .view-button { flex: 1; }.generation-card { padding: 13px; }.generation-title { font-size: 12px; }.generation-actions { justify-content: stretch; }.task-primary-button, .task-secondary-button { flex: 1; }.schedule-builder { padding-right: 10px; padding-left: 10px; }.schedule-control { gap: 9px; }.control-index { width: 25px; height: 25px; }.control-value { font-size: 12px; }.control-hint { max-width: 145px; }.duration-select-wrap { width: 118px; }.duration-select-wrap :deep(.uni-select__input-box) { padding: 0 7px; }.duration-select-wrap :deep(.uni-select__selector-scroll) { height: 220px; max-height: 220px !important; }.custom-weeks-row { margin-left: 34px; padding: 9px; }.custom-weeks-hint { display: none; }.custom-weeks-input-wrap { width: 104px; }.week-panel { padding: 15px; }.day-detail { padding-left: 13px; }.caregiver-guide { margin: 0 15px 15px; } }
 </style>
