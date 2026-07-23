@@ -1,5 +1,5 @@
 <template>
-  <view id="training-plan-section" class="training-plan" :class="{ 'training-plan--editing': editing }">
+  <view id="training-plan-section" class="training-plan" :class="{ 'training-plan--editing': editing || manualActivityEditor.open }">
     <view class="section-heading">
       <view class="section-kicker"><text class="kicker-line"></text>计划设置与每日安排<text class="kicker-line"></text></view>
       <view class="heading-row">
@@ -42,21 +42,40 @@
         </view>
 
         <view v-if="interventionFocusData.sections.length" class="direction-options">
-          <button
+          <view
             v-for="section in interventionFocusData.sections"
             :key="section.name"
             class="direction-option"
-            :class="{ selected: isFocusDomainSelected(section.name) }"
-            :disabled="!canEditFocusDomains"
-            @click="toggleFocusDomain(section.name)"
+            :class="{
+              selected: isFocusDomainSelected(section.name),
+              expanded: isFocusDomainExpanded(section.name)
+            }"
           >
-            <text class="direction-check">{{ isFocusDomainSelected(section.name) ? '✓' : '' }}</text>
-            <view class="direction-option-copy">
-              <text class="direction-option-name">{{ section.name }}</text>
-              <text class="direction-option-meta">{{ formatFocusSectionMeta(section) }}</text>
+            <view class="direction-option-main" @click="toggleFocusDomain(section.name)">
+              <text class="direction-check">{{ isFocusDomainSelected(section.name) ? '✓' : '' }}</text>
+              <view class="direction-option-copy">
+                <text class="direction-option-name">{{ section.name }}</text>
+                <text class="direction-option-meta">{{ formatFocusSectionMeta(section) }}</text>
+                <text class="direction-group-preview">不达标小类：{{ formatFocusGroupPreview(section) }}</text>
+              </view>
+              <text class="direction-option-count">{{ section.skills.length }}项</text>
             </view>
-            <text class="direction-option-count">{{ section.skills.length }}项</text>
-          </button>
+            <button class="direction-detail-toggle" @click.stop="toggleFocusDomainDetails(section.name)">
+              {{ focusDetailToggleText(section) }}
+              <text>{{ isFocusDomainExpanded(section.name) ? '↑' : '↓' }}</text>
+            </button>
+            <view v-if="isFocusDomainExpanded(section.name)" class="direction-group-details">
+              <view v-for="group in section.groups" :key="group.name" class="direction-group">
+                <view class="direction-group-head">
+                  <text class="direction-group-name">{{ group.name }}</text>
+                  <text class="direction-group-count">{{ group.skillNames.length }}项未达标</text>
+                </view>
+                <view class="direction-skill-list">
+                  <text v-for="skill in group.skillNames" :key="skill" class="direction-skill">{{ skill }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
         </view>
 
         <view class="direction-selection-summary">
@@ -124,13 +143,25 @@
             <text>{{ plan.weeksCount }}周 · {{ plan.weeksCount * 7 }}天</text>
             <text class="meta-divider">·</text>
             <text>{{ shortDate(plan.startDate) }}—{{ shortDate(plan.endDate) }}</text>
+            <template v-if="hasManualAdjustments">
+              <text class="meta-divider">·</text>
+              <text class="manual-adjustment-meta">老师添加{{ manualActivities.length }}项，移出{{ excludedDailyPlanKeys.length }}项</text>
+            </template>
           </view>
         </view>
         <view v-if="!editing" class="compact-actions">
           <button v-if="!readOnly" class="secondary-button" :class="{ refresh: planMismatched }" @click="beginEditing">
-            {{ planMismatched ? '重新生成' : '调整日期' }}
+            {{ planMismatched ? '及时重新生成' : '重新生成' }}
           </button>
-          <button class="view-button" @click="planExpanded = !planExpanded">
+          <button
+            v-if="!readOnly && !planMismatched"
+            class="manual-edit-button"
+            :class="{ active: manualEditing }"
+            @click="toggleManualEditing"
+          >
+            {{ manualEditing ? '完成调整' : '手动调整' }}
+          </button>
+          <button v-if="!manualEditing" class="view-button" @click="planExpanded = !planExpanded">
             {{ planExpanded ? '收起计划' : '查看计划' }} <text>{{ planExpanded ? '↑' : '↓' }}</text>
           </button>
         </view>
@@ -257,6 +288,15 @@
         </view>
       </view>
 
+      <view v-if="manualEditing" class="manual-adjust-banner">
+        <view class="manual-adjust-icon">✎</view>
+        <view class="manual-adjust-copy">
+          <text class="manual-adjust-title">老师手动调整模式</text>
+          <text class="manual-adjust-hint">可以为某天新增训练活动，或将不适合的 AI 安排移出；所有调整都会保存到云端。</text>
+        </view>
+        <text v-if="manualSaving" class="manual-saving">正在保存…</text>
+      </view>
+
       <scroll-view class="week-tabs" scroll-x :show-scrollbar="false">
         <view class="week-tabs-inner">
           <button
@@ -291,21 +331,64 @@
 
         <view class="daily-heading"><text class="daily-title">每日安排</text><text class="daily-hint">点击某一天查看步骤</text></view>
         <view class="day-list">
-          <view v-for="(day, dayIndex) in currentWeek.dailyPlans" :key="day.date" class="day-card" :class="{ open: isDayOpen(dayIndex) }">
+          <view
+            v-for="(day, dayIndex) in currentWeek.dailyPlans"
+            :key="day.date"
+            class="day-card"
+            :class="{ open: isDayOpen(dayIndex), excluded: isDayExcluded(dayIndex) }"
+          >
             <view class="day-card-head" @click="toggleDay(dayIndex)">
               <view class="day-date"><text class="day-weekday">{{ day.weekday }}</text><text class="day-month-date">{{ shortDate(day.date) }}</text></view>
               <view class="day-main">
-                <view class="day-tags"><text class="activity-tag">{{ day.activityType }}</text><text class="duration-tag">{{ day.durationMinutes }}分钟</text></view>
-                <text class="day-title">{{ day.title }}</text>
-                <text class="day-target">{{ day.target }}</text>
+                <view class="day-tags">
+                  <text v-if="isDayExcluded(dayIndex)" class="excluded-tag">已移出</text>
+                  <template v-else>
+                    <text class="activity-tag">{{ day.activityType }}</text>
+                    <text class="duration-tag">{{ day.durationMinutes }}分钟</text>
+                  </template>
+                  <text v-if="manualActivitiesForDay(dayIndex).length" class="teacher-added-tag">老师添加 {{ manualActivitiesForDay(dayIndex).length }}</text>
+                </view>
+                <text class="day-title">{{ isDayExcluded(dayIndex) ? '本日 AI 安排已移出计划' : day.title }}</text>
+                <text class="day-target">{{ isDayExcluded(dayIndex) ? '如需继续使用，可在手动调整模式中恢复。' : day.target }}</text>
               </view>
+              <button
+                v-if="manualEditing"
+                class="manual-day-action"
+                :class="{ restore: isDayExcluded(dayIndex) }"
+                :disabled="manualSaving"
+                @click.stop="toggleDayExclusion(dayIndex)"
+              >{{ isDayExcluded(dayIndex) ? '恢复' : '移出' }}</button>
               <text class="expand-icon">{{ isDayOpen(dayIndex) ? '−' : '+' }}</text>
             </view>
             <view v-if="isDayOpen(dayIndex)" class="day-detail">
-              <view class="detail-block"><text class="detail-label">准备材料</text><view class="material-list"><text v-for="item in day.materials" :key="item" class="material">{{ item }}</text></view></view>
-              <view class="detail-block"><text class="detail-label">执行步骤</text><view v-for="(step, stepIndex) in day.steps" :key="stepIndex" class="step-row"><text class="step-number">{{ stepIndex + 1 }}</text><text class="step-text">{{ step }}</text></view></view>
-              <view class="result-box"><text class="result-label">完成标准</text><text class="result-text">{{ day.successCriteria }}</text></view>
-              <view class="caregiver-tip"><text class="tip-icon">i</text><text>{{ day.caregiverTip }}</text></view>
+              <template v-if="!isDayExcluded(dayIndex)">
+                <view class="detail-block"><text class="detail-label">准备材料</text><view class="material-list"><text v-for="item in day.materials" :key="item" class="material">{{ item }}</text></view></view>
+                <view class="detail-block"><text class="detail-label">执行步骤</text><view v-for="(step, stepIndex) in day.steps" :key="stepIndex" class="step-row"><text class="step-number">{{ stepIndex + 1 }}</text><text class="step-text">{{ step }}</text></view></view>
+                <view class="result-box"><text class="result-label">完成标准</text><text class="result-text">{{ day.successCriteria }}</text></view>
+                <view class="caregiver-tip"><text class="tip-icon">i</text><text>{{ day.caregiverTip }}</text></view>
+              </template>
+              <view v-else class="excluded-detail">该 AI 活动已由老师移出，不计入当前执行安排。</view>
+
+              <view v-if="manualActivitiesForDay(dayIndex).length" class="manual-activity-section">
+                <text class="manual-activity-section-title">老师添加的训练</text>
+                <view v-for="activity in manualActivitiesForDay(dayIndex)" :key="activity.id" class="manual-activity-card">
+                  <view class="manual-activity-head">
+                    <view>
+                      <text class="manual-activity-title">{{ activity.title }}</text>
+                      <text class="manual-activity-duration">{{ activity.durationMinutes }}分钟</text>
+                    </view>
+                    <button v-if="manualEditing" class="manual-remove-button" :disabled="manualSaving" @click="removeManualActivity(activity)">删除</button>
+                  </view>
+                  <text class="manual-activity-target">{{ activity.target }}</text>
+                  <view v-if="activity.materials && activity.materials.length" class="material-list manual-materials">
+                    <text v-for="item in activity.materials" :key="item" class="material">{{ item }}</text>
+                  </view>
+                  <text v-if="activity.notes" class="manual-activity-notes">{{ activity.notes }}</text>
+                </view>
+              </view>
+              <button v-if="manualEditing" class="add-manual-activity-button" :disabled="manualSaving" @click="openManualActivityEditor(dayIndex)">
+                ＋ 为{{ day.weekday }}添加训练活动
+              </button>
             </view>
           </view>
         </view>
@@ -315,6 +398,50 @@
         <text class="guide-title">执行小提醒</text>
         <view v-for="(item, index) in plan.caregiverGuidance" :key="index" class="guide-item"><text class="guide-number">{{ index + 1 }}</text><text>{{ item }}</text></view>
         <text class="ai-note">本计划由 AI 根据当前评估结果生成，请结合孩子当天状态灵活调整。</text>
+      </view>
+    </view>
+
+    <view v-if="manualActivityEditor.open" class="manual-modal-mask" @click="closeManualActivityEditor">
+      <view class="manual-modal" @click.stop>
+        <view class="manual-modal-head">
+          <view>
+            <text class="manual-modal-title">添加老师训练活动</text>
+            <text class="manual-modal-subtitle">第{{ manualActivityEditor.weekNumber }}周 · 第{{ manualActivityEditor.dayNumber }}天</text>
+          </view>
+          <button class="manual-modal-close" @click="closeManualActivityEditor">×</button>
+        </view>
+        <view class="manual-form-field">
+          <text class="manual-form-label">活动名称 <text>*</text></text>
+          <input v-model="manualActivityEditor.title" class="manual-form-input" maxlength="80" placeholder="例如：餐桌上的分类游戏" />
+        </view>
+        <view class="manual-form-field">
+          <text class="manual-form-label">训练目标 <text>*</text></text>
+          <textarea v-model="manualActivityEditor.target" class="manual-form-textarea" maxlength="180" placeholder="写明希望孩子完成的具体行为" />
+        </view>
+        <view class="manual-form-row">
+          <view class="manual-form-field manual-form-field--duration">
+            <text class="manual-form-label">时长</text>
+            <view class="manual-duration-input">
+              <input v-model="manualActivityEditor.durationMinutes" type="number" maxlength="2" />
+              <text>分钟</text>
+            </view>
+          </view>
+          <view class="manual-form-field">
+            <text class="manual-form-label">材料</text>
+            <input v-model="manualActivityEditor.materialsText" class="manual-form-input" maxlength="120" placeholder="用逗号分隔，最多4项" />
+          </view>
+        </view>
+        <view class="manual-form-field">
+          <text class="manual-form-label">执行说明</text>
+          <textarea v-model="manualActivityEditor.notes" class="manual-form-textarea manual-form-textarea--small" maxlength="240" placeholder="可选：步骤、提示方式或注意事项" />
+        </view>
+        <text v-if="manualErrorMessage" class="manual-form-error">{{ manualErrorMessage }}</text>
+        <view class="manual-modal-actions">
+          <button class="manual-modal-cancel" :disabled="manualSaving" @click="closeManualActivityEditor">取消</button>
+          <button class="manual-modal-save" :disabled="manualSaving || !manualActivityFormValid" @click="saveManualActivity">
+            {{ manualSaving ? '正在保存…' : '添加并保存' }}
+          </button>
+        </view>
       </view>
     </view>
   </view>
@@ -349,13 +476,20 @@ function collectInterventionFocus(report = {}) {
         skills.push({ skillGroup, skillName })
       }
     }
+    const groupMap = new Map()
+    for (const skill of skills) {
+      const groupName = skill.skillGroup || '其他待支持技能'
+      if (!groupMap.has(groupName)) groupMap.set(groupName, [])
+      groupMap.get(groupName).push(skill.skillName)
+    }
     return {
       sectionIndex,
       name: cleanDirectionText(section.sectionName, 40) || '综合能力',
       actual,
       expected,
       relativeGap: expected > 0 ? Math.max(0, Math.min(1, (expected - actual) / expected)) : 0,
-      skills
+      skills,
+      groups: [...groupMap.entries()].map(([name, skillNames]) => ({ name, skillNames }))
     }
   }).filter(section => section.skills.length)
     .sort((left, right) =>
@@ -390,6 +524,19 @@ export default {
     return {
       editing: false,
       submitting: false,
+      manualEditing: false,
+      manualSaving: false,
+      manualErrorMessage: '',
+      manualActivityEditor: {
+        open: false,
+        weekNumber: 0,
+        dayNumber: 0,
+        title: '',
+        target: '',
+        durationMinutes: '15',
+        materialsText: '',
+        notes: ''
+      },
       planExpanded: false,
       startDate: '',
       endDate: '',
@@ -405,6 +552,7 @@ export default {
       customWeeks: '',
       selectedFocusDomains: [],
       editingFocusSnapshot: [],
+      expandedFocusDomains: [],
       selectedWeek: 0,
       openedDayKey: '0-0',
       errorMessage: '',
@@ -419,6 +567,21 @@ export default {
   computed: {
     plan() { return this.report?.interventionPlan || null },
     hasPlan() { return !!(this.plan && Array.isArray(this.plan.weeklyPlans) && this.plan.weeklyPlans.length) },
+    manualActivities() {
+      return Array.isArray(this.plan?.manualActivities) ? this.plan.manualActivities : []
+    },
+    excludedDailyPlanKeys() {
+      return Array.isArray(this.plan?.excludedDailyPlanKeys) ? this.plan.excludedDailyPlanKeys : []
+    },
+    hasManualAdjustments() {
+      return this.manualActivities.length > 0 || this.excludedDailyPlanKeys.length > 0
+    },
+    manualActivityFormValid() {
+      return !!(
+        String(this.manualActivityEditor.title || '').trim() &&
+        String(this.manualActivityEditor.target || '').trim()
+      )
+    },
     reportId() { return this.report?.reportId || this.report?._id || '' },
     currentWeek() { return this.plan?.weeklyPlans?.[this.selectedWeek] || null },
     interventionFocusData() { return collectInterventionFocus(this.report) },
@@ -559,6 +722,10 @@ export default {
   watch: {
     reportId() {
       this.editing = false
+      this.manualEditing = false
+      this.manualSaving = false
+      this.manualErrorMessage = ''
+      this.manualActivityEditor.open = false
       this.planExpanded = false
       this.selectedWeek = 0
       this.openedDayKey = '0-0'
@@ -566,6 +733,7 @@ export default {
       this.generationTask = null
       this.selectedFocusDomains = []
       this.editingFocusSnapshot = []
+      this.expandedFocusDomains = []
       this.stopPolling()
       this.$nextTick(() => this.initializeGenerationState())
     }
@@ -619,7 +787,8 @@ export default {
       return `${year}-${month}-${day}`
     },
     beginEditing() {
-      if (this.isGenerationActive) return
+      if (this.isGenerationActive || this.manualSaving) return
+      this.manualEditing = false
       this.editingFocusSnapshot = [...this.effectiveSelectedFocusDomains]
       const startDate = this.plan?.startDate || this.todayDate()
       const planRange = this.validateDateRange(startDate, this.plan?.endDate)
@@ -661,11 +830,173 @@ export default {
         ? `当前 ${section.actual} / 期望 ${section.expected}`
         : '依据未达标技能识别'
     },
+    formatFocusGroupPreview(section) {
+      const names = (section?.groups || []).map(group => group.name)
+      if (!names.length) return '具体技能见评估结果'
+      const visible = names.slice(0, 3).join('、')
+      return names.length > 3 ? `${visible}等${names.length}个` : visible
+    },
+    focusDetailToggleText(section) {
+      return this.isFocusDomainExpanded(section?.name)
+        ? '收起明细'
+        : `查看${section?.groups?.length || 0}个小类`
+    },
+    isFocusDomainExpanded(domain) {
+      return this.expandedFocusDomains.includes(domain)
+    },
+    toggleFocusDomainDetails(domain) {
+      this.expandedFocusDomains = this.isFocusDomainExpanded(domain)
+        ? this.expandedFocusDomains.filter(item => item !== domain)
+        : [...this.expandedFocusDomains, domain]
+    },
     cancelEditing() {
       this.selectedFocusDomains = [...this.editingFocusSnapshot]
       this.editingFocusSnapshot = []
       this.editing = false
       this.errorMessage = ''
+    },
+    toggleManualEditing() {
+      if (this.readOnly || this.planMismatched || this.isGenerationActive || this.manualSaving) return
+      this.manualEditing = !this.manualEditing
+      this.planExpanded = true
+      if (!this.manualEditing) this.closeManualActivityEditor()
+    },
+    dayPlanKey(dayIndex) {
+      return `${Number(this.currentWeek?.weekNumber) || this.selectedWeek + 1}-${dayIndex + 1}`
+    },
+    isDayExcluded(dayIndex) {
+      return this.excludedDailyPlanKeys.includes(this.dayPlanKey(dayIndex))
+    },
+    manualActivitiesForDay(dayIndex) {
+      const weekNumber = Number(this.currentWeek?.weekNumber) || this.selectedWeek + 1
+      const dayNumber = dayIndex + 1
+      return this.manualActivities.filter(activity =>
+        Number(activity.weekNumber) === weekNumber && Number(activity.dayNumber) === dayNumber
+      )
+    },
+    openManualActivityEditor(dayIndex) {
+      if (!this.manualEditing || this.manualSaving || !this.currentWeek) return
+      this.manualErrorMessage = ''
+      this.manualActivityEditor = {
+        open: true,
+        weekNumber: Number(this.currentWeek.weekNumber) || this.selectedWeek + 1,
+        dayNumber: dayIndex + 1,
+        title: '',
+        target: '',
+        durationMinutes: '15',
+        materialsText: '',
+        notes: ''
+      }
+    },
+    closeManualActivityEditor() {
+      if (this.manualSaving) return
+      this.manualActivityEditor.open = false
+      this.manualErrorMessage = ''
+    },
+    async persistManualAdjustments(manualActivities, excludedDailyPlanKeys, successMessage) {
+      if (this.manualSaving || !this.reportId || !this.hasPlan) return false
+      this.manualSaving = true
+      this.manualErrorMessage = ''
+      try {
+        const response = await uniCloud.callFunction({
+          name: 'wtdb-generate-intervention-plan',
+          data: {
+            action: 'update-manual',
+            reportId: this.reportId,
+            manualActivities,
+            excludedDailyPlanKeys,
+            expectedManualRevision: Number(this.plan?.manualRevision) || 0,
+            uniIdToken: uni.getStorageSync('uni_id_token')
+          },
+          timeout: 15000
+        })
+        const result = response?.result || {}
+        if (result.code !== 200 || !result.data?.plan) throw new Error(result.msg || '训练计划调整保存失败')
+        this.$emit('generated', result.data.plan)
+        uni.showToast({ title: successMessage || '调整已保存', icon: 'none' })
+        return true
+      } catch (error) {
+        this.manualErrorMessage = error.message || '保存失败，请稍后再试'
+        uni.showToast({ title: this.manualErrorMessage, icon: 'none' })
+        return false
+      } finally {
+        this.manualSaving = false
+      }
+    },
+    async saveManualActivity() {
+      if (!this.manualActivityFormValid || this.manualSaving) return
+      const materials = String(this.manualActivityEditor.materialsText || '')
+        .split(/[，,、;；\n]/)
+        .map(item => item.trim())
+        .filter(Boolean)
+        .slice(0, 4)
+      const duration = Number(this.manualActivityEditor.durationMinutes)
+      const activity = {
+        id: `manual_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+        weekNumber: this.manualActivityEditor.weekNumber,
+        dayNumber: this.manualActivityEditor.dayNumber,
+        title: String(this.manualActivityEditor.title || '').trim(),
+        target: String(this.manualActivityEditor.target || '').trim(),
+        durationMinutes: Number.isFinite(duration) ? Math.min(40, Math.max(5, duration)) : 15,
+        materials,
+        notes: String(this.manualActivityEditor.notes || '').trim()
+      }
+      const saved = await this.persistManualAdjustments(
+        [...this.manualActivities, activity],
+        this.excludedDailyPlanKeys,
+        '训练活动已添加'
+      )
+      if (saved) {
+        this.manualActivityEditor.open = false
+        this.manualErrorMessage = ''
+      }
+    },
+    async removeManualActivity(activity) {
+      if (!activity?.id || this.manualSaving) return
+      const confirmed = await this.confirmPlanAction(
+        '删除老师添加的训练？',
+        `“${activity.title}”将从本计划中删除。`,
+        '删除'
+      )
+      if (!confirmed) return
+      await this.persistManualAdjustments(
+        this.manualActivities.filter(item => item.id !== activity.id),
+        this.excludedDailyPlanKeys,
+        '训练活动已删除'
+      )
+    },
+    async toggleDayExclusion(dayIndex) {
+      if (!this.manualEditing || this.manualSaving) return
+      const key = this.dayPlanKey(dayIndex)
+      const excluded = this.excludedDailyPlanKeys.includes(key)
+      if (!excluded) {
+        const day = this.currentWeek?.dailyPlans?.[dayIndex]
+        const confirmed = await this.confirmPlanAction(
+          '将这项 AI 安排移出计划？',
+          `“${day?.title || '本日训练'}”会保留在历史结构中，之后仍可恢复。`,
+          '移出计划'
+        )
+        if (!confirmed) return
+      }
+      const nextKeys = excluded
+        ? this.excludedDailyPlanKeys.filter(item => item !== key)
+        : [...this.excludedDailyPlanKeys, key]
+      await this.persistManualAdjustments(
+        this.manualActivities,
+        nextKeys,
+        excluded ? 'AI 安排已恢复' : 'AI 安排已移出'
+      )
+    },
+    confirmPlanAction(title, content, confirmText = '确定') {
+      return new Promise(resolve => {
+        uni.showModal({
+          title,
+          content,
+          confirmText,
+          success: result => resolve(!!result.confirm),
+          fail: () => resolve(false)
+        })
+      })
     },
     formatTaskTime(value) {
       const date = new Date(Number(value))
@@ -718,6 +1049,8 @@ export default {
       }
       this.editing = false
       this.editingFocusSnapshot = []
+      this.manualEditing = false
+      this.manualActivityEditor.open = false
       this.planExpanded = true
       this.selectedWeek = 0
       this.openedDayKey = '0-0'
@@ -865,12 +1198,15 @@ export default {
     },
     async confirmRegeneration() {
       if (!this.hasPlan) return true
+      const manualWarning = this.hasManualAdjustments
+        ? '老师手动新增、移出或恢复的调整会被新计划覆盖。'
+        : ''
       return new Promise(resolve => {
         uni.showModal({
           title: this.planMismatched ? '生成匹配当前报告的新计划？' : '重新生成训练计划？',
           content: this.planMismatched
-            ? `当前计划与最新报告不匹配。重新生成后会按当前报告、已选${this.selectedFocusDomainsCount}个训练方向和日期区间覆盖旧计划。`
-            : `新的日期区间和已选${this.selectedFocusDomainsCount}个训练方向会覆盖当前计划。`,
+            ? `当前计划与最新报告不匹配。重新生成后会按当前报告、已选${this.selectedFocusDomainsCount}个训练方向和日期区间覆盖旧计划。${manualWarning}`
+            : `新的日期区间和已选${this.selectedFocusDomainsCount}个训练方向会覆盖当前计划。${manualWarning}`,
           confirmText: '重新生成',
           success: result => resolve(!!result.confirm),
           fail: () => resolve(false)
@@ -942,17 +1278,28 @@ export default {
 .select-all-button { flex-shrink: 0; padding: 6px 9px; border: 1px solid #cfc2ee; border-radius: 9px; background: #fff; color: #654fad; font-size: 9px; font-weight: 850; }
 .selection-count { flex-shrink: 0; padding: 5px 8px; border-radius: 9px; background: #ece7f8; color: #6652a9; font-size: 9px; font-weight: 850; }
 .direction-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.direction-option { display: flex; width: calc(33.333% - 6px); min-width: 180px; min-height: 58px; align-items: center; gap: 9px; padding: 9px 10px; border: 1px solid #e1dbe9; border-radius: 11px; background: rgba(255,255,255,.78); color: #6f6879; text-align: left; transition: border-color .18s ease, background .18s ease, box-shadow .18s ease; }
+.direction-option { width: calc(33.333% - 6px); min-width: 180px; overflow: hidden; border: 1px solid #e1dbe9; border-radius: 11px; background: rgba(255,255,255,.78); color: #6f6879; text-align: left; transition: border-color .18s ease, background .18s ease, box-shadow .18s ease; box-sizing: border-box; }
+.direction-option.expanded { width: 100%; }
 .direction-option.selected { border-color: #8069c6; background: #f2edff; box-shadow: 0 3px 9px rgba(95,73,162,.09); }
-.direction-option[disabled] { opacity: 1; }
+.direction-option-main { display: flex; min-height: 58px; align-items: center; gap: 9px; padding: 9px 10px 7px; }
 .direction-check { display: flex; width: 20px; height: 20px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid #cfc7da; border-radius: 7px; background: #fff; color: transparent; font-size: 10px; font-weight: 900; box-sizing: border-box; }
 .selected .direction-check { border-color: #6b55b8; background: #6b55b8; color: #fff; }
 .direction-option-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }
 .direction-option-name { overflow: hidden; color: #494052; font-size: 10px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
 .selected .direction-option-name { color: #564294; }
 .direction-option-meta { overflow: hidden; margin-top: 3px; color: #948c9c; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.direction-group-preview { display: block; overflow: hidden; margin-top: 4px; color: #756b80; font-size: 8px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
 .direction-option-count { flex-shrink: 0; padding: 3px 5px; border-radius: 8px; background: #f2eff5; color: #82798c; font-size: 8px; font-weight: 800; }
 .selected .direction-option-count { background: #dfd5f8; color: #644ea8; }
+.direction-detail-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 6px 10px 8px 39px; color: #74668e; font-size: 8px; font-weight: 800; text-align: left; }
+.direction-group-details { max-height: 250px; overflow-y: auto; padding: 2px 10px 10px 39px; border-top: 1px solid rgba(105,83,167,.12); }
+.direction-group { padding: 9px 0; border-bottom: 1px dashed rgba(113,95,145,.14); }
+.direction-group:last-child { border-bottom: 0; }
+.direction-group-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.direction-group-name { color: #4e435f; font-size: 9px; font-weight: 850; }
+.direction-group-count { flex-shrink: 0; color: #8d8299; font-size: 8px; }
+.direction-skill-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.direction-skill { padding: 3px 6px; border: 1px solid #ded6ed; border-radius: 8px; background: rgba(255,255,255,.75); color: #6e6378; font-size: 8px; line-height: 1.35; }
 .direction-selection-summary { display: flex; align-items: flex-start; gap: 8px; margin-top: 11px; padding: 9px 10px; border-radius: 10px; background: rgba(103,82,178,.07); }
 .direction-selection-label { flex-shrink: 0; padding-top: 1px; color: #6551a7; font-size: 9px; font-weight: 900; }
 .direction-text { display: block; color: #746b7d; font-size: 9px; line-height: 1.6; }
@@ -961,7 +1308,7 @@ export default {
 .generation-card { margin-top: 18px; padding: 16px; border: 1px solid #dcd3f3; border-radius: 14px; background: linear-gradient(135deg, #f8f5ff, #fff); box-shadow: 0 6px 18px rgba(74,55,132,.07); }.generation-card.failed, .generation-card.timeout { border-color: #efc4bd; background: linear-gradient(135deg, #fff5f2, #fff); }.generation-card-head { display: flex; align-items: flex-start; gap: 11px; }.generation-state-icon { display: flex; width: 34px; height: 34px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 11px; background: #6954b5; color: #fff; font-size: 16px; font-weight: 900; }.failed .generation-state-icon, .timeout .generation-state-icon { background: #c8655d; }.state-spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }.generation-copy { min-width: 0; flex: 1; }.generation-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }.generation-title { color: #43375d; font-size: 14px; font-weight: 900; }.failed .generation-title, .timeout .generation-title { color: #8e403b; }.generation-percent { flex-shrink: 0; color: #6752b2; font-size: 14px; font-weight: 900; }.failed .generation-percent, .timeout .generation-percent { color: #b65b53; }.generation-message { display: block; margin-top: 4px; color: #7e7489; font-size: 11px; line-height: 1.5; }.progress-track { height: 7px; overflow: hidden; margin-top: 13px; border-radius: 999px; background: #ebe7f2; }.progress-value { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #745bc4, #9c84e4); transition: width .35s ease; }.failed .progress-value, .timeout .progress-value { background: linear-gradient(90deg, #d67970, #e9a29b); }.generation-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; color: #8e8597; font-size: 9px; }.background-note { display: flex; align-items: flex-start; gap: 7px; margin-top: 12px; padding: 9px 10px; border-radius: 9px; background: #eef7f3; color: #4f7765; font-size: 10px; line-height: 1.5; }.cloud-mark { flex-shrink: 0; color: #4f9b77; font-size: 13px; }.generation-error { display: flex; flex-direction: column; margin-top: 12px; padding: 10px 11px; border-radius: 9px; background: #fff0ed; }.generation-error-code { color: #bd625a; font-size: 8px; font-weight: 900; letter-spacing: .5px; }.generation-error-text { margin-top: 4px; color: #8b4b46; font-size: 11px; line-height: 1.5; }.generation-error-diagnostic { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e8b9b3; color: #8f625e; font-size: 9px; line-height: 1.45; word-break: break-all; }.generation-error-retained { margin-top: 5px; color: #a26b66; font-size: 9px; }.generation-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 12px; }.task-primary-button, .task-secondary-button { padding: 8px 11px; border-radius: 9px; font-size: 10px; font-weight: 850; }.task-primary-button { background: #6752b2; color: #fff; }.task-primary-button[disabled] { opacity: .55; }.task-secondary-button { border: 1px solid #ded8e8; background: #fff; color: #675c75; }
 .create-callout { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 15px; border: 1px solid #ede6d8; border-radius: 13px; background: rgba(255,255,255,.86); }.callout-copy { min-width: 0; flex: 1; }.callout-title { display: block; color: #493e2e; font-size: 14px; font-weight: 800; }.callout-text { display: block; margin-top: 4px; color: #8d8374; font-size: 11px; line-height: 1.5; }
 button { margin: 0; padding: 0; border: 0; background: none; line-height: normal; }button::after { border: 0; }.create-button { min-width: 108px; padding: 11px 13px; border-radius: 11px; background: #6650b7; color: #fff; font-size: 12px; font-weight: 800; box-shadow: 0 6px 13px rgba(80,60,154,.2); }
-.compact-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 14px 15px; border: 1px solid #e8e2f5; border-radius: 13px; background: #fff; }.compact-summary.mismatch { border-color: #edc58f; background: #fffdf8; }.compact-copy { min-width: 0; flex: 1; }.compact-title { display: block; overflow: hidden; color: #41375d; font-size: 14px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }.compact-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; color: #877f95; font-size: 11px; }.meta-divider { color: #c0b9ca; }.compact-actions { display: flex; flex-shrink: 0; gap: 8px; }.secondary-button, .view-button { padding: 9px 11px; border-radius: 9px; font-size: 11px; font-weight: 800; }.secondary-button { border: 1px solid #ddd6eb; color: #70677e; }.secondary-button.refresh { border-color: #dda453; background: #fff1d9; color: #995e18; }.view-button { background: #eee9fb; color: #604ca8; }
+.compact-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 14px 15px; border: 1px solid #e8e2f5; border-radius: 13px; background: #fff; }.compact-summary.mismatch { border-color: #edc58f; background: #fffdf8; }.compact-copy { min-width: 0; flex: 1; }.compact-title { display: block; overflow: hidden; color: #41375d; font-size: 14px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }.compact-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; color: #877f95; font-size: 11px; }.meta-divider { color: #c0b9ca; }.manual-adjustment-meta { color: #477b98; font-weight: 750; }.compact-actions { display: flex; flex-shrink: 0; gap: 8px; }.secondary-button, .view-button, .manual-edit-button { padding: 9px 11px; border-radius: 9px; font-size: 11px; font-weight: 800; }.secondary-button { border: 1px solid #ddd6eb; color: #70677e; }.secondary-button.refresh { border-color: #dda453; background: #fff1d9; color: #995e18; }.manual-edit-button { border: 1px solid #cfc3ed; background: #faf8ff; color: #654fad; }.manual-edit-button.active { border-color: #6751b7; background: #6751b7; color: #fff; }.view-button { background: #eee9fb; color: #604ca8; }
 .mismatch-alert { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 11px 12px; border: 1px solid #f0c788; border-radius: 11px; background: #fff5e6; }.mismatch-icon { display: flex; width: 23px; height: 23px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #dc8c2e; color: #fff; font-size: 12px; font-weight: 900; }.mismatch-copy { min-width: 0; flex: 1; }.mismatch-title { display: block; color: #895317; font-size: 11px; font-weight: 850; }.mismatch-text { display: block; margin-top: 3px; color: #987246; font-size: 10px; line-height: 1.45; }.mismatch-action { flex-shrink: 0; padding: 7px 9px; border-radius: 8px; background: #d98427; color: #fff; font-size: 10px; font-weight: 850; }
 .plan-editor { padding: 20px 22px 22px; border-top: 1px solid #eee9f3; background: #faf9fc; }.editor-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }.editor-title { display: block; color: #3c344e; font-size: 16px; font-weight: 850; }.editor-hint { display: block; margin-top: 5px; color: #81798c; font-size: 11px; line-height: 1.5; }.text-button { flex-shrink: 0; color: #6752b2; font-size: 12px; font-weight: 800; }
 .schedule-builder { margin-top: 16px; padding: 6px 14px; border: 1px solid #e4deeb; border-radius: 16px; background: #fff; box-shadow: 0 5px 18px rgba(57,47,77,.04); }.schedule-picker { display: block; }.schedule-control { display: flex; min-height: 68px; align-items: center; gap: 12px; padding: 11px 3px; }.schedule-control--duration { position: relative; z-index: 4; }.schedule-control--result { margin: 0; }.control-index { display: flex; width: 27px; height: 27px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 9px; background: #6751b7; color: #fff; font-size: 11px; font-weight: 900; box-shadow: 0 3px 8px rgba(83,61,157,.18); }.control-index--done { background: #4fa978; box-shadow: 0 3px 8px rgba(66,143,99,.16); }.control-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }.control-label-row { display: flex; align-items: center; gap: 7px; }.control-label { color: #82798d; font-size: 10px; font-weight: 750; }.default-chip { padding: 2px 6px; border-radius: 8px; background: #fff1ce; color: #92701f; font-size: 8px; font-weight: 800; }.control-value { display: block; overflow: hidden; margin-top: 3px; color: #3c334c; font-size: 14px; font-weight: 850; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }.control-hint { display: block; overflow: hidden; margin-top: 2px; color: #9a92a2; font-size: 9px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }.control-hint--duration { max-width: 260px; margin-top: 5px; white-space: normal; }.control-action { flex-shrink: 0; padding: 7px 9px; border-radius: 8px; background: #f0ecfa; color: #654fad; font-size: 10px; font-weight: 850; }.duration-select-wrap { position: relative; z-index: 5; width: 150px; flex-shrink: 0; }.duration-select-wrap :deep(.uni-stat__select) { width: 100%; }.duration-select-wrap :deep(.uni-select) { border-color: #d9d1e8; border-radius: 9px; background: #faf8fd; }.duration-select-wrap :deep(.uni-select__input-box) { height: 36px; padding: 0 10px; }.duration-select-wrap :deep(.uni-select__input-text) { color: #4a3d61; font-size: 11px; font-weight: 800; }.duration-select-wrap :deep(.uni-select__selector) { z-index: 20; border-color: #ded7e9; box-shadow: 0 8px 22px rgba(54,42,78,.13); }.duration-select-wrap :deep(.uni-select__selector-scroll) { height: 250px; max-height: 250px !important; overflow-y: auto; }.calculated-chip { flex-shrink: 0; padding: 6px 8px; border-radius: 8px; background: #e7f6ee; color: #347457; font-size: 9px; font-weight: 850; }.schedule-connector { height: 12px; margin: -6px 0 -6px 16px; border-left: 1px dashed #c7bdd8; }.schedule-connector text { display: none; }
@@ -970,11 +1317,15 @@ button { margin: 0; padding: 0; border: 0; background: none; line-height: normal
 .generate-button { display: flex; width: 100%; height: 46px; align-items: center; justify-content: center; gap: 9px; margin-top: 14px; border-radius: 12px; background: #6751b7; color: #fff; font-size: 14px; font-weight: 850; box-shadow: 0 7px 16px rgba(86,65,167,.2); }.generate-button[disabled] { background: #cbc6d4; box-shadow: none; color: #f5f3f7; }.button-spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }.generating-note, .error-message { display: block; margin-top: 8px; text-align: center; font-size: 11px; }.generating-note { color: #7b7482; }.error-message { color: #bd514b; }@keyframes spin { to { transform: rotate(360deg); } }
 .readonly-empty { display: flex; align-items: center; gap: 12px; padding: 0 22px 22px; }.empty-symbol { display: flex; width: 38px; height: 38px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #f0edf6; color: #7b69b6; font-size: 24px; }.empty-title, .empty-hint { display: block; }.empty-title { color: #5a5363; font-size: 13px; font-weight: 800; }.empty-hint { margin-top: 3px; color: #948d9b; font-size: 10px; }
 .plan-body { border-top: 1px solid #ece7f1; }.plan-introduction { padding: 17px 20px; background: #f8f6fc; }.introduction-label { display: block; color: #6f5db0; font-size: 10px; font-weight: 850; }.introduction-text { display: block; margin-top: 5px; color: #686071; font-size: 12px; line-height: 1.7; }.plan-focus-row { display: flex; align-items: flex-start; gap: 9px; margin-top: 11px; padding-top: 10px; border-top: 1px solid #e8e2f1; }.plan-focus-label { flex-shrink: 0; padding-top: 4px; color: #82768f; font-size: 9px; font-weight: 850; }.plan-focus-tags { display: flex; flex-wrap: wrap; gap: 5px; }.plan-focus-tag { padding: 3px 7px; border-radius: 9px; background: #e9e2f8; color: #624fa3; font-size: 8px; font-weight: 800; }
+.manual-adjust-banner { display: flex; align-items: center; gap: 10px; margin: 13px 18px 0; padding: 11px 12px; border: 1px solid #d9ccf5; border-radius: 11px; background: #f4efff; }.manual-adjust-icon { display: flex; width: 27px; height: 27px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 9px; background: #6b55b8; color: #fff; font-size: 13px; }.manual-adjust-copy { min-width: 0; flex: 1; }.manual-adjust-title { display: block; color: #51416f; font-size: 11px; font-weight: 850; }.manual-adjust-hint { display: block; margin-top: 3px; color: #81758f; font-size: 9px; line-height: 1.45; }.manual-saving { flex-shrink: 0; color: #6751b7; font-size: 9px; font-weight: 800; }
 .week-tabs { width: 100%; border-top: 1px solid #eeeaf2; border-bottom: 1px solid #eeeaf2; background: #fdfcfe; white-space: nowrap; }.week-tabs-inner { display: inline-flex; gap: 8px; padding: 12px 18px; }.week-tab { display: inline-flex; min-width: 78px; flex-direction: column; padding: 9px 12px; border: 1px solid #e1dce8; border-radius: 10px; background: #fff; color: #7b7486; text-align: left; }.week-tab.active { border-color: #6751b7; background: #6751b7; color: #fff; box-shadow: 0 4px 11px rgba(91,70,174,.18); }.week-tab-number { font-size: 12px; font-weight: 850; }.week-tab-date { margin-top: 3px; opacity: .72; font-size: 9px; }
 .week-panel { padding: 18px; }.week-goal { display: flex; gap: 12px; padding: 14px; border: 1px solid #e8e1f5; border-radius: 13px; background: linear-gradient(135deg, #f8f5ff, #fffaf0); }.goal-index { display: flex; width: 34px; height: 34px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 10px; background: #6d57bb; color: #fff; font-size: 15px; font-weight: 900; }.goal-copy { min-width: 0; flex: 1; }.goal-label { display: block; color: #8975c8; font-size: 10px; font-weight: 850; }.goal-text { display: block; margin-top: 4px; color: #403650; font-size: 13px; font-weight: 750; line-height: 1.55; }.skill-chips, .material-list, .day-tags { display: flex; flex-wrap: wrap; gap: 6px; }.skill-chips { margin-top: 9px; }.skill-chip { padding: 4px 7px; border-radius: 18px; background: #ede7fb; color: #624eaa; font-size: 9px; }
 .criteria-box { margin-top: 11px; padding: 12px 14px; border-radius: 11px; background: #eef8f3; }.criteria-title { display: block; color: #3a7658; font-size: 11px; font-weight: 850; }.criteria-item { display: flex; align-items: flex-start; gap: 7px; margin-top: 6px; color: #536c60; font-size: 11px; line-height: 1.5; }.criteria-check { flex-shrink: 0; color: #49a576; font-weight: 900; }.daily-heading { display: flex; align-items: center; justify-content: space-between; margin: 20px 2px 9px; }.daily-title { font-size: 14px; font-weight: 850; }.daily-hint { color: #9992a2; font-size: 10px; }
 .day-list { display: flex; flex-direction: column; gap: 9px; }.day-card { overflow: hidden; border: 1px solid #e9e5ed; border-radius: 12px; }.day-card.open { border-color: #cbbef1; box-shadow: 0 5px 16px rgba(67,51,119,.06); }.day-card-head { display: flex; align-items: center; gap: 11px; padding: 12px; }.day-date { display: flex; width: 46px; flex-shrink: 0; flex-direction: column; align-items: center; padding: 7px 3px; border-radius: 9px; background: #f2eff8; }.day-weekday { color: #604cac; font-size: 11px; font-weight: 850; }.day-month-date { margin-top: 3px; color: #958e9e; font-size: 8px; }.day-main { min-width: 0; flex: 1; }.activity-tag, .duration-tag { padding: 3px 6px; border-radius: 9px; font-size: 8px; }.activity-tag { background: #fff1d2; color: #8c6517; }.duration-tag { background: #edf7f2; color: #468064; }.day-title { display: block; margin-top: 5px; color: #3d3648; font-size: 13px; font-weight: 850; }.day-target { display: -webkit-box; overflow: hidden; margin-top: 3px; color: #817a88; font-size: 10px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }.expand-icon { display: flex; width: 24px; height: 24px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #f1edf9; color: #6954b6; font-size: 17px; }
+.day-card.excluded { border-color: #ddd8e1; background: #faf9fb; }.excluded .day-card-head { background: #f6f4f7; }.excluded .day-date { background: #ebe8ed; }.excluded .day-title, .excluded .day-target { color: #918a95; }.excluded-tag, .teacher-added-tag { padding: 3px 6px; border-radius: 9px; font-size: 8px; }.excluded-tag { background: #ece8ed; color: #7f7583; }.teacher-added-tag { background: #e7f4ff; color: #39739a; }.manual-day-action { flex-shrink: 0; padding: 6px 8px; border: 1px solid #e0c6c1; border-radius: 8px; color: #a35d54; font-size: 9px; font-weight: 800; }.manual-day-action.restore { border-color: #b9dbc8; background: #eef9f3; color: #3d7d5c; }.manual-day-action[disabled] { opacity: .5; }
 .day-detail { padding: 2px 13px 14px 70px; border-top: 1px dashed #e5dfeb; }.detail-block { margin-top: 12px; }.detail-label { display: block; margin-bottom: 7px; color: #80778a; font-size: 10px; font-weight: 850; }.material { padding: 4px 7px; border: 1px solid #e5dfeb; border-radius: 7px; background: #faf9fb; color: #665e6d; font-size: 9px; }.step-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 7px; }.step-number { display: flex; width: 19px; height: 19px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 6px; background: #6d57bb; color: #fff; font-size: 9px; font-weight: 850; }.step-text { flex: 1; color: #544d5b; font-size: 11px; line-height: 1.55; }.result-box { margin-top: 12px; padding: 10px; border-radius: 9px; background: #fff8e8; }.result-label { display: block; color: #94701e; font-size: 9px; font-weight: 850; }.result-text { display: block; margin-top: 3px; color: #705d35; font-size: 11px; line-height: 1.5; }.caregiver-tip { display: flex; align-items: flex-start; gap: 7px; margin-top: 9px; color: #6e6677; font-size: 10px; line-height: 1.5; }.tip-icon { display: flex; width: 17px; height: 17px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #eee9f8; color: #6854ae; font-size: 9px; font-weight: 900; }
+.excluded-detail { margin-top: 11px; padding: 10px; border-radius: 9px; background: #f0edf1; color: #837a87; font-size: 10px; line-height: 1.5; }.manual-activity-section { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #dcd4e6; }.manual-activity-section-title { display: block; color: #477695; font-size: 10px; font-weight: 850; }.manual-activity-card { margin-top: 8px; padding: 10px; border: 1px solid #cfe2ef; border-radius: 10px; background: #f3faff; }.manual-activity-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; }.manual-activity-title { color: #385f78; font-size: 11px; font-weight: 850; }.manual-activity-duration { margin-left: 7px; color: #7690a0; font-size: 8px; }.manual-remove-button { flex-shrink: 0; padding: 4px 7px; border-radius: 7px; background: #fff0ed; color: #a95b52; font-size: 8px; font-weight: 800; }.manual-activity-target { display: block; margin-top: 5px; color: #566f7e; font-size: 10px; line-height: 1.5; }.manual-materials { margin-top: 7px; }.manual-activity-notes { display: block; margin-top: 7px; padding-top: 7px; border-top: 1px dashed #d1e1eb; color: #70828d; font-size: 9px; line-height: 1.5; }.add-manual-activity-button { width: 100%; margin-top: 11px; padding: 9px; border: 1px dashed #8ab2cb; border-radius: 9px; background: #f8fcff; color: #407c9f; font-size: 10px; font-weight: 850; }.add-manual-activity-button[disabled], .manual-remove-button[disabled] { opacity: .5; }
 .caregiver-guide { margin: 0 18px 18px; padding: 14px; border-radius: 12px; background: #373144; color: #fff; }.guide-title { display: block; margin-bottom: 8px; color: #ffedb5; font-size: 12px; font-weight: 850; }.guide-item { display: flex; align-items: flex-start; gap: 8px; margin-top: 7px; color: rgba(255,255,255,.82); font-size: 11px; line-height: 1.5; }.guide-number { display: flex; width: 18px; height: 18px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.25); border-radius: 50%; color: #ffe39a; font-size: 8px; }.ai-note { display: block; margin-top: 11px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.5); font-size: 9px; line-height: 1.5; }
-@media screen and (max-width: 560px) { .training-plan { margin: 28px 12px 8px; border-radius: 16px; }.section-heading, .plan-editor { padding: 17px; }.heading-title { font-size: 17px; }.heading-subtitle { font-size: 10px; }.calendar-mark { width: 42px; height: 42px; }.ready-badge { display: none; }.direction-summary { padding: 13px; }.direction-source { display: none; }.direction-selection-bar { align-items: flex-start; }.direction-selection-hint { max-width: 180px; }.direction-selection-actions { align-items: flex-end; flex-direction: column; }.direction-option { width: 100%; min-width: 0; }.direction-selection-summary { flex-direction: column; gap: 3px; }.direction-text { font-size: 9px; }.create-callout, .compact-summary { align-items: stretch; flex-direction: column; }.create-button { width: 100%; }.compact-actions { width: 100%; }.secondary-button, .view-button { flex: 1; }.generation-card { padding: 13px; }.generation-title { font-size: 12px; }.generation-actions { justify-content: stretch; }.task-primary-button, .task-secondary-button { flex: 1; }.schedule-builder { padding-right: 10px; padding-left: 10px; }.schedule-control { gap: 9px; }.control-index { width: 25px; height: 25px; }.control-value { font-size: 12px; }.control-hint { max-width: 145px; }.duration-select-wrap { width: 118px; }.duration-select-wrap :deep(.uni-select__input-box) { padding: 0 7px; }.duration-select-wrap :deep(.uni-select__selector-scroll) { height: 220px; max-height: 220px !important; overflow-y: auto; }.custom-weeks-row { margin-left: 34px; padding: 9px; }.custom-weeks-hint { display: none; }.custom-weeks-input-wrap { width: 104px; }.week-panel { padding: 15px; }.day-detail { padding-left: 13px; }.caregiver-guide { margin: 0 15px 15px; } }
+.manual-modal-mask { position: fixed; z-index: 9999; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(41,34,55,.52); box-sizing: border-box; }.manual-modal { width: 520px; max-width: 100%; max-height: 88vh; overflow-y: auto; padding: 18px; border-radius: 16px; background: #fff; box-shadow: 0 20px 55px rgba(27,20,45,.25); box-sizing: border-box; }.manual-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }.manual-modal-title { display: block; color: #3f3452; font-size: 16px; font-weight: 900; }.manual-modal-subtitle { display: block; margin-top: 4px; color: #8c8396; font-size: 10px; }.manual-modal-close { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: #f1edf6; color: #716778; font-size: 18px; }.manual-form-field { min-width: 0; flex: 1; margin-top: 13px; }.manual-form-label { display: block; margin-bottom: 6px; color: #655b70; font-size: 10px; font-weight: 850; }.manual-form-label text { color: #c45f55; }.manual-form-input, .manual-form-textarea, .manual-duration-input { width: 100%; border: 1px solid #ddd6e5; border-radius: 9px; background: #fbfafc; box-sizing: border-box; }.manual-form-input { height: 38px; padding: 0 10px; color: #41394b; font-size: 11px; }.manual-form-textarea { height: 80px; padding: 9px 10px; color: #41394b; font-size: 11px; line-height: 1.5; }.manual-form-textarea--small { height: 64px; }.manual-form-row { display: flex; gap: 10px; }.manual-form-field--duration { max-width: 130px; }.manual-duration-input { display: flex; height: 38px; align-items: center; padding: 0 9px; }.manual-duration-input input { min-width: 0; height: 36px; flex: 1; color: #41394b; font-size: 11px; }.manual-duration-input text { flex-shrink: 0; color: #81788a; font-size: 9px; }.manual-form-error { display: block; margin-top: 9px; color: #b45149; font-size: 10px; }.manual-modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 16px; }.manual-modal-cancel, .manual-modal-save { min-width: 92px; padding: 10px 13px; border-radius: 9px; font-size: 11px; font-weight: 850; }.manual-modal-cancel { border: 1px solid #ddd7e5; color: #706777; }.manual-modal-save { background: #6751b7; color: #fff; }.manual-modal-save[disabled] { background: #c9c4d1; color: #f5f3f7; }
+@media screen and (max-width: 560px) { .training-plan { margin: 28px 12px 8px; border-radius: 16px; }.section-heading, .plan-editor { padding: 17px; }.heading-title { font-size: 17px; }.heading-subtitle { font-size: 10px; }.calendar-mark { width: 42px; height: 42px; }.ready-badge { display: none; }.direction-summary { padding: 13px; }.direction-source { display: none; }.direction-selection-bar { align-items: flex-start; }.direction-selection-hint { max-width: 180px; }.direction-selection-actions { align-items: flex-end; flex-direction: column; }.direction-option { width: 100%; min-width: 0; }.direction-group-details { max-height: 300px; padding-left: 10px; }.direction-selection-summary { flex-direction: column; gap: 3px; }.direction-text { font-size: 9px; }.create-callout, .compact-summary { align-items: stretch; flex-direction: column; }.create-button { width: 100%; }.compact-actions { width: 100%; flex-wrap: wrap; }.secondary-button, .view-button, .manual-edit-button { flex: 1; }.generation-card { padding: 13px; }.generation-title { font-size: 12px; }.generation-actions { justify-content: stretch; }.task-primary-button, .task-secondary-button { flex: 1; }.schedule-builder { padding-right: 10px; padding-left: 10px; }.schedule-control { gap: 9px; }.control-index { width: 25px; height: 25px; }.control-value { font-size: 12px; }.control-hint { max-width: 145px; }.duration-select-wrap { width: 118px; }.duration-select-wrap :deep(.uni-select__input-box) { padding: 0 7px; }.duration-select-wrap :deep(.uni-select__selector-scroll) { height: 220px; max-height: 220px !important; overflow-y: auto; }.custom-weeks-row { margin-left: 34px; padding: 9px; }.custom-weeks-hint { display: none; }.custom-weeks-input-wrap { width: 104px; }.week-panel { padding: 15px; }.day-detail { padding-left: 13px; }.caregiver-guide { margin: 0 15px 15px; }.manual-modal-mask { align-items: flex-end; padding: 0; }.manual-modal { width: 100%; max-height: 92vh; padding-bottom: calc(18px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; }.manual-form-row { flex-direction: column; gap: 0; }.manual-form-field--duration { max-width: none; }.manual-modal-actions { position: sticky; bottom: 0; padding-top: 10px; background: #fff; }.manual-modal-cancel, .manual-modal-save { flex: 1; } }
 </style>

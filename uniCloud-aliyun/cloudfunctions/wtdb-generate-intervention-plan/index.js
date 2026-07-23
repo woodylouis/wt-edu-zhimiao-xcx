@@ -47,6 +47,41 @@ exports.main = async (event = {}, context) => {
 			}
 		}
 
+		if (action === 'update-manual') {
+			if (!report.interventionPlan) {
+				throw new planService.TaskError('PLAN_NOT_FOUND', '训练计划尚未生成，无法手动调整', 404)
+			}
+			const sourceRevision = Number(report.interventionPlan.sourceAnalysisRevision || 1)
+			const reportRevision = Number(report.analysisRevision || 1)
+			if (report.interventionPlanStatus === 'stale' || sourceRevision !== reportRevision) {
+				throw new planService.TaskError('PLAN_STALE', '报告分析已更新，请先重新生成训练计划再手动调整', 409)
+			}
+			const latestTask = await planService.findLatestTask(report._id)
+			await planService.reconcileTimeout(latestTask)
+			if (latestTask && planService.isActiveStatus(latestTask.status)) {
+				throw new planService.TaskError('TASK_ALREADY_RUNNING', '训练计划正在重新生成，请完成后再手动调整', 409)
+			}
+			const expectedManualRevision = Number(event.expectedManualRevision || 0)
+			const currentManualRevision = Number(report.interventionPlan.manualRevision || 0)
+			if (expectedManualRevision !== currentManualRevision) {
+				throw new planService.TaskError('PLAN_UPDATED', '训练计划已被其他老师更新，请刷新页面后重试', 409)
+			}
+			const now = Date.now()
+			const plan = planService.applyManualPlanAdjustments(report.interventionPlan, {
+				manualActivities: event.manualActivities,
+				excludedDailyPlanKeys: event.excludedDailyPlanKeys,
+				adjustedAt: now,
+				adjustedBy: scope.uid
+			})
+			await reports.doc(report._id).update({
+				interventionPlan: plan,
+				interventionPlanStatus: 'completed',
+				interventionPlanUpdatedAt: now,
+				updateTime: now
+			})
+			return { code: 200, msg: '训练计划调整已保存', data: { plan } }
+		}
+
 		if (action === 'retry') {
 			const task = await planService.findTask(String(event.taskId || ''))
 			const retried = await planService.retryTask(task, report)
@@ -85,7 +120,7 @@ exports.main = async (event = {}, context) => {
 		if (error instanceof planService.TaskError) {
 			return { code: error.statusCode || 400, msg: error.message, errorCode: error.code }
 		}
-		if (/日期|完整周|结束日期|计划周期|干预方向/.test(error?.message || '')) {
+		if (/日期|完整周|结束日期|计划周期|干预方向|训练活动|手动调整|移出计划/.test(error?.message || '')) {
 			return { code: 400, msg: error.message }
 		}
 		return subjectAuth.toErrorResponse(error, '提交训练计划任务失败')

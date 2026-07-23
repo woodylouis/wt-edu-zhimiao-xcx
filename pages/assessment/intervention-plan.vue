@@ -105,7 +105,7 @@ export default {
         interventionPlan: plan,
         interventionPlanStatus: 'completed',
         interventionPlanStaleReason: '',
-        interventionPlanUpdatedAt: plan.generatedAt || Date.now(),
+        interventionPlanUpdatedAt: plan.manuallyAdjustedAt || plan.generatedAt || Date.now(),
         analysisRevision: plan.sourceAnalysisRevision || this.reportData.analysisRevision || 1
       }
       uni.setStorageSync('intervention_plan_result', {

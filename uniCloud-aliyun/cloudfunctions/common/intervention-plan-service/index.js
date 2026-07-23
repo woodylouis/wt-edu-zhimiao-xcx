@@ -3,6 +3,7 @@
 const crypto = require('crypto')
 const deepseek = require('deepseek-client')
 const {
+	applyManualPlanAdjustments,
 	assemblePlanFromParts,
 	buildOverviewPrompt,
 	buildSystemPrompt,
@@ -687,6 +688,7 @@ module.exports = {
 	ACTIVE_STATUSES,
 	ERROR_STATUSES,
 	TaskError,
+	applyManualPlanAdjustments,
 	classifyError,
 	compactId,
 	createTask,

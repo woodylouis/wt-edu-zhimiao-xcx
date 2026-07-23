@@ -472,9 +472,81 @@ function normalizePlan(rawPlan, { startDate, endDate = '', weeksCount, childName
 	}
 }
 
+function applyManualPlanAdjustments(plan, {
+	manualActivities = [],
+	excludedDailyPlanKeys = [],
+	adjustedAt = Date.now(),
+	adjustedBy = ''
+} = {}) {
+	if (!plan || !Array.isArray(plan.weeklyPlans) || !plan.weeklyPlans.length) {
+		throw new Error('训练计划不存在，无法进行手动调整')
+	}
+	const weeksCount = normalizeWeeksCount(plan.weeksCount || plan.weeklyPlans.length)
+	const maximumActivities = weeksCount * 7 * 3
+	if (!Array.isArray(manualActivities) || manualActivities.length > maximumActivities) {
+		throw new Error(`老师新增训练活动不能超过${maximumActivities}项`)
+	}
+	if (!Array.isArray(excludedDailyPlanKeys)) throw new Error('移出计划的训练日期格式不正确')
+
+	const validDayKeys = new Set()
+	for (let weekNumber = 1; weekNumber <= weeksCount; weekNumber++) {
+		for (let dayNumber = 1; dayNumber <= 7; dayNumber++) {
+			validDayKeys.add(`${weekNumber}-${dayNumber}`)
+		}
+	}
+	const normalizedExcludedKeys = [...new Set(excludedDailyPlanKeys.map(item => cleanText(item, 20)).filter(Boolean))]
+	if (normalizedExcludedKeys.some(key => !validDayKeys.has(key))) {
+		throw new Error('部分移出计划的训练日期已失效，请刷新后重试')
+	}
+
+	const previousActivities = new Map(
+		(Array.isArray(plan.manualActivities) ? plan.manualActivities : [])
+			.map(item => [cleanText(item?.id, 80), item])
+			.filter(([id]) => id)
+	)
+	const normalizedActivities = manualActivities.map((rawActivity, index) => {
+		const weekNumber = Number(rawActivity?.weekNumber)
+		const dayNumber = Number(rawActivity?.dayNumber)
+		const dayKey = `${weekNumber}-${dayNumber}`
+		if (!Number.isSafeInteger(weekNumber) || !Number.isSafeInteger(dayNumber) || !validDayKeys.has(dayKey)) {
+			throw new Error(`第${index + 1}项老师新增活动的周次或日期无效`)
+		}
+		const rawId = cleanText(rawActivity?.id, 80)
+		const id = rawId || `manual_${weekNumber}_${dayNumber}_${Number(adjustedAt) || Date.now()}_${index + 1}`
+		const previous = previousActivities.get(id)
+		const materials = (Array.isArray(rawActivity?.materials) ? rawActivity.materials : [])
+			.map(item => cleanText(item, 60))
+			.filter(Boolean)
+			.slice(0, 4)
+		return {
+			id,
+			weekNumber,
+			dayNumber,
+			date: addDays(plan.startDate, (weekNumber - 1) * 7 + dayNumber - 1),
+			title: requiredText(rawActivity?.title, `第${index + 1}项老师新增活动名称`, 80),
+			target: requiredText(rawActivity?.target, `第${index + 1}项老师新增活动目标`, 180),
+			durationMinutes: Math.min(40, Math.max(5, Number(rawActivity?.durationMinutes) || 15)),
+			materials,
+			notes: cleanText(rawActivity?.notes, 240),
+			createdAt: Number(previous?.createdAt) || Number(adjustedAt) || Date.now(),
+			createdBy: cleanText(previous?.createdBy || adjustedBy, 80)
+		}
+	})
+
+	return {
+		...plan,
+		manualActivities: normalizedActivities,
+		excludedDailyPlanKeys: normalizedExcludedKeys,
+		manualRevision: Math.max(0, Number(plan.manualRevision) || 0) + 1,
+		manuallyAdjustedAt: Number(adjustedAt) || Date.now(),
+		manuallyAdjustedBy: cleanText(adjustedBy, 80)
+	}
+}
+
 module.exports = {
 	WEEKDAY_NAMES,
 	addDays,
+	applyManualPlanAdjustments,
 	assemblePlanFromParts,
 	buildOverviewPrompt,
 	buildSystemPrompt,

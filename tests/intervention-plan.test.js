@@ -4,6 +4,7 @@ const assert = require('node:assert/strict')
 const test = require('node:test')
 const {
 	addDays,
+	applyManualPlanAdjustments,
 	assemblePlanFromParts,
 	buildInterventionDirectionSummary,
 	buildOverviewPrompt,
@@ -94,6 +95,63 @@ test('rejects incomplete daily schedules instead of saving a vague plan', () => 
 	assert.throws(
 		() => normalizePlan(raw, { startDate: '2026-07-22', weeksCount: 4 }),
 		/第2周应包含7天计划/
+	)
+})
+
+test('applies recoverable teacher adjustments without changing the seven-day plan structure', () => {
+	const plan = normalizePlan(createRawPlan(2), {
+		startDate: '2026-07-22',
+		weeksCount: 2,
+		childName: '小苗',
+		generatedAt: 123,
+		generatedBy: 'teacher-a',
+		model: 'deepseek-v4-pro',
+		sourceAnalysisRevision: 3
+	})
+	const adjusted = applyManualPlanAdjustments(plan, {
+		manualActivities: [{
+			id: 'teacher-activity-1',
+			weekNumber: 2,
+			dayNumber: 3,
+			title: '餐桌分类游戏',
+			target: '独立将餐具按种类放入对应位置',
+			durationMinutes: 20,
+			materials: ['勺子', '筷子', '收纳盒'],
+			notes: '先示范一次，再逐步撤除手势提示'
+		}],
+		excludedDailyPlanKeys: ['1-2', '1-2'],
+		adjustedAt: 1000,
+		adjustedBy: 'teacher-b'
+	})
+
+	assert.equal(adjusted.weeklyPlans[0].dailyPlans.length, 7)
+	assert.equal(adjusted.manualActivities[0].date, '2026-07-31')
+	assert.equal(adjusted.manualActivities[0].createdAt, 1000)
+	assert.equal(adjusted.manualActivities[0].createdBy, 'teacher-b')
+	assert.deepEqual(adjusted.excludedDailyPlanKeys, ['1-2'])
+	assert.equal(adjusted.manualRevision, 1)
+
+	const readjusted = applyManualPlanAdjustments(adjusted, {
+		manualActivities: [{
+			...adjusted.manualActivities[0],
+			title: '更新后的餐桌分类游戏'
+		}],
+		excludedDailyPlanKeys: [],
+		adjustedAt: 2000,
+		adjustedBy: 'teacher-c'
+	})
+	assert.equal(readjusted.manualActivities[0].createdAt, 1000)
+	assert.equal(readjusted.manualActivities[0].createdBy, 'teacher-b')
+	assert.equal(readjusted.manualRevision, 2)
+	assert.throws(
+		() => applyManualPlanAdjustments(plan, {
+			manualActivities: [{ weekNumber: 3, dayNumber: 1, title: '无效活动', target: '越界周次' }]
+		}),
+		/周次或日期无效/
+	)
+	assert.throws(
+		() => applyManualPlanAdjustments(plan, { excludedDailyPlanKeys: ['3-1'] }),
+		/训练日期已失效/
 	)
 })
 
