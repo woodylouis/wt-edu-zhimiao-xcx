@@ -206,7 +206,8 @@
                 "pending",
                 "generating",
                 "completed",
-                "failed"
+                "failed",
+                "stale"
             ],
             "description": "PDF生成状态"
         },
@@ -253,6 +254,37 @@
         "reportSummary": {
             "bsonType": "string",
             "description": "报告总结"
+        },
+        "interventionPlan": {
+            "bsonType": "object",
+            "description": "DeepSeek生成的结构化个性化训练计划，包含每周目标和每日任务"
+        },
+        "interventionPlanStatus": {
+            "bsonType": "string",
+            "enum": [
+                "generating",
+                "completed",
+                "failed",
+                "stale"
+            ],
+            "description": "个性化训练计划生成状态"
+        },
+        "interventionPlanGeneration": {
+            "bsonType": "object",
+            "description": "训练计划后台生成任务的公开状态快照，用于退出页面后恢复进度"
+        },
+        "interventionPlanUpdatedAt": {
+            "bsonType": "timestamp",
+            "description": "个性化训练计划最后更新时间"
+        },
+        "interventionPlanStaleReason": {
+            "bsonType": "string",
+            "description": "训练计划与当前报告不匹配的原因"
+        },
+        "analysisRevision": {
+            "bsonType": "int",
+            "minimum": 1,
+            "description": "报告AI分析版本号，用于判断训练计划是否匹配"
         },
         "createTime": {
             "bsonType": "timestamp",

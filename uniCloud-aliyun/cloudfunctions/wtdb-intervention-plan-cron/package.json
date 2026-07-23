@@ -1,0 +1,21 @@
+{
+  "name": "wtdb-intervention-plan-cron",
+  "dependencies": {
+    "intervention-plan-service": "file:../common/intervention-plan-service"
+  },
+  "cloudfunction-config": {
+    "concurrency": 1,
+    "memorySize": 512,
+    "timeout": 600,
+    "triggers": [
+      {
+        "name": "wtdb-intervention-plan-every-minute",
+        "type": "timer",
+        "config": "0 * * * * * *"
+      }
+    ]
+  },
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

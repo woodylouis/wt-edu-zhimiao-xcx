@@ -146,6 +146,22 @@
         </div>
       </div>
       <view
+        v-if="currentReport"
+        class="training-plan-entry"
+        :class="`training-plan-entry--${trainingPlanEntry.tone}`"
+        @click="openInterventionPlanPage"
+      >
+        <view class="training-entry-icon"><text class="training-entry-day">7</text></view>
+        <view class="training-entry-copy">
+          <view class="training-entry-topline">
+            <text class="training-entry-title">{{ trainingPlanEntry.title }}</text>
+            <text class="training-entry-status">{{ trainingPlanEntry.status }}</text>
+          </view>
+          <text class="training-entry-hint">{{ trainingPlanEntry.hint }}</text>
+        </view>
+        <text class="training-entry-arrow">›</text>
+      </view>
+      <view
         class="collapse"
         v-for="(section, index) in sectionSummaryList"
         :key="index"
@@ -300,7 +316,7 @@
             >
               <view class="improvement-header">
                 <view class="improvement-icon">🎯</view>
-                <view class="improvement-title">干预建议计划</view>
+                <view class="improvement-title">技能训练建议</view>
               </view>
 
               <!-- 步骤条容器 -->
@@ -391,7 +407,7 @@
 
 <script setup>
   const echarts = require("./static/echarts.min");
-  import { onLoad, onShareAppMessage } from "@dcloudio/uni-app";
+  import { onLoad, onShow, onShareAppMessage } from "@dcloudio/uni-app";
   import { ref, onUnmounted, onMounted, computed, watch, nextTick } from "vue";
   import common from "./common.js";
   import customNav from "@/components/customNav";
@@ -482,6 +498,60 @@
       ? "这份报告来自微信分享，请谨慎转发儿童成长信息"
       : "报告含儿童成长信息，分享前请确认接收人"
   );
+  const trainingPlanEntry = computed(() => {
+    const report = currentReport.value || {};
+    const task = report.interventionPlanGeneration;
+    if (task && ["pending", "generating_overview", "generating_weeks", "assembling"].includes(task.status)) {
+      return {
+        tone: "progress",
+        status: `${Number(task.progress) || 0}%`,
+        title: task.currentWeek
+          ? `正在生成第${task.currentWeek}/${task.totalWeeks}周`
+          : "干预训练计划正在后台生成",
+        hint: `${task.completedWeeks || 0}/${task.totalWeeks || 0}周已完成 · 可进入查看实时进度`,
+      };
+    }
+    if (task && ["failed", "timed_out"].includes(task.status)) {
+      return {
+        tone: "danger",
+        status: task.status === "timed_out" ? "已超时" : "生成失败",
+        title: "干预训练计划需要处理",
+        hint: `${task.errorMessage || "生成未完成"} · 点击查看或重试`,
+      };
+    }
+    const plan = report.interventionPlan;
+    if (!plan) {
+      return {
+        tone: "empty",
+        status: "尚未生成",
+        title: "制定干预训练计划",
+        hint: isSharedView.value
+          ? "当前报告还没有训练计划"
+          : "进入独立页面，按完整周生成每日训练安排",
+      };
+    }
+
+    const reportRevision = Number(report.analysisRevision || 0);
+    const sourceRevision = Number(plan.sourceAnalysisRevision || 0);
+    const mismatched =
+      report.interventionPlanStatus === "stale" ||
+      (reportRevision && sourceRevision && reportRevision !== sourceRevision);
+    if (mismatched) {
+      return {
+        tone: "warning",
+        status: "需要更新",
+        title: "干预训练计划与报告不匹配",
+        hint: "报告分析已变化，请进入计划页及时重新生成",
+      };
+    }
+
+    return {
+      tone: "ready",
+      status: "已生成",
+      title: "查看干预训练计划",
+      hint: `${plan.weeksCount || plan.weeklyPlans?.length || ""}周安排 · ${plan.startDate || ""} 至 ${plan.endDate || ""}`,
+    };
+  });
 
   // 折叠面板事件处理函数
   const openCollapse = (e) => {
@@ -709,6 +779,70 @@
     }
   };
 
+  const openInterventionPlanPage = () => {
+    const report = currentReport.value || {};
+    if (!report.interventionPlan && isSharedView.value) {
+      uni.showToast({ title: "该报告尚未生成训练计划", icon: "none" });
+      return;
+    }
+    const query = [];
+    if (report.reportId) query.push(`reportId=${encodeURIComponent(report.reportId)}`);
+    else if (report._id) query.push(`documentId=${encodeURIComponent(report._id)}`);
+    if (report.childId) query.push(`childId=${encodeURIComponent(report.childId)}`);
+    if (isSharedView.value) query.push("isShare=true");
+    uni.navigateTo({ url: `/pages/assessment/intervention-plan?${query.join("&")}` });
+  };
+
+  const syncGeneratedInterventionPlan = () => {
+    const taskResult = uni.getStorageSync("intervention_plan_task_result");
+    const activeReport = currentReport.value;
+    if (taskResult?.task && activeReport) {
+      const currentIds = [activeReport.reportId, activeReport._id].filter(Boolean);
+      const taskIds = [taskResult.reportId, taskResult.documentId].filter(Boolean);
+      if (currentIds.some((id) => taskIds.includes(id))) {
+        const reportWithTask = {
+          ...activeReport,
+          interventionPlanGeneration: taskResult.task,
+          interventionPlanStatus: taskResult.task.status === "completed"
+            ? "completed"
+            : ["failed", "timed_out"].includes(taskResult.task.status)
+              ? "failed"
+              : "generating",
+          interventionPlanUpdatedAt: taskResult.task.updatedAt || Date.now(),
+        };
+        currentReport.value = reportWithTask;
+        const taskHistoryIndex = historyReports.value.findIndex((item) =>
+          [item.reportId, item._id].filter(Boolean).some((id) => taskIds.includes(id))
+        );
+        if (taskHistoryIndex >= 0) historyReports.value[taskHistoryIndex] = reportWithTask;
+        uni.removeStorageSync("intervention_plan_task_result");
+      }
+    }
+
+    const result = uni.getStorageSync("intervention_plan_result");
+    const report = currentReport.value;
+    if (!result?.plan || !report) return;
+
+    const currentIds = [report.reportId, report._id].filter(Boolean);
+    const resultIds = [result.reportId, result.documentId].filter(Boolean);
+    if (!currentIds.some((id) => resultIds.includes(id))) return;
+
+    const updatedReport = {
+      ...report,
+      interventionPlan: result.plan,
+      interventionPlanStatus: "completed",
+      interventionPlanStaleReason: "",
+      interventionPlanUpdatedAt: result.plan.generatedAt || Date.now(),
+    };
+    currentReport.value = updatedReport;
+
+    const historyIndex = historyReports.value.findIndex((item) =>
+      [item.reportId, item._id].filter(Boolean).some((id) => resultIds.includes(id))
+    );
+    if (historyIndex >= 0) historyReports.value[historyIndex] = updatedReport;
+    uni.removeStorageSync("intervention_plan_result");
+  };
+
   const resolvePdfUrl = async (sourceUrl) => {
     if (!sourceUrl) throw new Error("PDF地址不存在");
     if (/^https?:\/\//i.test(sourceUrl)) return sourceUrl;
@@ -933,6 +1067,10 @@
         analysisTextAI.value = matchingReport.aiResponse || "";
       }
     }
+  });
+
+  onShow(() => {
+    syncGeneratedInterventionPlan();
   });
 
   onMounted(async () => {
@@ -1805,6 +1943,130 @@
     radial-gradient(circle at 7% 24%, rgba(255, 212, 71, 0.28) 0 84rpx, transparent 86rpx),
     radial-gradient(circle at 96% 58%, rgba(165, 139, 255, 0.18) 0 126rpx, transparent 128rpx),
     linear-gradient(180deg, #fff7d9 0%, #fff4ed 43%, #f4efff 100%);
+}
+
+.training-plan-entry {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin: 0 34rpx 30rpx;
+  padding: 24rpx 26rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 24rpx;
+  background: #fff;
+  box-shadow: 6rpx 6rpx 0 rgba(57, 47, 89, 0.16);
+}
+
+.training-plan-entry--empty {
+  background: linear-gradient(135deg, #fffdf7 0%, #fff3cd 100%);
+  box-shadow: 6rpx 6rpx 0 #ffd447;
+}
+
+.training-plan-entry--warning {
+  background: linear-gradient(135deg, #fffaf5 0%, #ffe3cc 100%);
+  box-shadow: 6rpx 6rpx 0 #ff9b78;
+}
+
+.training-plan-entry--progress {
+  background: linear-gradient(135deg, #fbf9ff 0%, #e9e2ff 100%);
+  box-shadow: 6rpx 6rpx 0 #a58cf0;
+}
+
+.training-plan-entry--danger {
+  background: linear-gradient(135deg, #fff9f7 0%, #ffdeda 100%);
+  box-shadow: 6rpx 6rpx 0 #e98278;
+}
+
+.training-plan-entry--ready {
+  background: linear-gradient(135deg, #f8fffc 0%, #ddf8ef 100%);
+  box-shadow: 6rpx 6rpx 0 #79dfc2;
+}
+
+.training-entry-icon {
+  display: flex;
+  width: 66rpx;
+  height: 66rpx;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 3rpx solid #392f59;
+  border-radius: 18rpx;
+  background: #7c63e8;
+  color: #fff;
+  box-shadow: 3rpx 3rpx 0 #ff8f82;
+}
+
+.training-entry-day {
+  font-size: 28rpx;
+  font-weight: 950;
+}
+
+.training-entry-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.training-entry-topline {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.training-entry-title {
+  overflow: hidden;
+  color: #392f59;
+  font-size: 27rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.training-entry-status {
+  flex-shrink: 0;
+  padding: 5rpx 11rpx;
+  border-radius: 999rpx;
+  background: rgba(124, 99, 232, 0.12);
+  color: #6752b2;
+  font-size: 18rpx;
+  font-weight: 850;
+}
+
+.training-plan-entry--warning .training-entry-status {
+  background: #fff0e6;
+  color: #b6532d;
+}
+
+.training-plan-entry--progress .training-entry-status {
+  background: #e3dafc;
+  color: #5d46a8;
+}
+
+.training-plan-entry--danger .training-entry-status {
+  background: #ffe0dc;
+  color: #aa463d;
+}
+
+.training-plan-entry--ready .training-entry-status {
+  background: #d3f4e8;
+  color: #25765e;
+}
+
+.training-entry-hint {
+  display: block;
+  overflow: hidden;
+  margin-top: 7rpx;
+  color: #71677f;
+  font-size: 20rpx;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.training-entry-arrow {
+  flex-shrink: 0;
+  color: #665a78;
+  font-size: 42rpx;
+  font-weight: 500;
 }
 
 .report-orb {

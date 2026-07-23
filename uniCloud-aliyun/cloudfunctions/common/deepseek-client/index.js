@@ -41,8 +41,12 @@ function normalizeBaseUrl(baseUrl) {
 	return (baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '')
 }
 
+function getChoiceFromResponse(data) {
+	return data && Array.isArray(data.choices) ? data.choices[0] : null
+}
+
 function getContentFromResponse(data) {
-	const choice = data && Array.isArray(data.choices) && data.choices[0]
+	const choice = getChoiceFromResponse(data)
 	const content = choice && choice.message && choice.message.content
 	return typeof content === 'string' ? content.trim() : ''
 }
@@ -132,7 +136,8 @@ async function chatCompletion({
 	temperature = 0.3,
 	timeout = 60000,
 	thinking = { type: 'enabled' },
-	reasoningEffort = 'high'
+	reasoningEffort = 'high',
+	responseFormat = null
 }) {
 	if (!Array.isArray(messages) || messages.length === 0) {
 		throw new Error('DeepSeek messages 不能为空')
@@ -152,9 +157,13 @@ async function chatCompletion({
 	if (reasoningEffort) {
 		payload.reasoning_effort = reasoningEffort
 	}
+	if (responseFormat) {
+		payload.response_format = responseFormat
+	}
 
 	const data = await requestDeepSeek(payload, { timeout })
 	const content = getContentFromResponse(data)
+	const choice = getChoiceFromResponse(data)
 	if (!content) {
 		throw new Error('DeepSeek 返回空内容')
 	}
@@ -163,6 +172,7 @@ async function chatCompletion({
 		content,
 		model: data.model || model,
 		usage: data.usage || null,
+		finishReason: choice?.finish_reason || '',
 		raw: data
 	}
 }

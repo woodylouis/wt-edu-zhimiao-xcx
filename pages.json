@@ -263,6 +263,12 @@
           "style": {
             "navigationStyle": "custom"
           }
+        },
+        {
+          "path": "intervention-plan",
+          "style": {
+            "navigationStyle": "custom"
+          }
         }
       ]
     },

@@ -1,0 +1,31 @@
+[
+  {
+    "IndexName": "task_id_unique",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "taskId", "Direction": "1" }
+      ],
+      "MgoIsUnique": true
+    }
+  },
+  {
+    "IndexName": "report_created",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "reportDocumentId", "Direction": "1" },
+        { "Name": "createdAt", "Direction": "-1" }
+      ],
+      "MgoIsUnique": false
+    }
+  },
+  {
+    "IndexName": "status_updated",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "status", "Direction": "1" },
+        { "Name": "updatedAt", "Direction": "1" }
+      ],
+      "MgoIsUnique": false
+    }
+  }
+]

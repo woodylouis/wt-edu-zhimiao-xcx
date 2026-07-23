@@ -1,0 +1,8 @@
+{
+  "name": "intervention-plan-service",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "deepseek-client": "file:../deepseek-client"
+  }
+}

@@ -6,6 +6,7 @@ const dbRecord = db.collection('wtdb-business-assess-record')
 const dbTask = db.collection('wtdb-report-tasks')
 const dbLog = db.collection('wtdb-debug-logs')
 const taskAuth = require('report-task-auth')
+const { buildInitialReportData, buildReanalysisVersionUpdate } = require('./lib/report-analysis-version')
 
 async function log(tag, data = null, { taskId = '', recordId = '', level = 'info' } = {}) {
 	const now = Date.now()
@@ -36,11 +37,13 @@ exports.main = async (event = {}) => {
 			const existing = await dbReport.where({ reportId: reportData.reportId }).limit(1).get()
 			const existingReport = existing.data[0] || null
 			if (!existingReport) {
-				await dbReport.add(reportData)
+				await dbReport.add(buildInitialReportData(reportData))
 				await log('report-inserted', {}, { taskId, recordId })
 			} else {
+				const analysisVersionUpdate = buildReanalysisVersionUpdate(existingReport)
 				await dbReport.doc(existingReport._id).update({
 					...reportData,
+					...analysisVersionUpdate,
 					createTime: existingReport.createTime || reportData.createTime,
 					pdfUrl: '',
 					pdfStatus: 'pending',

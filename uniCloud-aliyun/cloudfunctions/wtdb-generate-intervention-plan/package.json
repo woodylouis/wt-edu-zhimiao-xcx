@@ -1,0 +1,15 @@
+{
+  "name": "wtdb-generate-intervention-plan",
+  "dependencies": {
+    "business-subject-auth": "file:../common/business-subject-auth",
+    "intervention-plan-service": "file:../common/intervention-plan-service"
+  },
+  "cloudfunction-config": {
+    "concurrency": 10,
+    "memorySize": 512,
+    "timeout": 30
+  },
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

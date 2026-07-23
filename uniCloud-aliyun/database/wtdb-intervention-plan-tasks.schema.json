@@ -1,0 +1,179 @@
+{
+  "bsonType": "object",
+  "required": [
+    "taskId",
+    "reportDocumentId",
+    "childId",
+    "status",
+    "startDate",
+    "endDate",
+    "totalWeeks",
+    "createdAt",
+    "updatedAt",
+    "deadlineAt"
+  ],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": {
+      "description": "系统自动生成的文档ID"
+    },
+    "taskId": {
+      "bsonType": "string",
+      "description": "训练计划生成任务唯一ID"
+    },
+    "reportId": {
+      "bsonType": "string",
+      "description": "业务报告ID"
+    },
+    "reportDocumentId": {
+      "bsonType": "string",
+      "description": "报告文档ID"
+    },
+    "childId": {
+      "bsonType": "string",
+      "description": "儿童ID"
+    },
+    "requestedBy": {
+      "bsonType": "string",
+      "description": "任务提交人"
+    },
+    "status": {
+      "bsonType": "string",
+      "enum": [
+        "pending",
+        "generating_overview",
+        "generating_weeks",
+        "assembling",
+        "completed",
+        "failed",
+        "timed_out"
+      ],
+      "description": "任务状态"
+    },
+    "stage": {
+      "bsonType": "string",
+      "description": "当前处理阶段"
+    },
+    "message": {
+      "bsonType": "string",
+      "description": "面向用户的实时状态说明"
+    },
+    "progress": {
+      "bsonType": "int",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "生成进度百分比"
+    },
+    "startDate": {
+      "bsonType": "string",
+      "description": "计划开始日期"
+    },
+    "endDate": {
+      "bsonType": "string",
+      "description": "计划结束日期"
+    },
+    "totalWeeks": {
+      "bsonType": "int",
+      "minimum": 1,
+      "description": "计划总周数"
+    },
+    "completedWeeks": {
+      "bsonType": "int",
+      "minimum": 0,
+      "description": "已完成周数"
+    },
+    "currentWeek": {
+      "bsonType": "int",
+      "minimum": 0,
+      "description": "当前正在生成的周次"
+    },
+    "attempt": {
+      "bsonType": "int",
+      "description": "当前步骤尝试次数"
+    },
+    "maxAttempts": {
+      "bsonType": "int",
+      "description": "当前步骤最多尝试次数"
+    },
+    "overview": {
+      "bsonType": "object",
+      "description": "已生成的计划主线"
+    },
+    "weeklyPlans": {
+      "bsonType": "array",
+      "description": "分周生成并持久化的中间结果"
+    },
+    "model": {
+      "bsonType": "string",
+      "description": "实际使用的AI模型"
+    },
+    "sourceAnalysisRevision": {
+      "bsonType": "int",
+      "minimum": 1,
+      "description": "生成时对应的报告分析版本"
+    },
+    "retryable": {
+      "bsonType": "bool",
+      "description": "任务失败后是否允许重试"
+    },
+    "retryCount": {
+      "bsonType": "int",
+      "minimum": 0,
+      "description": "用户重试次数"
+    },
+    "estimatedSeconds": {
+      "bsonType": "int",
+      "minimum": 0,
+      "description": "预计生成时长"
+    },
+    "createdAt": {
+      "bsonType": "long",
+      "description": "创建时间"
+    },
+    "startedAt": {
+      "bsonType": "long",
+      "description": "首次开始时间"
+    },
+    "updatedAt": {
+      "bsonType": "long",
+      "description": "最后心跳时间"
+    },
+    "deadlineAt": {
+      "bsonType": "long",
+      "description": "任务总超时时间"
+    },
+    "completedAt": {
+      "bsonType": "long",
+      "description": "完成时间"
+    },
+    "failedAt": {
+      "bsonType": "long",
+      "description": "失败时间"
+    },
+    "workerId": {
+      "bsonType": "string",
+      "description": "当前工作进程租约ID"
+    },
+    "leaseUntil": {
+      "bsonType": "long",
+      "description": "当前工作进程租约截止时间"
+    },
+    "errorCode": {
+      "bsonType": "string",
+      "description": "结构化异常代码"
+    },
+    "errorMessage": {
+      "bsonType": "string",
+      "description": "面向用户的异常说明"
+    },
+    "technicalError": {
+      "bsonType": "string",
+      "description": "截断后的内部异常详情"
+    }
+  }
+}
