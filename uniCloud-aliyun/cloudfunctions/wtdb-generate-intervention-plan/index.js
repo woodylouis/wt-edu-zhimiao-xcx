@@ -66,6 +66,7 @@ exports.main = async (event = {}, context) => {
 			startDate,
 			endDate,
 			weeksCount: range.weeksCount,
+			focusDomains: event.focusDomains,
 			forceRegenerate: !!event.forceRegenerate
 		})
 		if (created.plan) {
@@ -84,7 +85,7 @@ exports.main = async (event = {}, context) => {
 		if (error instanceof planService.TaskError) {
 			return { code: error.statusCode || 400, msg: error.message, errorCode: error.code }
 		}
-		if (/日期|完整周|结束日期|计划周期/.test(error?.message || '')) {
+		if (/日期|完整周|结束日期|计划周期|干预方向/.test(error?.message || '')) {
 			return { code: 400, msg: error.message }
 		}
 		return subjectAuth.toErrorResponse(error, '提交训练计划任务失败')

@@ -9,6 +9,7 @@ const {
 	buildWeekPrompt,
 	extractJsonObject,
 	normalizeDateRange,
+	normalizeFocusDomains,
 	normalizeGeneratedWeek,
 	normalizePlanOverview
 } = require('./lib/intervention-plan')
@@ -98,6 +99,7 @@ function publicTask(task) {
 		startDate: task.startDate || '',
 		endDate: task.endDate || '',
 		totalWeeks: Number(task.totalWeeks) || 0,
+		focusDomains: Array.isArray(task.focusDomains) ? task.focusDomains : [],
 		completedWeeks: Number(task.completedWeeks) || 0,
 		currentWeek: Number(task.currentWeek) || 0,
 		attempt: Number(task.attempt) || 0,
@@ -122,6 +124,13 @@ function buildDeadline(now, weeksCount) {
 
 function estimateSeconds(weeksCount) {
 	return 30 + Number(weeksCount) * 45
+}
+
+function sameStringArray(left, right) {
+	const leftValues = Array.isArray(left) ? [...left].sort() : []
+	const rightValues = Array.isArray(right) ? [...right].sort() : []
+	return leftValues.length === rightValues.length &&
+		leftValues.every((item, index) => item === rightValues[index])
 }
 
 function classifyError(error) {
@@ -264,9 +273,11 @@ async function reconcileTimeout(task) {
 	return task
 }
 
-async function createTask({ report, requestedBy, startDate, endDate, weeksCount, forceRegenerate = false }) {
+async function createTask({ report, requestedBy, startDate, endDate, weeksCount, focusDomains = null, forceRegenerate = false }) {
 	const reportDocumentId = compactId(report?._id)
 	if (!reportDocumentId) throw new TaskError('REPORT_NOT_FOUND', '报告不存在', 404)
+	const normalizedFocusDomains = normalizeFocusDomains(report, focusDomains)
+	const defaultFocusDomains = normalizeFocusDomains(report)
 
 	const latest = await findLatestTask(reportDocumentId)
 	await reconcileTimeout(latest)
@@ -274,12 +285,24 @@ async function createTask({ report, requestedBy, startDate, endDate, weeksCount,
 		const sameRange = latest.startDate === startDate &&
 			latest.endDate === endDate &&
 			Number(latest.totalWeeks) === Number(weeksCount)
-		if (sameRange) return { task: latest, reused: true }
-		throw new TaskError('TASK_ALREADY_RUNNING', '当前报告已有训练计划正在生成，请等待完成后再调整日期。', 409)
+		const latestFocusDomains = Array.isArray(latest.focusDomains) && latest.focusDomains.length
+			? latest.focusDomains
+			: defaultFocusDomains
+		if (sameRange && sameStringArray(latestFocusDomains, normalizedFocusDomains)) {
+			return { task: latest, reused: true }
+		}
+		throw new TaskError('TASK_ALREADY_RUNNING', '当前报告已有训练计划正在生成，请等待完成后再调整日期或训练方向。', 409)
 	}
 
 	const existing = report.interventionPlan
-	if (!forceRegenerate && existing?.startDate === startDate && existing?.endDate === endDate && Number(existing?.weeksCount) === Number(weeksCount)) {
+	const existingFocusDomains = Array.isArray(existing?.focusDomains) && existing.focusDomains.length
+		? existing.focusDomains
+		: defaultFocusDomains
+	if (!forceRegenerate &&
+		existing?.startDate === startDate &&
+		existing?.endDate === endDate &&
+		Number(existing?.weeksCount) === Number(weeksCount) &&
+		sameStringArray(existingFocusDomains, normalizedFocusDomains)) {
 		return { plan: existing, cached: true }
 	}
 
@@ -297,6 +320,7 @@ async function createTask({ report, requestedBy, startDate, endDate, weeksCount,
 		startDate,
 		endDate,
 		totalWeeks: Number(weeksCount),
+		focusDomains: normalizedFocusDomains,
 		completedWeeks: 0,
 		currentWeek: 0,
 		attempt: 0,
@@ -605,7 +629,8 @@ async function processTask(taskId, { maxRunMs = 8 * 60 * 1000 } = {}) {
 			generatedAt: Date.now(),
 			generatedBy: task.requestedBy,
 			model: task.model || deepseek.DEFAULT_MODEL,
-			sourceAnalysisRevision: task.sourceAnalysisRevision
+			sourceAnalysisRevision: task.sourceAnalysisRevision,
+			focusDomains: task.focusDomains
 		})
 
 		const completedAt = Date.now()

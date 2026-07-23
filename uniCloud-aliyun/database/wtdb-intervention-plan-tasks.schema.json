@@ -82,6 +82,13 @@
       "minimum": 1,
       "description": "计划总周数"
     },
+    "focusDomains": {
+      "bsonType": "array",
+      "description": "用户选择并由任务固定使用的干预领域",
+      "items": {
+        "bsonType": "string"
+      }
+    },
     "completedWeeks": {
       "bsonType": "int",
       "minimum": 0,

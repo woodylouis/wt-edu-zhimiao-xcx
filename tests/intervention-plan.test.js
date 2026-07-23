@@ -12,6 +12,7 @@ const {
 	extractJsonObject,
 	getWeekdayName,
 	normalizeDateRange,
+	normalizeFocusDomains,
 	normalizeGeneratedWeek,
 	normalizePlan,
 	normalizePlanOverview,
@@ -77,10 +78,12 @@ test('calculates calendar dates and real weekdays without relying on AI output',
 		generatedAt: 123,
 		generatedBy: 'teacher-a',
 		model: 'deepseek-v4-pro',
-		sourceAnalysisRevision: 3
+		sourceAnalysisRevision: 3,
+		focusDomains: ['语言与沟通', '社会交往']
 	})
 	assert.equal(plan.endDate, '2026-08-18')
 	assert.equal(plan.sourceAnalysisRevision, 3)
+	assert.deepEqual(plan.focusDomains, ['语言与沟通', '社会交往'])
 	assert.equal(plan.weeklyPlans[0].dailyPlans[0].weekday, '周三')
 	assert.equal(plan.weeklyPlans[3].dailyPlans[6].date, '2026-08-18')
 })
@@ -174,8 +177,25 @@ test('ranks multiple intervention domains by relative score gap instead of repor
 	assert.match(summary, /回应同伴/)
 	assert.match(summary, /点数物品/)
 	assert.match(summary, /精细动作/)
-	assert.match(summary, /4个需要支持的领域/)
-	assert.match(summary, /全部纳入计划生成依据/)
+	assert.match(summary, /本次选择4个干预领域/)
+
+	assert.deepEqual(
+		normalizeFocusDomains(report, ['精细动作', '语言与沟通']),
+		['语言与沟通', '精细动作']
+	)
+	const selectedPrompt = buildOverviewPrompt(report, {
+		startDate: '2026-07-23',
+		endDate: '2026-08-19',
+		weeksCount: 4,
+		focusDomains: ['语言与沟通', '精细动作']
+	})
+	assert.match(selectedPrompt, /用户选择的干预领域/)
+	assert.match(selectedPrompt, /语言与沟通/)
+	assert.match(selectedPrompt, /精细动作/)
+	assert.doesNotMatch(selectedPrompt, /点数物品/)
+	assert.doesNotMatch(selectedPrompt, /回应同伴/)
+	assert.throws(() => normalizeFocusDomains(report, []), /至少选择一个/)
+	assert.throws(() => normalizeFocusDomains(report, ['不存在的领域']), /不存在/)
 })
 
 test('split prompts and assembly generate one week per AI request', () => {

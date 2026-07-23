@@ -61,7 +61,10 @@ function getExpectedOutcome(skill) {
 	return cleanText(skill.expectedOutcome || skill.task_object || skill.taskObject, 160)
 }
 
-function rankInterventionSections(report) {
+function rankInterventionSections(report, focusDomains = null) {
+	const focusSet = Array.isArray(focusDomains)
+		? new Set(focusDomains.map(item => cleanText(item, 80)).filter(Boolean))
+		: null
 	return (report.sectionSummaryList || []).map((section, sectionIndex) => {
 		let actual = 0
 		let expected = 0
@@ -101,7 +104,7 @@ function rankInterventionSections(report) {
 			relativeGap,
 			skills
 		}
-	}).filter(section => section.skills.length)
+	}).filter(section => section.skills.length && (!focusSet || focusSet.has(section.name)))
 		.sort((left, right) =>
 			right.relativeGap - left.relativeGap ||
 			right.skills.length - left.skills.length ||
@@ -109,8 +112,21 @@ function rankInterventionSections(report) {
 		)
 }
 
-function collectPrioritySkills(report, limit = 24) {
-	const sections = rankInterventionSections(report)
+function normalizeFocusDomains(report, requestedFocusDomains = null) {
+	const available = rankInterventionSections(report).map(section => section.name)
+	if (!available.length) return []
+	if (requestedFocusDomains === null || requestedFocusDomains === undefined) return available
+	if (!Array.isArray(requestedFocusDomains)) throw new Error('干预方向格式不正确，请重新选择')
+
+	const requested = [...new Set(requestedFocusDomains.map(item => cleanText(item, 80)).filter(Boolean))]
+	if (!requested.length) throw new Error('请至少选择一个干预方向')
+	const unknown = requested.filter(item => !available.includes(item))
+	if (unknown.length) throw new Error('部分干预方向不存在或评估结果已更新，请重新选择')
+	return available.filter(item => requested.includes(item))
+}
+
+function collectPrioritySkills(report, limit = 24, focusDomains = null) {
+	const sections = rankInterventionSections(report, focusDomains)
 	const result = []
 	for (let skillIndex = 0; result.length < limit; skillIndex++) {
 		let added = false
@@ -126,8 +142,11 @@ function collectPrioritySkills(report, limit = 24) {
 	return result
 }
 
-function collectSectionOverview(report) {
-	return (report.sectionSummaryList || []).map(section => {
+function collectSectionOverview(report, focusDomains = null) {
+	const focusSet = Array.isArray(focusDomains) ? new Set(focusDomains) : null
+	return (report.sectionSummaryList || []).filter(section =>
+		!focusSet || focusSet.has(cleanText(section.sectionName, 80) || '综合能力')
+	).map(section => {
 		let actual = 0
 		let expected = 0
 		for (const item of section.abllsSectionSummaryList || []) {
@@ -142,8 +161,8 @@ function collectSectionOverview(report) {
 	}).slice(0, 12)
 }
 
-function buildInterventionDirectionSummary(report) {
-	const prioritySections = rankInterventionSections(report)
+function buildInterventionDirectionSummary(report, focusDomains = null) {
+	const prioritySections = rankInterventionSections(report, focusDomains)
 	const domains = prioritySections.map(section => section.name)
 	const totalSkills = prioritySections.reduce((total, section) => total + section.skills.length, 0)
 	const skills = []
@@ -162,7 +181,7 @@ function buildInterventionDirectionSummary(report) {
 		const skillText = totalSkills <= skills.length
 			? `涉及${skills.join('、')}，共${totalSkills}项待支持技能`
 			: `共识别${totalSkills}项待支持技能，包括${skills.join('、')}等`
-		return `本次评估发现${domains.length}个需要支持的领域：${domains.join('、')}，全部纳入计划生成依据；${skillText}。相对期望差距仅用于安排训练先后和比重，不用于排除领域。`
+		return `本次选择${domains.length}个干预领域：${domains.join('、')}；${skillText}。相对期望差距仅用于安排训练先后和比重，不会排除已选择的领域。`
 	}
 	const assessmentTitle = cleanText(report.assessmentTitle, 60) || '当前成长评估'
 	return `本次计划将依据${assessmentTitle}的最新结果，优先选择报告中表现不稳定或尚未达到年龄期望的能力，从基础建立、情境应用到泛化维持逐周推进。`
@@ -178,20 +197,22 @@ function buildSystemPrompt() {
 4. 每周7天都要有安排，其中至少1天为低强度复习、亲子游戏或自然情境泛化，不安排机械重复。
 5. 用正向、尊重儿童的语言；不得作医学诊断、承诺疗效或建议惩罚、强迫、剥夺基本需要。
 6. 只输出合法JSON，不要Markdown、代码围栏、解释或额外文本。
-7. 所有存在未达标技能的领域都必须纳入计划范围；相对期望差距只用于安排先后和训练比重，不得用于排除领域。周期较短时可设计跨领域综合活动，并把暂时无法深入训练的技能列入后续递进方向。`
+7. 用户所选的每个干预领域都必须纳入计划范围；相对期望差距只用于安排先后和训练比重，不得排除已选领域。周期较短时可设计跨领域综合活动，并把暂时无法深入训练的技能列入后续递进方向。`
 }
 
-function buildUserPrompt(report, { startDate, endDate, weeksCount }) {
+function buildUserPrompt(report, { startDate, endDate, weeksCount, focusDomains = null }) {
 	const childName = cleanText(report.childName, 40) || '该儿童'
 	const age = cleanText(report.childAge || report.ageInt, 20) || '未知'
+	const normalizedFocusDomains = normalizeFocusDomains(report, focusDomains)
 	const context = {
 		儿童: childName,
 		年龄: String(age).includes('岁') ? age : `${age}岁`,
 		量表: cleanText(report.assessmentTitle, 100) || 'ABLLS-R',
 		报告总结: cleanText(report.reportSummary, 800),
-		干预方向摘要: buildInterventionDirectionSummary(report),
-		领域概览: collectSectionOverview(report),
-		优先关注技能: collectPrioritySkills(report, Math.max(24, rankInterventionSections(report).length))
+		用户选择的干预领域: normalizedFocusDomains,
+		干预方向摘要: buildInterventionDirectionSummary(report, normalizedFocusDomains),
+		领域概览: collectSectionOverview(report, normalizedFocusDomains),
+		优先关注技能: collectPrioritySkills(report, Math.max(24, normalizedFocusDomains.length), normalizedFocusDomains)
 	}
 
 	return `请根据以下评估资料，为儿童制定${startDate}至${endDate}、连续${weeksCount}个完整周的训练计划。开始日期和结束日期当天都包含在计划内。
@@ -230,25 +251,27 @@ ${JSON.stringify(context, null, 2)}
 硬性数量要求：weeklyPlans必须恰好有${weeksCount}项，weekNumber从1连续编号；每一周dailyPlans必须恰好有7项，dayNumber从1到7连续编号。每天内容要有变化并与本周目标直接相关。不要输出日期字段，系统会依据开始日期自动计算。`
 }
 
-function getPromptContext(report) {
+function getPromptContext(report, focusDomains = null) {
 	const childName = cleanText(report.childName, 40) || '该儿童'
 	const age = cleanText(report.childAge || report.ageInt, 20) || '未知'
+	const normalizedFocusDomains = normalizeFocusDomains(report, focusDomains)
 	return {
 		儿童: childName,
 		年龄: String(age).includes('岁') ? age : `${age}岁`,
 		量表: cleanText(report.assessmentTitle, 100) || 'ABLLS-R',
 		报告总结: cleanText(report.reportSummary, 800),
-		干预方向摘要: buildInterventionDirectionSummary(report),
-		领域概览: collectSectionOverview(report),
-		优先关注技能: collectPrioritySkills(report, Math.max(24, rankInterventionSections(report).length))
+		用户选择的干预领域: normalizedFocusDomains,
+		干预方向摘要: buildInterventionDirectionSummary(report, normalizedFocusDomains),
+		领域概览: collectSectionOverview(report, normalizedFocusDomains),
+		优先关注技能: collectPrioritySkills(report, Math.max(24, normalizedFocusDomains.length), normalizedFocusDomains)
 	}
 }
 
-function buildOverviewPrompt(report, { startDate, endDate, weeksCount }) {
+function buildOverviewPrompt(report, { startDate, endDate, weeksCount, focusDomains = null }) {
 	return `请先为${startDate}至${endDate}、连续${weeksCount}个完整周的儿童训练计划确定整体主线。
 
 评估资料：
-${JSON.stringify(getPromptContext(report), null, 2)}
+${JSON.stringify(getPromptContext(report, focusDomains), null, 2)}
 
 只输出以下合法JSON，不要输出每周或每日安排：
 {
@@ -264,7 +287,8 @@ function buildWeekPrompt(report, {
 	weeksCount,
 	weekNumber,
 	overview = {},
-	previousWeek = null
+	previousWeek = null,
+	focusDomains = null
 }) {
 	const weekStartDate = addDays(startDate, (weekNumber - 1) * 7)
 	const weekEndDate = addDays(weekStartDate, 6)
@@ -282,7 +306,7 @@ function buildWeekPrompt(report, {
 计划主线：${cleanText(overview.summary, 400)}
 
 评估资料：
-${JSON.stringify(getPromptContext(report), null, 2)}
+${JSON.stringify(getPromptContext(report, focusDomains), null, 2)}
 
 递进衔接：
 ${JSON.stringify(progression, null, 2)}
@@ -392,7 +416,7 @@ function assemblePlanFromParts({ overview, weeklyPlans }, options) {
 	}, options)
 }
 
-function normalizePlan(rawPlan, { startDate, endDate = '', weeksCount, childName = '', generatedAt = Date.now(), generatedBy = '', model = '', sourceAnalysisRevision = 1 }) {
+function normalizePlan(rawPlan, { startDate, endDate = '', weeksCount, childName = '', generatedAt = Date.now(), generatedBy = '', model = '', sourceAnalysisRevision = 1, focusDomains = [] }) {
 	const count = normalizeWeeksCount(weeksCount)
 	const normalizedEndDate = endDate || addDays(startDate, count * 7 - 1)
 	const range = normalizeDateRange(startDate, normalizedEndDate)
@@ -436,6 +460,7 @@ function normalizePlan(rawPlan, { startDate, endDate = '', weeksCount, childName
 		startDate,
 		endDate: normalizedEndDate,
 		weeksCount: count,
+		focusDomains: [...new Set((Array.isArray(focusDomains) ? focusDomains : []).map(item => cleanText(item, 80)).filter(Boolean))],
 		summary: requiredText(rawPlan.summary, '计划说明', 400),
 		caregiverGuidance: stringArray(rawPlan.caregiverGuidance, { min: 2, max: 5, field: '照护者提醒' }),
 		weeklyPlans,
@@ -462,6 +487,7 @@ module.exports = {
 	getWeekdayName,
 	normalizeDateRange,
 	normalizeGeneratedWeek,
+	normalizeFocusDomains,
 	normalizePlan,
 	normalizePlanOverview,
 	normalizeWeeksCount,

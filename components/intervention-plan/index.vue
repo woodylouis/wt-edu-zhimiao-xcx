@@ -21,17 +21,51 @@
           </view>
           <view class="direction-heading-copy">
             <text class="direction-kicker">INTERVENTION FOCUS</text>
-            <text class="direction-title">本次干预方向</text>
+            <text class="direction-title">选择本次训练方向</text>
           </view>
           <text class="direction-source">基于当前评估</text>
         </view>
-        <text class="direction-text">{{ interventionDirectionSummary }}</text>
-        <view class="direction-basis">
-          <text class="direction-basis-label">范围规则</text>
-          <text class="direction-basis-text">所有存在未达标技能的领域都会纳入生成依据；相对差距只决定安排先后和训练比重，不限制方向数量。</text>
+
+        <view v-if="interventionFocusData.sections.length" class="direction-selection-bar">
+          <view class="direction-selection-copy">
+            <text class="direction-selection-title">训练领域（默认全选）</text>
+            <text class="direction-selection-hint">{{ canEditFocusDomains ? '点击领域可取消或重新选择，至少保留1个' : '当前计划或生成任务已固定以下范围' }}</text>
+          </view>
+          <view class="direction-selection-actions">
+            <text class="selection-count">{{ selectedFocusDomainsCount }}/{{ interventionFocusData.sections.length }} 已选</text>
+            <button
+              v-if="canEditFocusDomains && !allFocusDomainsSelected"
+              class="select-all-button"
+              @click="selectAllFocusDomains"
+            >全部选择</button>
+          </view>
         </view>
-        <view v-if="interventionFocusLabels.length" class="direction-tags">
-          <text v-for="item in interventionFocusLabels" :key="item" class="direction-tag">{{ item }}</text>
+
+        <view v-if="interventionFocusData.sections.length" class="direction-options">
+          <button
+            v-for="section in interventionFocusData.sections"
+            :key="section.name"
+            class="direction-option"
+            :class="{ selected: isFocusDomainSelected(section.name) }"
+            :disabled="!canEditFocusDomains"
+            @click="toggleFocusDomain(section.name)"
+          >
+            <text class="direction-check">{{ isFocusDomainSelected(section.name) ? '✓' : '' }}</text>
+            <view class="direction-option-copy">
+              <text class="direction-option-name">{{ section.name }}</text>
+              <text class="direction-option-meta">{{ formatFocusSectionMeta(section) }}</text>
+            </view>
+            <text class="direction-option-count">{{ section.skills.length }}项</text>
+          </button>
+        </view>
+
+        <view class="direction-selection-summary">
+          <text class="direction-selection-label">计划范围</text>
+          <text class="direction-text">{{ interventionDirectionSummary }}</text>
+        </view>
+        <view v-if="unselectedFocusDomainsCount > 0" class="direction-exclusion-note">
+          <text class="direction-exclusion-icon">i</text>
+          <text>未选择的{{ unselectedFocusDomainsCount }}个领域不会进入本次 AI 训练计划，重新制定时可再次调整。</text>
         </view>
       </view>
 
@@ -52,6 +86,7 @@
         <view class="progress-track"><view class="progress-value" :style="{ width: `${taskProgress}%` }"></view></view>
         <view class="generation-meta">
           <text>{{ generationTask.completedWeeks || 0 }}/{{ generationTask.totalWeeks || 0 }}周已完成</text>
+          <text v-if="generationTask.focusDomains && generationTask.focusDomains.length">{{ generationTask.focusDomains.length }}个训练方向</text>
           <text v-if="generationTask.attempt > 1">自动重试 {{ generationTask.attempt }}/{{ generationTask.maxAttempts }}</text>
           <text v-if="generationTask.updatedAt">更新于 {{ formatTaskTime(generationTask.updatedAt) }}</text>
         </view>
@@ -67,17 +102,17 @@
         </view>
         <view class="generation-actions">
           <button v-if="isGenerationActive" class="task-secondary-button" @click="refreshGenerationStatus(false)">刷新状态</button>
-          <button v-if="generationFailed && generationTask.retryable !== false && !readOnly" class="task-primary-button" :disabled="submitting" @click="retryGeneration">
+          <button v-if="generationFailed && generationTask.retryable !== false && !readOnly && !editing" class="task-primary-button" :disabled="submitting" @click="retryGeneration">
             {{ submitting ? '正在提交…' : '从当前进度重试' }}
           </button>
-          <button v-if="generationFailed && !readOnly" class="task-secondary-button" @click="beginEditing">重新设置周期</button>
+          <button v-if="generationFailed && !readOnly && !editing" class="task-secondary-button" @click="beginEditing">调整方向和周期</button>
         </view>
       </view>
 
       <view v-if="!hasPlan && !editing && !readOnly && !hasVisibleGenerationTask" class="create-callout">
         <view class="callout-copy">
           <text class="callout-title">从报告建议继续制定每日训练</text>
-          <text class="callout-text">从今天开始，选择训练周期，AI 将生成材料、步骤与完成标准。</text>
+          <text class="callout-text">选择本次训练方向和周期，AI 将生成材料、步骤与完成标准。</text>
         </view>
         <button class="create-button" @click="beginEditing">制定计划 <text>→</text></button>
       </view>
@@ -114,7 +149,7 @@
       <view class="editor-heading">
         <view>
           <text class="editor-title">设置计划周期</text>
-          <text class="editor-hint">先确定哪天开始，再选择训练几周；结束日期会自动算好</text>
+          <text class="editor-hint">训练方向已在上方选好；再确定开始日期和训练周数</text>
         </view>
         <button class="text-button" @click="cancelEditing">取消</button>
       </view>
@@ -197,7 +232,7 @@
         </view>
       </view>
 
-      <button class="generate-button" :disabled="submitting || !rangeInfo.valid || !reportId" @click="generatePlan">
+      <button class="generate-button" :disabled="submitting || !rangeInfo.valid || !reportId || !focusSelectionValid" @click="generatePlan">
         <view v-if="submitting" class="button-spinner"></view>
         <text>{{ submitting ? '正在创建后台任务…' : `使用 DeepSeek 生成${rangeWeeks || ''}周计划` }}</text>
       </button>
@@ -214,6 +249,12 @@
       <view class="plan-introduction">
         <text class="introduction-label">计划说明</text>
         <text class="introduction-text">{{ plan.summary }}</text>
+        <view v-if="planFocusDomains.length" class="plan-focus-row">
+          <text class="plan-focus-label">训练方向</text>
+          <view class="plan-focus-tags">
+            <text v-for="domain in planFocusDomains" :key="domain" class="plan-focus-tag">{{ domain }}</text>
+          </view>
+        </view>
       </view>
 
       <scroll-view class="week-tabs" scroll-x :show-scrollbar="false">
@@ -362,6 +403,8 @@ export default {
         { label: '自定义（超过10周）', hint: '输入任意大于10的整数周数', weeks: 0 }
       ],
       customWeeks: '',
+      selectedFocusDomains: [],
+      editingFocusSnapshot: [],
       selectedWeek: 0,
       openedDayKey: '0-0',
       errorMessage: '',
@@ -379,34 +422,66 @@ export default {
     reportId() { return this.report?.reportId || this.report?._id || '' },
     currentWeek() { return this.plan?.weeklyPlans?.[this.selectedWeek] || null },
     interventionFocusData() { return collectInterventionFocus(this.report) },
-    interventionFocusItems() { return this.interventionFocusData.items },
     interventionFocusDomains() {
       return this.interventionFocusData.sections.map(section => section.name)
     },
-    interventionFocusLabels() {
-      return this.interventionFocusData.sections.map(section =>
-        section.expected > 0
-          ? `${section.name} · ${section.actual}/${section.expected}`
-          : `${section.name} · ${section.skills.length}项待支持`
-      )
+    persistedFocusDomains() {
+      const available = this.interventionFocusDomains
+      const taskDomains = Array.isArray(this.generationTask?.focusDomains)
+        ? this.generationTask.focusDomains.filter(domain => available.includes(domain))
+        : []
+      if (taskDomains.length) return taskDomains
+      const planDomains = !this.planMismatched && Array.isArray(this.plan?.focusDomains)
+        ? this.plan.focusDomains.filter(domain => available.includes(domain))
+        : []
+      return planDomains.length ? planDomains : available
+    },
+    effectiveSelectedFocusDomains() {
+      const available = this.interventionFocusDomains
+      const selected = this.selectedFocusDomains.filter(domain => available.includes(domain))
+      return selected.length ? selected : this.persistedFocusDomains
+    },
+    selectedFocusDomainsCount() {
+      return this.effectiveSelectedFocusDomains.length
+    },
+    selectedFocusSections() {
+      const selected = new Set(this.effectiveSelectedFocusDomains)
+      return this.interventionFocusData.sections.filter(section => selected.has(section.name))
+    },
+    allFocusDomainsSelected() {
+      return this.interventionFocusDomains.length > 0 &&
+        this.selectedFocusDomainsCount === this.interventionFocusDomains.length
+    },
+    unselectedFocusDomainsCount() {
+      return Math.max(0, this.interventionFocusDomains.length - this.selectedFocusDomainsCount)
+    },
+    focusSelectionValid() {
+      return !this.interventionFocusDomains.length || this.selectedFocusDomainsCount > 0
+    },
+    canEditFocusDomains() {
+      return !this.readOnly &&
+        !this.isGenerationActive &&
+        (this.editing || (!this.hasPlan && !this.hasVisibleGenerationTask))
+    },
+    planFocusDomains() {
+      const available = this.interventionFocusDomains
+      const selected = Array.isArray(this.plan?.focusDomains)
+        ? this.plan.focusDomains.filter(domain => available.includes(domain))
+        : []
+      return selected.length ? selected : available
     },
     interventionDirectionSummary() {
       const assessmentTitle = cleanDirectionText(this.report?.assessmentTitle, 60) || '当前成长评估'
-      const domains = this.interventionFocusDomains
-      const totalSkills = this.interventionFocusData.sections.reduce(
+      const domains = this.effectiveSelectedFocusDomains
+      const totalSkills = this.selectedFocusSections.reduce(
         (total, section) => total + section.skills.length,
         0
       )
-      const skills = []
-      for (const item of this.interventionFocusItems) {
-        if (item.skillName && !skills.includes(item.skillName)) skills.push(item.skillName)
-        if (skills.length >= 12) break
-      }
-      if (skills.length) {
-        const skillText = totalSkills <= skills.length
-          ? `涉及${skills.join('、')}，共${totalSkills}项待支持技能`
-          : `共识别${totalSkills}项待支持技能，包括${skills.join('、')}等`
-        return `本次评估发现${domains.length}个需要支持的领域：${domains.join('、')}，全部纳入计划生成依据；${skillText}。相对期望差距仅用于安排训练先后和比重，不用于排除领域。`
+      if (domains.length) {
+        const scopeText = this.allFocusDomainsSelected
+          ? `已选择全部${domains.length}个领域`
+          : `已选择${domains.length}/${this.interventionFocusDomains.length}个领域`
+        return `${scopeText}：${domains.join('、')}，共包含${totalSkills}项待支持技能。AI会覆盖每个已选领域，并依据评估差距安排先后和训练比重。`
       }
       return `本次计划将依据${assessmentTitle}的最新结果，优先选择报告中表现不稳定或尚未达到年龄期望的能力，从基础建立、情境应用到泛化维持逐周推进。`
     },
@@ -489,6 +564,8 @@ export default {
       this.openedDayKey = '0-0'
       this.errorMessage = ''
       this.generationTask = null
+      this.selectedFocusDomains = []
+      this.editingFocusSnapshot = []
       this.stopPolling()
       this.$nextTick(() => this.initializeGenerationState())
     }
@@ -543,6 +620,7 @@ export default {
     },
     beginEditing() {
       if (this.isGenerationActive) return
+      this.editingFocusSnapshot = [...this.effectiveSelectedFocusDomains]
       const startDate = this.plan?.startDate || this.todayDate()
       const planRange = this.validateDateRange(startDate, this.plan?.endDate)
       const presetIndex = planRange.valid && planRange.weeks <= 10 ? planRange.weeks - 1 : 3
@@ -556,7 +634,36 @@ export default {
       this.planExpanded = false
       this.editing = true
     },
+    isFocusDomainSelected(domain) {
+      return this.effectiveSelectedFocusDomains.includes(domain)
+    },
+    toggleFocusDomain(domain) {
+      if (!this.canEditFocusDomains || !this.interventionFocusDomains.includes(domain)) return
+      const selected = [...this.effectiveSelectedFocusDomains]
+      if (selected.includes(domain)) {
+        if (selected.length === 1) {
+          uni.showToast({ title: '请至少保留一个训练方向', icon: 'none' })
+          return
+        }
+        this.selectedFocusDomains = selected.filter(item => item !== domain)
+      } else {
+        this.selectedFocusDomains = this.interventionFocusDomains.filter(item =>
+          selected.includes(item) || item === domain
+        )
+      }
+    },
+    selectAllFocusDomains() {
+      if (!this.canEditFocusDomains) return
+      this.selectedFocusDomains = [...this.interventionFocusDomains]
+    },
+    formatFocusSectionMeta(section) {
+      return Number(section?.expected) > 0
+        ? `当前 ${section.actual} / 期望 ${section.expected}`
+        : '依据未达标技能识别'
+    },
     cancelEditing() {
+      this.selectedFocusDomains = [...this.editingFocusSnapshot]
+      this.editingFocusSnapshot = []
       this.editing = false
       this.errorMessage = ''
     },
@@ -580,6 +687,11 @@ export default {
         return
       }
       this.generationTask = { ...task }
+      if (Array.isArray(task.focusDomains) && task.focusDomains.length) {
+        this.selectedFocusDomains = task.focusDomains.filter(domain =>
+          this.interventionFocusDomains.includes(domain)
+        )
+      }
       this.$emit('status-change', this.generationTask)
       if (task.status === 'completed') {
         this.stopPolling()
@@ -588,6 +700,7 @@ export default {
       }
       if (this.isGenerationActive) {
         this.editing = false
+        this.editingFocusSnapshot = []
         this.startPolling()
         const staleFor = Date.now() - Number(task.updatedAt || 0)
         if (!this.readOnly && (task.status === 'pending' || staleFor > 90000)) this.kickWorker(task.taskId)
@@ -604,10 +717,16 @@ export default {
         message: '训练计划已生成'
       }
       this.editing = false
+      this.editingFocusSnapshot = []
       this.planExpanded = true
       this.selectedWeek = 0
       this.openedDayKey = '0-0'
       this.errorMessage = ''
+      if (Array.isArray(plan.focusDomains) && plan.focusDomains.length) {
+        this.selectedFocusDomains = plan.focusDomains.filter(domain =>
+          this.interventionFocusDomains.includes(domain)
+        )
+      }
       this.$emit('generated', plan)
       this.$emit('status-change', this.generationTask)
     },
@@ -750,8 +869,8 @@ export default {
         uni.showModal({
           title: this.planMismatched ? '生成匹配当前报告的新计划？' : '重新生成训练计划？',
           content: this.planMismatched
-            ? '当前计划与最新报告不匹配。重新生成后会按当前报告和所选日期区间覆盖旧计划。'
-            : '新的日期区间和训练安排会覆盖当前计划。',
+            ? `当前计划与最新报告不匹配。重新生成后会按当前报告、已选${this.selectedFocusDomainsCount}个训练方向和日期区间覆盖旧计划。`
+            : `新的日期区间和已选${this.selectedFocusDomainsCount}个训练方向会覆盖当前计划。`,
           confirmText: '重新生成',
           success: result => resolve(!!result.confirm),
           fail: () => resolve(false)
@@ -759,7 +878,7 @@ export default {
       })
     },
     async generatePlan() {
-      if (this.submitting || this.isGenerationActive || !this.rangeInfo.valid || !this.reportId) return
+      if (this.submitting || this.isGenerationActive || !this.rangeInfo.valid || !this.reportId || !this.focusSelectionValid) return
       if (!await this.confirmRegeneration()) return
       this.submitting = true
       this.errorMessage = ''
@@ -771,6 +890,7 @@ export default {
             reportId: this.reportId,
             startDate: this.startDate,
             endDate: this.endDate,
+            focusDomains: this.effectiveSelectedFocusDomains,
             forceRegenerate: this.hasPlan,
             uniIdToken: uni.getStorageSync('uni_id_token')
           },
@@ -804,7 +924,40 @@ export default {
 .section-kicker { display: flex; align-items: center; justify-content: center; gap: 9px; margin-bottom: 18px; color: #9a8f78; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; }.kicker-line { width: 28px; height: 1px; background: #ded5c2; }
 .heading-row { display: flex; align-items: center; gap: 14px; }.calendar-mark { position: relative; display: flex; width: 48px; height: 48px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid #f2c77b; border-radius: 14px; background: #fff4d9; color: #76551f; }.calendar-rings { position: absolute; top: -8px; color: #d49a37; font-size: 18px; letter-spacing: 8px; transform: translateX(4px); }.calendar-day { font-size: 20px; font-weight: 900; }
 .heading-copy { min-width: 0; flex: 1; }.heading-title { display: block; color: #342c4c; font-size: 20px; font-weight: 850; }.heading-subtitle { display: block; margin-top: 5px; color: #827a8e; font-size: 12px; line-height: 1.5; }.ready-badge { display: flex; flex-shrink: 0; align-items: center; padding: 6px 9px; border-radius: 20px; background: #edf8f2; color: #43805f; font-size: 10px; font-weight: 800; }.ready-badge.warning { background: #fff0dc; color: #a66520; }.ready-dot { width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: #55af7c; }.warning .ready-dot { background: #e29138; }
-.direction-summary { margin-top: 17px; padding: 15px 16px; border: 1px solid #e6ddf4; border-radius: 14px; background: linear-gradient(135deg, #f8f5ff 0%, #fffdf6 100%); box-shadow: 0 5px 16px rgba(76,58,125,.05); }.direction-summary-head { display: flex; align-items: center; gap: 10px; }.direction-mark { position: relative; display: flex; width: 34px; height: 34px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 11px; background: #6b55ba; }.direction-ring { display: flex; width: 20px; height: 20px; align-items: center; justify-content: center; border: 3px solid #fff; border-radius: 50%; box-sizing: border-box; }.direction-core { width: 6px; height: 6px; border-radius: 50%; background: #ffd86b; }.direction-spark { position: absolute; top: 2px; right: 4px; color: #ffd86b; font-size: 10px; font-weight: 900; }.direction-heading-copy { min-width: 0; flex: 1; }.direction-kicker { display: block; color: #9682cb; font-size: 8px; font-weight: 900; letter-spacing: 1px; }.direction-title { display: block; margin-top: 2px; color: #413657; font-size: 13px; font-weight: 850; }.direction-source { flex-shrink: 0; padding: 4px 8px; border-radius: 20px; background: #eee8fb; color: #6752ad; font-size: 9px; font-weight: 800; }.direction-text { display: block; margin-top: 11px; color: #686072; font-size: 11px; line-height: 1.75; }.direction-basis { display: flex; align-items: flex-start; gap: 7px; margin-top: 9px; padding: 8px 9px; border-radius: 9px; background: rgba(103,82,178,.07); }.direction-basis-label { flex-shrink: 0; color: #6551a7; font-size: 9px; font-weight: 900; }.direction-basis-text { color: #847b91; font-size: 9px; line-height: 1.5; }.direction-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }.direction-tag { padding: 4px 8px; border: 1px solid #ddd3f2; border-radius: 20px; background: rgba(255,255,255,.8); color: #65529e; font-size: 9px; font-weight: 800; }
+.direction-summary { margin-top: 17px; padding: 15px 16px; border: 1px solid #e6ddf4; border-radius: 14px; background: linear-gradient(135deg, #f8f5ff 0%, #fffdf6 100%); box-shadow: 0 5px 16px rgba(76,58,125,.05); }
+.direction-summary-head { display: flex; align-items: center; gap: 10px; }
+.direction-mark { position: relative; display: flex; width: 34px; height: 34px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 11px; background: #6b55ba; }
+.direction-ring { display: flex; width: 20px; height: 20px; align-items: center; justify-content: center; border: 3px solid #fff; border-radius: 50%; box-sizing: border-box; }
+.direction-core { width: 6px; height: 6px; border-radius: 50%; background: #ffd86b; }
+.direction-spark { position: absolute; top: 2px; right: 4px; color: #ffd86b; font-size: 10px; font-weight: 900; }
+.direction-heading-copy { min-width: 0; flex: 1; }
+.direction-kicker { display: block; color: #9682cb; font-size: 8px; font-weight: 900; letter-spacing: 1px; }
+.direction-title { display: block; margin-top: 2px; color: #413657; font-size: 13px; font-weight: 850; }
+.direction-source { flex-shrink: 0; padding: 4px 8px; border-radius: 20px; background: #eee8fb; color: #6752ad; font-size: 9px; font-weight: 800; }
+.direction-selection-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(115,91,180,.12); }
+.direction-selection-copy { display: flex; min-width: 0; flex-direction: column; }
+.direction-selection-title { color: #4a405b; font-size: 11px; font-weight: 850; }
+.direction-selection-hint { margin-top: 3px; color: #92899d; font-size: 9px; line-height: 1.4; }
+.direction-selection-actions { display: flex; flex-shrink: 0; align-items: center; gap: 6px; }
+.select-all-button { flex-shrink: 0; padding: 6px 9px; border: 1px solid #cfc2ee; border-radius: 9px; background: #fff; color: #654fad; font-size: 9px; font-weight: 850; }
+.selection-count { flex-shrink: 0; padding: 5px 8px; border-radius: 9px; background: #ece7f8; color: #6652a9; font-size: 9px; font-weight: 850; }
+.direction-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.direction-option { display: flex; width: calc(33.333% - 6px); min-width: 180px; min-height: 58px; align-items: center; gap: 9px; padding: 9px 10px; border: 1px solid #e1dbe9; border-radius: 11px; background: rgba(255,255,255,.78); color: #6f6879; text-align: left; transition: border-color .18s ease, background .18s ease, box-shadow .18s ease; }
+.direction-option.selected { border-color: #8069c6; background: #f2edff; box-shadow: 0 3px 9px rgba(95,73,162,.09); }
+.direction-option[disabled] { opacity: 1; }
+.direction-check { display: flex; width: 20px; height: 20px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid #cfc7da; border-radius: 7px; background: #fff; color: transparent; font-size: 10px; font-weight: 900; box-sizing: border-box; }
+.selected .direction-check { border-color: #6b55b8; background: #6b55b8; color: #fff; }
+.direction-option-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+.direction-option-name { overflow: hidden; color: #494052; font-size: 10px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
+.selected .direction-option-name { color: #564294; }
+.direction-option-meta { overflow: hidden; margin-top: 3px; color: #948c9c; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.direction-option-count { flex-shrink: 0; padding: 3px 5px; border-radius: 8px; background: #f2eff5; color: #82798c; font-size: 8px; font-weight: 800; }
+.selected .direction-option-count { background: #dfd5f8; color: #644ea8; }
+.direction-selection-summary { display: flex; align-items: flex-start; gap: 8px; margin-top: 11px; padding: 9px 10px; border-radius: 10px; background: rgba(103,82,178,.07); }
+.direction-selection-label { flex-shrink: 0; padding-top: 1px; color: #6551a7; font-size: 9px; font-weight: 900; }
+.direction-text { display: block; color: #746b7d; font-size: 9px; line-height: 1.6; }
+.direction-exclusion-note { display: flex; align-items: flex-start; gap: 7px; margin-top: 8px; padding: 8px 9px; border-radius: 9px; background: #fff5e5; color: #95672b; font-size: 9px; line-height: 1.5; }
+.direction-exclusion-icon { display: flex; width: 15px; height: 15px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #d79845; color: #fff; font-size: 8px; font-weight: 900; }
 .generation-card { margin-top: 18px; padding: 16px; border: 1px solid #dcd3f3; border-radius: 14px; background: linear-gradient(135deg, #f8f5ff, #fff); box-shadow: 0 6px 18px rgba(74,55,132,.07); }.generation-card.failed, .generation-card.timeout { border-color: #efc4bd; background: linear-gradient(135deg, #fff5f2, #fff); }.generation-card-head { display: flex; align-items: flex-start; gap: 11px; }.generation-state-icon { display: flex; width: 34px; height: 34px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 11px; background: #6954b5; color: #fff; font-size: 16px; font-weight: 900; }.failed .generation-state-icon, .timeout .generation-state-icon { background: #c8655d; }.state-spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }.generation-copy { min-width: 0; flex: 1; }.generation-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }.generation-title { color: #43375d; font-size: 14px; font-weight: 900; }.failed .generation-title, .timeout .generation-title { color: #8e403b; }.generation-percent { flex-shrink: 0; color: #6752b2; font-size: 14px; font-weight: 900; }.failed .generation-percent, .timeout .generation-percent { color: #b65b53; }.generation-message { display: block; margin-top: 4px; color: #7e7489; font-size: 11px; line-height: 1.5; }.progress-track { height: 7px; overflow: hidden; margin-top: 13px; border-radius: 999px; background: #ebe7f2; }.progress-value { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #745bc4, #9c84e4); transition: width .35s ease; }.failed .progress-value, .timeout .progress-value { background: linear-gradient(90deg, #d67970, #e9a29b); }.generation-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; color: #8e8597; font-size: 9px; }.background-note { display: flex; align-items: flex-start; gap: 7px; margin-top: 12px; padding: 9px 10px; border-radius: 9px; background: #eef7f3; color: #4f7765; font-size: 10px; line-height: 1.5; }.cloud-mark { flex-shrink: 0; color: #4f9b77; font-size: 13px; }.generation-error { display: flex; flex-direction: column; margin-top: 12px; padding: 10px 11px; border-radius: 9px; background: #fff0ed; }.generation-error-code { color: #bd625a; font-size: 8px; font-weight: 900; letter-spacing: .5px; }.generation-error-text { margin-top: 4px; color: #8b4b46; font-size: 11px; line-height: 1.5; }.generation-error-diagnostic { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e8b9b3; color: #8f625e; font-size: 9px; line-height: 1.45; word-break: break-all; }.generation-error-retained { margin-top: 5px; color: #a26b66; font-size: 9px; }.generation-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 12px; }.task-primary-button, .task-secondary-button { padding: 8px 11px; border-radius: 9px; font-size: 10px; font-weight: 850; }.task-primary-button { background: #6752b2; color: #fff; }.task-primary-button[disabled] { opacity: .55; }.task-secondary-button { border: 1px solid #ded8e8; background: #fff; color: #675c75; }
 .create-callout { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 15px; border: 1px solid #ede6d8; border-radius: 13px; background: rgba(255,255,255,.86); }.callout-copy { min-width: 0; flex: 1; }.callout-title { display: block; color: #493e2e; font-size: 14px; font-weight: 800; }.callout-text { display: block; margin-top: 4px; color: #8d8374; font-size: 11px; line-height: 1.5; }
 button { margin: 0; padding: 0; border: 0; background: none; line-height: normal; }button::after { border: 0; }.create-button { min-width: 108px; padding: 11px 13px; border-radius: 11px; background: #6650b7; color: #fff; font-size: 12px; font-weight: 800; box-shadow: 0 6px 13px rgba(80,60,154,.2); }
@@ -816,12 +969,12 @@ button { margin: 0; padding: 0; border: 0; background: none; line-height: normal
 .range-feedback { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 11px 12px; border-radius: 11px; background: #f1eef7; }.range-feedback.valid { background: #edf8f2; }.range-feedback.error { background: #fff0ee; }.feedback-icon { display: flex; width: 20px; height: 20px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #8b819c; color: #fff; font-size: 10px; font-weight: 900; }.valid .feedback-icon { background: #4fa978; }.error .feedback-icon { background: #d16d61; }.feedback-copy { display: flex; flex-direction: column; }.feedback-title { color: #5f586a; font-size: 11px; font-weight: 850; }.valid .feedback-title { color: #367456; }.error .feedback-title { color: #a64e46; }.feedback-text { margin-top: 3px; color: #8c8495; font-size: 10px; line-height: 1.45; }
 .generate-button { display: flex; width: 100%; height: 46px; align-items: center; justify-content: center; gap: 9px; margin-top: 14px; border-radius: 12px; background: #6751b7; color: #fff; font-size: 14px; font-weight: 850; box-shadow: 0 7px 16px rgba(86,65,167,.2); }.generate-button[disabled] { background: #cbc6d4; box-shadow: none; color: #f5f3f7; }.button-spinner { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }.generating-note, .error-message { display: block; margin-top: 8px; text-align: center; font-size: 11px; }.generating-note { color: #7b7482; }.error-message { color: #bd514b; }@keyframes spin { to { transform: rotate(360deg); } }
 .readonly-empty { display: flex; align-items: center; gap: 12px; padding: 0 22px 22px; }.empty-symbol { display: flex; width: 38px; height: 38px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #f0edf6; color: #7b69b6; font-size: 24px; }.empty-title, .empty-hint { display: block; }.empty-title { color: #5a5363; font-size: 13px; font-weight: 800; }.empty-hint { margin-top: 3px; color: #948d9b; font-size: 10px; }
-.plan-body { border-top: 1px solid #ece7f1; }.plan-introduction { padding: 17px 20px; background: #f8f6fc; }.introduction-label { display: block; color: #6f5db0; font-size: 10px; font-weight: 850; }.introduction-text { display: block; margin-top: 5px; color: #686071; font-size: 12px; line-height: 1.7; }
+.plan-body { border-top: 1px solid #ece7f1; }.plan-introduction { padding: 17px 20px; background: #f8f6fc; }.introduction-label { display: block; color: #6f5db0; font-size: 10px; font-weight: 850; }.introduction-text { display: block; margin-top: 5px; color: #686071; font-size: 12px; line-height: 1.7; }.plan-focus-row { display: flex; align-items: flex-start; gap: 9px; margin-top: 11px; padding-top: 10px; border-top: 1px solid #e8e2f1; }.plan-focus-label { flex-shrink: 0; padding-top: 4px; color: #82768f; font-size: 9px; font-weight: 850; }.plan-focus-tags { display: flex; flex-wrap: wrap; gap: 5px; }.plan-focus-tag { padding: 3px 7px; border-radius: 9px; background: #e9e2f8; color: #624fa3; font-size: 8px; font-weight: 800; }
 .week-tabs { width: 100%; border-top: 1px solid #eeeaf2; border-bottom: 1px solid #eeeaf2; background: #fdfcfe; white-space: nowrap; }.week-tabs-inner { display: inline-flex; gap: 8px; padding: 12px 18px; }.week-tab { display: inline-flex; min-width: 78px; flex-direction: column; padding: 9px 12px; border: 1px solid #e1dce8; border-radius: 10px; background: #fff; color: #7b7486; text-align: left; }.week-tab.active { border-color: #6751b7; background: #6751b7; color: #fff; box-shadow: 0 4px 11px rgba(91,70,174,.18); }.week-tab-number { font-size: 12px; font-weight: 850; }.week-tab-date { margin-top: 3px; opacity: .72; font-size: 9px; }
 .week-panel { padding: 18px; }.week-goal { display: flex; gap: 12px; padding: 14px; border: 1px solid #e8e1f5; border-radius: 13px; background: linear-gradient(135deg, #f8f5ff, #fffaf0); }.goal-index { display: flex; width: 34px; height: 34px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 10px; background: #6d57bb; color: #fff; font-size: 15px; font-weight: 900; }.goal-copy { min-width: 0; flex: 1; }.goal-label { display: block; color: #8975c8; font-size: 10px; font-weight: 850; }.goal-text { display: block; margin-top: 4px; color: #403650; font-size: 13px; font-weight: 750; line-height: 1.55; }.skill-chips, .material-list, .day-tags { display: flex; flex-wrap: wrap; gap: 6px; }.skill-chips { margin-top: 9px; }.skill-chip { padding: 4px 7px; border-radius: 18px; background: #ede7fb; color: #624eaa; font-size: 9px; }
 .criteria-box { margin-top: 11px; padding: 12px 14px; border-radius: 11px; background: #eef8f3; }.criteria-title { display: block; color: #3a7658; font-size: 11px; font-weight: 850; }.criteria-item { display: flex; align-items: flex-start; gap: 7px; margin-top: 6px; color: #536c60; font-size: 11px; line-height: 1.5; }.criteria-check { flex-shrink: 0; color: #49a576; font-weight: 900; }.daily-heading { display: flex; align-items: center; justify-content: space-between; margin: 20px 2px 9px; }.daily-title { font-size: 14px; font-weight: 850; }.daily-hint { color: #9992a2; font-size: 10px; }
 .day-list { display: flex; flex-direction: column; gap: 9px; }.day-card { overflow: hidden; border: 1px solid #e9e5ed; border-radius: 12px; }.day-card.open { border-color: #cbbef1; box-shadow: 0 5px 16px rgba(67,51,119,.06); }.day-card-head { display: flex; align-items: center; gap: 11px; padding: 12px; }.day-date { display: flex; width: 46px; flex-shrink: 0; flex-direction: column; align-items: center; padding: 7px 3px; border-radius: 9px; background: #f2eff8; }.day-weekday { color: #604cac; font-size: 11px; font-weight: 850; }.day-month-date { margin-top: 3px; color: #958e9e; font-size: 8px; }.day-main { min-width: 0; flex: 1; }.activity-tag, .duration-tag { padding: 3px 6px; border-radius: 9px; font-size: 8px; }.activity-tag { background: #fff1d2; color: #8c6517; }.duration-tag { background: #edf7f2; color: #468064; }.day-title { display: block; margin-top: 5px; color: #3d3648; font-size: 13px; font-weight: 850; }.day-target { display: -webkit-box; overflow: hidden; margin-top: 3px; color: #817a88; font-size: 10px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }.expand-icon { display: flex; width: 24px; height: 24px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #f1edf9; color: #6954b6; font-size: 17px; }
 .day-detail { padding: 2px 13px 14px 70px; border-top: 1px dashed #e5dfeb; }.detail-block { margin-top: 12px; }.detail-label { display: block; margin-bottom: 7px; color: #80778a; font-size: 10px; font-weight: 850; }.material { padding: 4px 7px; border: 1px solid #e5dfeb; border-radius: 7px; background: #faf9fb; color: #665e6d; font-size: 9px; }.step-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 7px; }.step-number { display: flex; width: 19px; height: 19px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 6px; background: #6d57bb; color: #fff; font-size: 9px; font-weight: 850; }.step-text { flex: 1; color: #544d5b; font-size: 11px; line-height: 1.55; }.result-box { margin-top: 12px; padding: 10px; border-radius: 9px; background: #fff8e8; }.result-label { display: block; color: #94701e; font-size: 9px; font-weight: 850; }.result-text { display: block; margin-top: 3px; color: #705d35; font-size: 11px; line-height: 1.5; }.caregiver-tip { display: flex; align-items: flex-start; gap: 7px; margin-top: 9px; color: #6e6677; font-size: 10px; line-height: 1.5; }.tip-icon { display: flex; width: 17px; height: 17px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #eee9f8; color: #6854ae; font-size: 9px; font-weight: 900; }
 .caregiver-guide { margin: 0 18px 18px; padding: 14px; border-radius: 12px; background: #373144; color: #fff; }.guide-title { display: block; margin-bottom: 8px; color: #ffedb5; font-size: 12px; font-weight: 850; }.guide-item { display: flex; align-items: flex-start; gap: 8px; margin-top: 7px; color: rgba(255,255,255,.82); font-size: 11px; line-height: 1.5; }.guide-number { display: flex; width: 18px; height: 18px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.25); border-radius: 50%; color: #ffe39a; font-size: 8px; }.ai-note { display: block; margin-top: 11px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.5); font-size: 9px; line-height: 1.5; }
-@media screen and (max-width: 560px) { .training-plan { margin: 28px 12px 8px; border-radius: 16px; }.section-heading, .plan-editor { padding: 17px; }.heading-title { font-size: 17px; }.heading-subtitle { font-size: 10px; }.calendar-mark { width: 42px; height: 42px; }.ready-badge { display: none; }.direction-summary { padding: 13px; }.direction-source { display: none; }.direction-text { font-size: 10px; }.create-callout, .compact-summary { align-items: stretch; flex-direction: column; }.create-button { width: 100%; }.compact-actions { width: 100%; }.secondary-button, .view-button { flex: 1; }.generation-card { padding: 13px; }.generation-title { font-size: 12px; }.generation-actions { justify-content: stretch; }.task-primary-button, .task-secondary-button { flex: 1; }.schedule-builder { padding-right: 10px; padding-left: 10px; }.schedule-control { gap: 9px; }.control-index { width: 25px; height: 25px; }.control-value { font-size: 12px; }.control-hint { max-width: 145px; }.duration-select-wrap { width: 118px; }.duration-select-wrap :deep(.uni-select__input-box) { padding: 0 7px; }.duration-select-wrap :deep(.uni-select__selector-scroll) { height: 220px; max-height: 220px !important; }.custom-weeks-row { margin-left: 34px; padding: 9px; }.custom-weeks-hint { display: none; }.custom-weeks-input-wrap { width: 104px; }.week-panel { padding: 15px; }.day-detail { padding-left: 13px; }.caregiver-guide { margin: 0 15px 15px; } }
+@media screen and (max-width: 560px) { .training-plan { margin: 28px 12px 8px; border-radius: 16px; }.section-heading, .plan-editor { padding: 17px; }.heading-title { font-size: 17px; }.heading-subtitle { font-size: 10px; }.calendar-mark { width: 42px; height: 42px; }.ready-badge { display: none; }.direction-summary { padding: 13px; }.direction-source { display: none; }.direction-selection-bar { align-items: flex-start; }.direction-selection-hint { max-width: 180px; }.direction-selection-actions { align-items: flex-end; flex-direction: column; }.direction-option { width: 100%; min-width: 0; }.direction-selection-summary { flex-direction: column; gap: 3px; }.direction-text { font-size: 9px; }.create-callout, .compact-summary { align-items: stretch; flex-direction: column; }.create-button { width: 100%; }.compact-actions { width: 100%; }.secondary-button, .view-button { flex: 1; }.generation-card { padding: 13px; }.generation-title { font-size: 12px; }.generation-actions { justify-content: stretch; }.task-primary-button, .task-secondary-button { flex: 1; }.schedule-builder { padding-right: 10px; padding-left: 10px; }.schedule-control { gap: 9px; }.control-index { width: 25px; height: 25px; }.control-value { font-size: 12px; }.control-hint { max-width: 145px; }.duration-select-wrap { width: 118px; }.duration-select-wrap :deep(.uni-select__input-box) { padding: 0 7px; }.duration-select-wrap :deep(.uni-select__selector-scroll) { height: 220px; max-height: 220px !important; overflow-y: auto; }.custom-weeks-row { margin-left: 34px; padding: 9px; }.custom-weeks-hint { display: none; }.custom-weeks-input-wrap { width: 104px; }.week-panel { padding: 15px; }.day-detail { padding-left: 13px; }.caregiver-guide { margin: 0 15px 15px; } }
 </style>
