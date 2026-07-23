@@ -5,7 +5,7 @@ const db = uniCloud.database();
 
 const STATUS_TEXT = {
   pending: '等待分析',
-  processing: 'DeepSeek分析中',
+  processing: 'AI分析中',
   waiting_merge: '正在生成报告总结',
   pending_save: '正在保存报告',
   completed: '报告已生成',

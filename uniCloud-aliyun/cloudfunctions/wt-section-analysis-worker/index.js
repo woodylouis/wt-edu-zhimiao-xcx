@@ -3,7 +3,7 @@ const db = uniCloud.database()
 const taskCollection = db.collection('wtdb-section-analysis-tasks')
 const reportTaskCollection = db.collection('wtdb-report-tasks')
 const logCollection = db.collection('wtdb-debug-logs')
-const deepseek = require('deepseek-client')
+const aiModel = require('deepseek-client')
 const taskAuth = require('report-task-auth')
 
 const MAX_RETRY = 3 // 减少重试次数，避免云函数超时
@@ -121,7 +121,7 @@ async function updateReportTaskProgress(taskId) {
 	}
 }
 
-async function generateSectionAnalysisWithRetry(sectionData, childName, childAge, taskId, docId) {
+async function generateSectionAnalysisWithRetry(sectionData, childName, childAge, taskId, docId, providerId = '') {
 	let attempt = 0
 	let lastError = null
 
@@ -129,15 +129,17 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
 		attempt++
 		try {
 			const prompt = buildSectionAnalysisPrompt(sectionData, childName, childAge)
+			const modelInfo = await aiModel.getActiveModelInfo(providerId)
 			await log('ai-attempt', {
-				provider: 'deepseek-official',
-				model: deepseek.DEFAULT_MODEL,
+				provider: modelInfo.provider,
+				model: modelInfo.model,
 				attempt,
 				promptLength: prompt.length,
 				sectionName: sectionData.sectionName
 			}, { taskId })
 
-			const reply = await deepseek.chatText({
+			const completion = await aiModel.chatCompletion({
+				provider: providerId,
 				messages: [
 					{ role: 'system', content: getSectionSystemPrompt() },
 					{ role: 'user', content: prompt }
@@ -145,21 +147,22 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
 				maxTokens: 400,
 				timeout: TIMEOUT_MS
 			})
+			const reply = completion.content
 
 			if (reply && reply.length > 30) {
 				await log('ai-analysis-success', {
-					provider: 'deepseek-official',
-					model: deepseek.DEFAULT_MODEL,
+					provider: completion.provider,
+					model: completion.model,
 					replyLength: reply.length
 				}, { taskId })
 				return reply
 			}
 
-			throw new Error('DeepSeek 返回无效内容')
+			throw new Error('AI 模型返回无效内容')
 		} catch (err) {
 			lastError = err
 			await log('ai-failed', {
-				provider: 'deepseek-official',
+				providerId,
 				error: err.message,
 				attempt
 			}, { taskId, level: 'error' })
@@ -196,7 +199,17 @@ exports.main = async (event = {}) => {
 			break
 		}
 
-		const { _id: docId, taskId, recordId, sectionId, sectionName, childName, ageInt, assessmentRecords } = task
+		const {
+			_id: docId,
+			taskId,
+			recordId,
+			sectionId,
+			sectionName,
+			childName,
+			ageInt,
+			assessmentRecords,
+			providerId = ''
+		} = task
 		await log('task-start', { taskId, sectionId }, { taskId })
 
 		try {
@@ -226,7 +239,14 @@ exports.main = async (event = {}) => {
 				console.log('generateSectionAnalysisWithRetry', sectionData, childName, ageInt, taskId, docId)
 
 				try {
-					analysis = await generateSectionAnalysisWithRetry(sectionData, childName, ageInt, taskId, docId)
+					analysis = await generateSectionAnalysisWithRetry(
+						sectionData,
+						childName,
+						ageInt,
+						taskId,
+						docId,
+						providerId
+					)
 					console.log("analysis", analysis)
 				} catch (aiError) {
 					console.error('AI分析失败:', aiError)

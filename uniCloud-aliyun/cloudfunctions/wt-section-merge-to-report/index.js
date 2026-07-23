@@ -5,7 +5,7 @@ const dbAnalysis = db.collection('wtdb-section-analysis-tasks')
 const dbPending = db.collection('wtdb-report-save-pending')
 const dbRecord = db.collection('wtdb-business-assess-record')
 const dbLog = db.collection('wtdb-debug-logs')
-const deepseek = require('deepseek-client')
+const aiModel = require('deepseek-client')
 const taskAuth = require('report-task-auth')
 
 async function resolveAssessorNickname(userId, fallback = '') {
@@ -109,14 +109,16 @@ function getReportSummarySystemPrompt() {
 	return `你是一名资深儿童发展评估专家，专门进行ABLLS-R综合评估总结。输出应专业、具体、易懂，适合家长和教师阅读，并给出可执行的发展建议。`
 }
 
-async function generateReportSummary(reportData, taskId, recordId) {
+async function generateReportSummary(reportData, taskId, recordId, providerId = '') {
 	try {
+		const modelInfo = await aiModel.getActiveModelInfo(providerId)
 		await log('report-summary-ai-start', {
-			provider: 'deepseek-official',
-			model: deepseek.DEFAULT_MODEL
+			provider: modelInfo.provider,
+			model: modelInfo.model
 		}, { taskId, recordId })
 
-		const summary = await deepseek.chatText({
+		const completion = await aiModel.chatCompletion({
+			provider: providerId,
 			messages: [
 				{ role: 'system', content: getReportSummarySystemPrompt() },
 				{ role: 'user', content: buildReportSummaryPrompt(reportData) }
@@ -124,14 +126,15 @@ async function generateReportSummary(reportData, taskId, recordId) {
 			maxTokens: 500,
 			timeout: 45000
 		})
+		const summary = completion.content
 
 		if (!summary || summary.length < 50) {
-			throw new Error('DeepSeek 返回的报告总评过短')
+			throw new Error('AI 模型返回的报告总评过短')
 		}
 
 		await log('report-summary-ai-success', {
-			provider: 'deepseek-official',
-			model: deepseek.DEFAULT_MODEL,
+			provider: completion.provider,
+			model: completion.model,
 			length: summary.length
 		}, { taskId, recordId })
 		return summary
@@ -240,7 +243,9 @@ exports.main = async (event = {}) => {
 				belowCount,
 				sections: sectionNames,
 				skillBelowStandard: allSkillBelowStandard
-			}, taskId, recordId)
+			}, taskId, recordId, metadata.providerId ||
+				(metadata.provider === 'moonshot-official' || /^kimi-/i.test(metadata.model || '') ? 'kimi' : '') ||
+				(metadata.provider === 'deepseek-official' || /^deepseek-/i.test(metadata.model || '') ? 'deepseek' : ''))
 			const completionTime = Date.now()
 			const duration = completionTime - (task.createTime || completionTime)
 

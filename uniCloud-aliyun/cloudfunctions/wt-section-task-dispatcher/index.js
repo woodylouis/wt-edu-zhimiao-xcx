@@ -27,7 +27,10 @@ exports.main = async (event = {}) => {
 
 	for (const task of tasks.data) {
 		console.log("开始执行任务调度器", task)
-		const { taskId, recordId, assessorId, assessmentId, originalParams = {} } = task
+		const { taskId, recordId, assessorId, assessmentId, originalParams = {}, metadata = {} } = task
+		const providerId = metadata.providerId ||
+			(metadata.provider === 'moonshot-official' || /^kimi-/i.test(metadata.model || '') ? 'kimi' : '') ||
+			(metadata.provider === 'deepseek-official' || /^deepseek-/i.test(metadata.model || '') ? 'deepseek' : '')
 
 		// 从 originalParams 中获取 completedSections
 		const completedSections = originalParams.completedSectionList || []
@@ -66,6 +69,7 @@ exports.main = async (event = {}) => {
 						childName: section.childName,
 						ageInt: section.ageInt,
 						assessmentRecords: section.assessmentRecords,
+						providerId,
 						status: 'pending',
 						createTime: Date.now(),
 						retryCount: 0

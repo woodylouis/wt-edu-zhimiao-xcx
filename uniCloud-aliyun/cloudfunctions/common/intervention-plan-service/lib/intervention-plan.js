@@ -341,11 +341,11 @@ function extractJsonObject(content) {
 	const unfenced = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
 	const start = unfenced.indexOf('{')
 	const end = unfenced.lastIndexOf('}')
-	if (start < 0 || end <= start) throw new Error('DeepSeek未返回有效JSON对象')
+	if (start < 0 || end <= start) throw new Error('AI模型未返回有效JSON对象')
 	try {
 		return JSON.parse(unfenced.slice(start, end + 1))
 	} catch (error) {
-		throw new Error(`DeepSeek返回的计划JSON解析失败: ${error.message}`)
+		throw new Error(`AI模型返回的计划JSON解析失败: ${error.message}`)
 	}
 }
 
@@ -416,13 +416,13 @@ function assemblePlanFromParts({ overview, weeklyPlans }, options) {
 	}, options)
 }
 
-function normalizePlan(rawPlan, { startDate, endDate = '', weeksCount, childName = '', generatedAt = Date.now(), generatedBy = '', model = '', sourceAnalysisRevision = 1, focusDomains = [] }) {
+function normalizePlan(rawPlan, { startDate, endDate = '', weeksCount, childName = '', generatedAt = Date.now(), generatedBy = '', provider = 'deepseek-official', model = '', sourceAnalysisRevision = 1, focusDomains = [] }) {
 	const count = normalizeWeeksCount(weeksCount)
 	const normalizedEndDate = endDate || addDays(startDate, count * 7 - 1)
 	const range = normalizeDateRange(startDate, normalizedEndDate)
 	if (range.weeksCount !== count) throw new Error('计划日期范围与周数不一致')
 	const rawWeeks = Array.isArray(rawPlan?.weeklyPlans) ? rawPlan.weeklyPlans : []
-	if (rawWeeks.length !== count) throw new Error(`DeepSeek应返回${count}周计划，实际返回${rawWeeks.length}周`)
+	if (rawWeeks.length !== count) throw new Error(`AI模型应返回${count}周计划，实际返回${rawWeeks.length}周`)
 
 	const weeklyPlans = rawWeeks.map((rawWeek, weekIndex) => {
 		const rawDays = Array.isArray(rawWeek?.dailyPlans) ? rawWeek.dailyPlans : []
@@ -467,7 +467,7 @@ function normalizePlan(rawPlan, { startDate, endDate = '', weeksCount, childName
 		generatedAt,
 		generatedBy: cleanText(generatedBy, 80),
 		sourceAnalysisRevision: Math.max(1, Number(sourceAnalysisRevision) || 1),
-		provider: 'deepseek-official',
+		provider: cleanText(provider, 80) || 'deepseek-official',
 		model: cleanText(model, 80)
 	}
 }

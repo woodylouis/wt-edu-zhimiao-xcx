@@ -1,6 +1,6 @@
 'use strict'
 
-const deepseek = require('deepseek-client')
+const aiModel = require('deepseek-client')
 const subjectAuth = require('business-subject-auth')
 const db = uniCloud.database()
 const dbCmd = db.command
@@ -54,13 +54,13 @@ function buildAssessmentResult(modulesStatus, historyRecords, confirmToGenerateR
 	return { result, completedSectionList }
 }
 
-function buildTaskResponse(result, taskId, status, message) {
+function buildTaskResponse(result, taskId, status, message, modelInfo = {}) {
 	return {
 		...result,
 		taskId,
 		status,
-		provider: 'deepseek-official',
-		model: deepseek.DEFAULT_MODEL,
+		provider: modelInfo.provider || 'deepseek-official',
+		model: modelInfo.model || aiModel.DEFAULT_MODEL,
 		message
 	}
 }
@@ -105,13 +105,15 @@ exports.main = async (event = {}, context) => {
 
 		const activeTask = await getActiveTask(recordId, assessorId)
 		if (activeTask) {
+			const activeTaskModel = activeTask.metadata || {}
 			return {
 				code: 200,
 				data: buildTaskResponse(
 					result,
 					activeTask.taskId,
 					activeTask.status,
-					'已有报告任务正在执行'
+					'已有报告任务正在执行',
+					activeTaskModel
 				),
 				message: '已有报告任务正在执行'
 			}
@@ -119,6 +121,7 @@ exports.main = async (event = {}, context) => {
 
 		const now = Date.now()
 		const taskId = `task_${childId}_${now}`
+		const modelInfo = await aiModel.getActiveModelInfo()
 		await dbTask.add({
 			taskId,
 			status: 'pending',
@@ -138,8 +141,9 @@ exports.main = async (event = {}, context) => {
 				query
 			},
 			metadata: {
-				provider: 'deepseek-official',
-				model: deepseek.DEFAULT_MODEL,
+				providerId: modelInfo.id,
+				provider: modelInfo.provider,
+				model: modelInfo.model,
 				source: 'mini-program-submit',
 				runAuthorizedBy: scope.uid
 			}
@@ -147,7 +151,7 @@ exports.main = async (event = {}, context) => {
 
 		return {
 			code: 200,
-			data: buildTaskResponse(result, taskId, 'pending', '报告任务已创建'),
+			data: buildTaskResponse(result, taskId, 'pending', '报告任务已创建', modelInfo),
 			message: '报告任务已创建'
 		}
 	} catch (error) {

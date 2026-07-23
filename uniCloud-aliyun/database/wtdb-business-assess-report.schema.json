@@ -257,7 +257,7 @@
         },
         "interventionPlan": {
             "bsonType": "object",
-            "description": "DeepSeek生成的结构化个性化训练计划，包含每周目标和每日任务"
+            "description": "AI模型生成的结构化个性化训练计划，包含每周目标和每日任务"
         },
         "interventionPlanStatus": {
             "bsonType": "string",

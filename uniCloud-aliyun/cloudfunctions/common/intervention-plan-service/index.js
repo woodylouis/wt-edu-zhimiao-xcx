@@ -1,7 +1,7 @@
 'use strict'
 
 const crypto = require('crypto')
-const deepseek = require('deepseek-client')
+const aiModel = require('deepseek-client')
 const {
 	applyManualPlanAdjustments,
 	assemblePlanFromParts,
@@ -115,7 +115,9 @@ function publicTask(task) {
 		startedAt: Number(task.startedAt) || 0,
 		updatedAt: Number(task.updatedAt) || 0,
 		deadlineAt: Number(task.deadlineAt) || 0,
-		completedAt: Number(task.completedAt) || 0
+		completedAt: Number(task.completedAt) || 0,
+		provider: task.provider || '',
+		model: task.model || ''
 	}
 }
 
@@ -139,7 +141,7 @@ function classifyError(error) {
 	if (/timeout|超时|timed out|ETIMEDOUT/i.test(raw)) {
 		return {
 			code: 'AI_TIMEOUT',
-			message: 'DeepSeek 响应超时，系统自动重试后仍未在限定时间内完成。',
+			message: 'AI 模型响应超时，系统自动重试后仍未在限定时间内完成。',
 			retryable: true,
 			technicalMessage: raw.slice(0, 800)
 		}
@@ -147,7 +149,7 @@ function classifyError(error) {
 	if (/finish_reason=length|输出.*(?:截断|长度限制)|达到.*token.*上限/i.test(raw)) {
 		return {
 			code: 'AI_OUTPUT_TRUNCATED',
-			message: 'DeepSeek 返回内容达到长度上限，自动扩大输出空间后仍未完成。',
+			message: 'AI 模型返回内容达到长度上限，自动扩大输出空间后仍未完成。',
 			retryable: true,
 			technicalMessage: raw.slice(0, 800)
 		}
@@ -155,7 +157,7 @@ function classifyError(error) {
 	if (/返回.*JSON|JSON.*解析|内容不足|不能为空|应包含|应返回|无效内容/i.test(raw)) {
 		return {
 			code: 'INVALID_AI_RESPONSE',
-			message: 'DeepSeek 返回的计划内容不完整，未覆盖已有计划。',
+			message: 'AI 模型返回的计划内容不完整，未覆盖已有计划。',
 			retryable: true,
 			technicalMessage: raw.slice(0, 800)
 		}
@@ -163,7 +165,7 @@ function classifyError(error) {
 	if (/401|403|API.?KEY|未配置/i.test(raw)) {
 		return {
 			code: 'AI_CONFIGURATION_ERROR',
-			message: 'AI 服务配置异常，请联系管理员检查 DeepSeek 配置。',
+			message: 'AI 服务配置异常，请联系管理员检查模型与 API Key 配置。',
 			retryable: false,
 			technicalMessage: raw.slice(0, 800)
 		}
@@ -171,7 +173,7 @@ function classifyError(error) {
 	if (/ECONNRESET|ECONNREFUSED|EPIPE|ENOTFOUND|socket|network|连接.*(中断|重置|失败)/i.test(raw)) {
 		return {
 			code: 'AI_NETWORK_ERROR',
-			message: '连接 DeepSeek 时网络中断，系统已保留当前生成进度。',
+			message: '连接 AI 模型服务时网络中断，系统已保留当前生成进度。',
 			retryable: true,
 			technicalMessage: raw.slice(0, 800)
 		}
@@ -308,6 +310,7 @@ async function createTask({ report, requestedBy, startDate, endDate, weeksCount,
 	}
 
 	const now = Date.now()
+	const modelInfo = await aiModel.getActiveModelInfo()
 	const task = {
 		taskId: createTaskId(),
 		reportId: String(report.reportId || reportDocumentId),
@@ -328,7 +331,9 @@ async function createTask({ report, requestedBy, startDate, endDate, weeksCount,
 		maxAttempts: REQUEST_ATTEMPTS,
 		overview: {},
 		weeklyPlans: [],
-		model: '',
+		providerId: modelInfo.id,
+		provider: modelInfo.provider,
+		model: modelInfo.model,
 		sourceAnalysisRevision: Math.max(1, Number(report.analysisRevision) || 1),
 		retryable: true,
 		retryCount: 0,
@@ -387,13 +392,18 @@ async function retryTask(task, report) {
 
 async function requestJson({ task, messages, maxTokens, retryMaxTokens, onAttempt, normalize }) {
 	let lastError = null
+	const providerId = task.providerId ||
+		(task.provider === 'moonshot-official' || /^kimi-/i.test(task.model || '') ? 'kimi' : '') ||
+		(task.provider === 'deepseek-official' || /^deepseek-/i.test(task.model || '') ? 'deepseek' : '')
 	for (let attempt = 1; attempt <= REQUEST_ATTEMPTS; attempt++) {
 		const attemptMaxTokens = attempt > 1 && retryMaxTokens
 			? Math.max(maxTokens, retryMaxTokens)
 			: maxTokens
 		await onAttempt(attempt, lastError, attemptMaxTokens)
 		try {
-			const completion = await deepseek.chatCompletion({
+			const completion = await aiModel.chatCompletion({
+				provider: providerId,
+				model: providerId ? (task.model || '') : '',
 				messages,
 				maxTokens: attemptMaxTokens,
 				temperature: 0.3,
@@ -405,7 +415,7 @@ async function requestJson({ task, messages, maxTokens, retryMaxTokens, onAttemp
 			if (completion.finishReason === 'length') {
 				const completionTokens = Number(completion.usage?.completion_tokens) || 0
 				throw new Error(
-					`DeepSeek输出因长度限制被截断(finish_reason=length, max_tokens=${attemptMaxTokens}` +
+					`AI模型输出因长度限制被截断(finish_reason=length, max_tokens=${attemptMaxTokens}` +
 					`${completionTokens ? `, completion_tokens=${completionTokens}` : ''})`
 				)
 			}
@@ -413,7 +423,9 @@ async function requestJson({ task, messages, maxTokens, retryMaxTokens, onAttemp
 			return {
 				json,
 				value: typeof normalize === 'function' ? normalize(json) : json,
-				model: completion.model || deepseek.DEFAULT_MODEL
+				providerId: completion.providerId,
+				provider: completion.provider,
+				model: completion.model || task.model || aiModel.DEFAULT_MODEL
 			}
 		} catch (error) {
 			lastError = error
@@ -422,7 +434,7 @@ async function requestJson({ task, messages, maxTokens, retryMaxTokens, onAttemp
 			}
 		}
 	}
-	throw lastError || new Error('DeepSeek 请求失败')
+	throw lastError || new Error('AI 模型请求失败')
 }
 
 async function claimTask(task) {
@@ -529,6 +541,8 @@ async function processTask(taskId, { maxRunMs = 8 * 60 * 1000 } = {}) {
 			const overview = overviewResult.value
 			await persistTask(task, {
 				overview,
+				providerId: overviewResult.providerId || task.providerId,
+				provider: overviewResult.provider || task.provider,
 				model: overviewResult.model,
 				attempt: 0,
 				progress: 10,
@@ -599,6 +613,8 @@ async function processTask(taskId, { maxRunMs = 8 * 60 * 1000 } = {}) {
 			weeklyPlans.push(normalizedWeek)
 			await persistTask(task, {
 				weeklyPlans,
+				providerId: weekResult.providerId || task.providerId,
+				provider: weekResult.provider || task.provider,
 				model: weekResult.model || task.model,
 				completedWeeks: weeklyPlans.length,
 				attempt: 0,
@@ -629,7 +645,8 @@ async function processTask(taskId, { maxRunMs = 8 * 60 * 1000 } = {}) {
 			childName: latestReport.childName,
 			generatedAt: Date.now(),
 			generatedBy: task.requestedBy,
-			model: task.model || deepseek.DEFAULT_MODEL,
+			provider: task.provider || 'deepseek-official',
+			model: task.model || aiModel.DEFAULT_MODEL,
 			sourceAnalysisRevision: task.sourceAnalysisRevision,
 			focusDomains: task.focusDomains
 		})

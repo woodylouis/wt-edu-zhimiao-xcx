@@ -167,6 +167,18 @@
 			"title": "元数据",
 			"description": "任务的额外信息",
 			"properties": {
+				"providerId": {
+					"bsonType": "string",
+					"description": "模型供应商路由标识"
+				},
+				"provider": {
+					"bsonType": "string",
+					"description": "模型供应商"
+				},
+				"model": {
+					"bsonType": "string",
+					"description": "实际使用的AI模型"
+				},
 				"estimatedDuration": {
 					"bsonType": "int",
 					"title": "预估时长",

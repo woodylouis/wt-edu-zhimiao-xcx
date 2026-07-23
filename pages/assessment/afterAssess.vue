@@ -169,7 +169,7 @@ const backToHome = () => {
 const statusMessageMap = {
     pending: '正在准备分析',
     processing: '正在准备评估模块',
-    waiting_merge: 'DeepSeek正在分析量表',
+    waiting_merge: 'AI正在分析量表',
     pending_save: '正在保存智能分析报告',
     completed: '报告已生成',
     failed: '报告生成失败'
@@ -212,7 +212,7 @@ const statusDesc = computed(() => {
         const current = currentSectionName.value ? `，当前：${currentSectionName.value}` : '';
         return `已完成 ${completedSections.value}/${totalSections.value} 个模块${current}`;
     }
-    return '已需启动DeepSeek分析量表，请保持网络连接';
+    return '已启动AI分析量表，请保持网络连接';
 });
 
 const getStageClass = (index) => {

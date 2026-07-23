@@ -42,6 +42,10 @@
 				"bsonType": "object"
 			}
 		},
+		"providerId": {
+			"bsonType": "string",
+			"description": "本次报告任务固定使用的模型供应商路由标识"
+		},
 		"status": {
 			"bsonType": "string",
 			"description": "任务状态：pending / processing / done / failed"

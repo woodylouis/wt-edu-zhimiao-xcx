@@ -155,7 +155,7 @@ test('applies recoverable teacher adjustments without changing the seven-day pla
 	)
 })
 
-test('extracts JSON from a fenced DeepSeek response', () => {
+test('extracts JSON from a fenced AI model response', () => {
 	assert.deepEqual(extractJsonObject('```json\n{"ok":true}\n```'), { ok: true })
 })
 

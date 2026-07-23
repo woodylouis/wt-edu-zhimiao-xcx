@@ -265,7 +265,7 @@
 
       <button class="generate-button" :disabled="submitting || !rangeInfo.valid || !reportId || !focusSelectionValid" @click="generatePlan">
         <view v-if="submitting" class="button-spinner"></view>
-        <text>{{ submitting ? '正在创建后台任务…' : `使用 DeepSeek 生成${rangeWeeks || ''}周计划` }}</text>
+        <text>{{ submitting ? '正在创建后台任务…' : `使用当前 AI 模型生成${rangeWeeks || ''}周计划` }}</text>
       </button>
       <text class="generating-note">提交后可安全退出页面，系统会在后台按周生成并保存进度</text>
       <text v-if="errorMessage" class="error-message">{{ errorMessage }}</text>

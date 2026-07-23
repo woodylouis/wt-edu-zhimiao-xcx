@@ -115,6 +115,14 @@
       "bsonType": "array",
       "description": "分周生成并持久化的中间结果"
     },
+    "providerId": {
+      "bsonType": "string",
+      "description": "模型供应商路由标识"
+    },
+    "provider": {
+      "bsonType": "string",
+      "description": "实际使用的模型供应商"
+    },
     "model": {
       "bsonType": "string",
       "description": "实际使用的AI模型"
