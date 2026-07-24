@@ -1,0 +1,50 @@
+[
+  {
+    "IndexName": "reportId",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "reportId", "Direction": "1" }
+      ],
+      "MgoIsUnique": false
+    }
+  },
+  {
+    "IndexName": "recordId",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "recordId", "Direction": "1" }
+      ],
+      "MgoIsUnique": false
+    }
+  },
+  {
+    "IndexName": "class_completionTime",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "classId", "Direction": "1" },
+        { "Name": "completionTime", "Direction": "-1" }
+      ],
+      "MgoIsUnique": false
+    }
+  },
+  {
+    "IndexName": "assessment_completionTime",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "assessmentId", "Direction": "1" },
+        { "Name": "completionTime", "Direction": "-1" }
+      ],
+      "MgoIsUnique": false
+    }
+  },
+  {
+    "IndexName": "pdfStatus_updateTime",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "pdfStatus", "Direction": "1" },
+        { "Name": "updateTime", "Direction": "-1" }
+      ],
+      "MgoIsUnique": false
+    }
+  }
+]

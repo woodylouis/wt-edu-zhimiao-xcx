@@ -32,18 +32,27 @@
             class="report-list"
             @click="onclickReportCard(index)"
           >
-            <view class="report-card" :class="{ 'report-card--current': index === currentReportIndex }">
+            <view class="report-card" :class="{ 'report-card--current': isCurrent(report) }">
               <view class="report-index">{{ index + 1 }}</view>
               <view class="report-main">
                 <view class="report-title-row">
                   <text class="report-title">
                     {{ report.title ? report.title : "ABLLS-R评估" }}
                   </text>
-                  <text v-if="index === currentReportIndex" class="current-tag">当前</text>
+                  <text v-if="isCurrent(report)" class="current-tag">当前</text>
                 </view>
                 <view class="report-date-row">
                   <text class="date-icon">📅</text>
                   <text class="report-date">{{ report.date }}</text>
+                </view>
+                <view class="report-pair-status">
+                  <text class="pair-status-label">评估报告 · 已完成</text>
+                  <text
+                    class="pair-status-plan"
+                    :class="`pair-status-plan--${getPlanState(report).tone}`"
+                  >
+                    训练方案 · {{ getPlanState(report).text }}
+                  </text>
                 </view>
               </view>
               <view class="report-arrow">›</view>
@@ -66,10 +75,13 @@
         type: Array,
         default: () => [],
       },
+      selectedReportId: {
+        type: String,
+        default: "",
+      },
     },
     data() {
       return {
-        currentReportIndex: 0, // 新增这行，默认第一个报告为当前报告
         popupData: {
           overlay: true,
           mode: "left",
@@ -96,8 +108,30 @@
         this.$emit("update:show", false); // 修改为emit事件
       },
       onclickReportCard(i) {
-        this.currentReportIndex = i;
         this.$emit("onclickReportCard", i);
+      },
+      getReportId(report = {}) {
+        return String(report.reportId || report._id || "");
+      },
+      isCurrent(report) {
+        return !!this.selectedReportId &&
+          this.getReportId(report) === String(this.selectedReportId);
+      },
+      getPlanState(report = {}) {
+        const task = report.interventionPlanGeneration || {};
+        if (["pending", "generating_overview", "generating_weeks", "assembling"].includes(task.status)) {
+          return { tone: "progress", text: `生成中 ${Number(task.progress) || 0}%` };
+        }
+        if (["failed", "timed_out"].includes(task.status)) {
+          return { tone: "danger", text: "生成失败" };
+        }
+        if (report.interventionPlanStatus === "stale") {
+          return { tone: "warning", text: "需核查" };
+        }
+        if (report.interventionPlan || report.interventionPlanStatus === "completed") {
+          return { tone: "ready", text: "已生成" };
+        }
+        return { tone: "empty", text: "未生成" };
       },
     },
   };
@@ -261,6 +295,42 @@
   color: #746d88;
   font-size: 22rpx;
   font-weight: 700;
+}
+
+.report-pair-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 12rpx;
+}
+
+.pair-status-label,
+.pair-status-plan {
+  padding: 5rpx 9rpx;
+  border: 2rpx solid #392f59;
+  border-radius: 999rpx;
+  color: #392f59;
+  background: #ffffff;
+  font-size: 17rpx;
+  font-weight: 850;
+}
+
+.pair-status-plan--ready {
+  background: #79dfc2;
+}
+
+.pair-status-plan--progress {
+  background: #a8ddff;
+}
+
+.pair-status-plan--danger,
+.pair-status-plan--warning {
+  background: #ffb8ad;
+}
+
+.pair-status-plan--empty {
+  color: #6e657c;
+  background: #f3eff7;
 }
 
 .report-arrow {

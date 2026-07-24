@@ -58,6 +58,10 @@
                         <text class="current-sub-label">正在评估:</text>
                         <text class="current-sub-name">{{ getCurrentSubSectionName(section.section_id) }}</text>
                     </view>
+                    <view class="prefill-progress-row" v-if="getPrefillProgress(section.section_id)">
+                        <text class="prefill-progress-label">历史预填复核</text>
+                        <text class="prefill-progress-value">{{ getPrefillProgress(section.section_id) }}</text>
+                    </view>
                 </view>
                 <view class="collapse-right">
                     <text class="progress-text">{{ getModuleProgress(section.section_id) || '开始' }}</text>
@@ -153,6 +157,7 @@ const confirmInfo = ref([
 
 // 计算属性：状态栏样式类
 const statusBannerClass = computed(() => {
+    if (prefillPendingCount.value > 0) return 'prefill-banner';
     if (isReviewingCompleted.value) return 'completed-banner';
     if (isContinue.value) return 'continue-banner';
     if (isFirstTime.value) return 'first-banner';
@@ -161,6 +166,7 @@ const statusBannerClass = computed(() => {
 
 // 计算属性：状态图标
 const statusIcon = computed(() => {
+    if (prefillPendingCount.value > 0) return '↻';
     if (isReviewingCompleted.value) return '✓';
     if (isContinue.value) return '⏰';
     if (isFirstTime.value) return '🌟';
@@ -169,6 +175,7 @@ const statusIcon = computed(() => {
 
 // 计算属性：状态标题
 const statusTitle = computed(() => {
+    if (prefillPendingCount.value > 0) return '历史答案待复核';
     if (isReviewingCompleted.value) return '评估已完成';
     if (isContinue.value) return '继续评估';
     if (isFirstTime.value) return '第一次评估';
@@ -177,6 +184,9 @@ const statusTitle = computed(() => {
 
 // 计算属性：状态描述
 const statusDesc = computed(() => {
+    if (prefillPendingCount.value > 0) {
+        return `已参考上次评估预填${prefillTotalCount.value}项，还有${prefillPendingCount.value}项需要确认或修改`;
+    }
     if (isReviewingCompleted.value) {
         return '可检查各模块和子模块的完成情况';
     }
@@ -191,6 +201,20 @@ const statusDesc = computed(() => {
     }
     return '请从第一个模块开始评估';
 });
+
+const prefillTotalCount = computed(() =>
+    Number(recordObj.value.prefilledQuestionCount) ||
+    (recordObj.value.modulesStatus || []).reduce(
+        (total, module) => total + Number(module.prefilledQuestions || 0),
+        0
+    )
+);
+
+const prefillPendingCount = computed(() =>
+    recordObj.value.prefillMode === 'history'
+        ? Number(recordObj.value.prefillPendingQuestionCount ?? recordObj.value.prefilledQuestionCount) || 0
+        : 0
+);
 
 // 格式化时间
 const formatTime = (timestamp) => {
@@ -211,6 +235,14 @@ const toggleCollapse = (name) => {
 // 获取模块状态
 const getModuleStatus = (sectionId) => {
     return modulesStatusMap.value[sectionId];
+};
+
+const getPrefillProgress = (sectionId) => {
+    const status = modulesStatusMap.value[sectionId];
+    const total = Number(status?.prefilledQuestions) || 0;
+    if (!total) return '';
+    const reviewed = Number(status?.reviewedPrefilledQuestions) || 0;
+    return `${reviewed}/${total}项已复核`;
 };
 
 // 获取模块状态样式类
@@ -410,6 +442,7 @@ const clearStudentsCache = (classId) => {
 const applyAssessmentRecordData = (temp, assessmentSections, recordState = {}) => {
     if (!temp) return;
 
+    recordObj.value = temp;
     isContinue.value = recordState.isContinue || false;
     isFirstTime.value = recordState.isFirstTime || false;
     lastSaveTime.value = temp.lastSaveTime || null;
@@ -455,6 +488,8 @@ const fetchAssessmentRecordData = async (childId, assessmentSections) => {
             data: {
                 childId,
                 data,
+                startMode: currentStudent.value.startMode || 'blank',
+                prefillFromRecordId: currentStudent.value.prefillFromRecordId || '',
                 uniIdToken: uni.getStorageSync('uni_id_token')
             }
         });
@@ -1288,6 +1323,12 @@ onMounted(() => {
     background: linear-gradient(135deg, #c9bbff 0%, #a58cf5 100%);
 }
 
+.dashboard .status-banner.prefill-banner {
+    border-color: #6d55be;
+    background: linear-gradient(135deg, #f1ecff 0%, #fff6c9 100%);
+    box-shadow: 7rpx 7rpx 0 #cdbfff;
+}
+
 .status-icon-wrap {
     display: flex;
     align-items: center;
@@ -1453,6 +1494,28 @@ onMounted(() => {
     background: #fff0b1;
     font-size: 20rpx;
     font-weight: 800;
+}
+
+.dashboard .collapse .collapse-header .collapse-title-area .prefill-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+    margin-top: 7rpx;
+}
+
+.dashboard .collapse .collapse-header .collapse-title-area .prefill-progress-label,
+.dashboard .collapse .collapse-header .collapse-title-area .prefill-progress-value {
+    padding: 4rpx 8rpx;
+    border-radius: 10rpx;
+    color: #625099;
+    background: #eee8ff;
+    font-size: 18rpx;
+    font-weight: 800;
+}
+
+.dashboard .collapse .collapse-header .collapse-title-area .prefill-progress-value {
+    color: #7a5c1d;
+    background: #fff2bd;
 }
 
 .dashboard .collapse .collapse-header .collapse-right {

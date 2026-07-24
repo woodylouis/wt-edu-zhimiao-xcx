@@ -64,6 +64,42 @@
             </view>
         </view>
         
+        <view
+            class="latest-outcome"
+            :class="{ 'latest-outcome--empty': !student.latestReport }"
+            @click="handleReportClick"
+        >
+            <view class="latest-outcome-head">
+                <view>
+                    <text class="latest-outcome-kicker">最新评估成果</text>
+                    <text class="latest-outcome-source">{{ trainingPlanEntry.source }}</text>
+                </view>
+                <text class="latest-outcome-arrow">›</text>
+            </view>
+            <view class="outcome-pair">
+                <view class="outcome-pair-item outcome-pair-item--report">
+                    <text class="outcome-pair-index">1</text>
+                    <view class="outcome-pair-copy">
+                        <text class="outcome-pair-title">评估报告</text>
+                        <text class="outcome-pair-state">{{ student.latestReport ? '已完成' : '尚未生成' }}</text>
+                    </view>
+                </view>
+                <view class="outcome-pair-link"></view>
+                <view
+                    class="outcome-pair-item"
+                    :class="`outcome-pair-item--${trainingPlanEntry.tone}`"
+                    @click.stop="handlePlanClick"
+                >
+                    <text class="outcome-pair-index">2</text>
+                    <view class="outcome-pair-copy">
+                        <text class="outcome-pair-title">训练方案</text>
+                        <text class="outcome-pair-state">{{ trainingPlanEntry.badge }}</text>
+                    </view>
+                    <text class="outcome-plan-arrow">›</text>
+                </view>
+            </view>
+        </view>
+
         <!-- 操作按钮区域 -->
         <view class="action-area" :class="{ 'action-area--continue': isAssessing }">
             <button
@@ -74,8 +110,8 @@
             >
                 <view class="action-icon action-icon--report">📊</view>
                 <view class="action-copy">
-                    <text class="action-title">查看报告</text>
-                    <text class="action-hint">{{ hasAssessments ? '历史记录' : '暂无记录' }}</text>
+                    <text class="action-title">历史评估</text>
+                    <text class="action-hint">{{ hasAssessments ? `${assessmentCount}次记录` : '暂无记录' }}</text>
                 </view>
                 <text class="action-arrow">›</text>
             </button>
@@ -97,25 +133,6 @@
                 <text class="action-arrow">›</text>
             </button>
         </view>
-        <button
-            class="plan-entry"
-            :class="`plan-entry--${trainingPlanEntry.tone}`"
-            hover-class="plan-entry--pressed"
-            @click="handlePlanClick"
-        >
-            <view class="plan-entry-icon">
-                <view class="plan-target-ring"><view class="plan-target-core"></view></view>
-                <text class="plan-target-spark">✦</text>
-            </view>
-            <view class="plan-entry-copy">
-                <view class="plan-entry-title-row">
-                    <text class="plan-entry-title">{{ trainingPlanEntry.title }}</text>
-                    <text class="plan-entry-badge">{{ trainingPlanEntry.badge }}</text>
-                </view>
-                <text class="plan-entry-source">{{ trainingPlanEntry.source }}</text>
-            </view>
-            <text class="action-arrow">›</text>
-        </button>
     </view>
 </template>
 
@@ -212,8 +229,8 @@ const trainingPlanEntry = computed(() => {
             title: '训练计划',
             badge: '暂无报告',
             source: hasAssessments.value
-                ? '最近评估尚未生成报告'
-                : '完成评估并生成报告后可制定'
+                ? '最近一次评估报告仍在生成'
+                : '完成一次新评估后，会在这里形成报告与训练方案'
         }
     }
 
@@ -242,8 +259,8 @@ const trainingPlanEntry = computed(() => {
     if (report.interventionPlanStatus === 'stale') {
         return {
             tone: 'warning',
-            title: '更新训练计划',
-            badge: '需更新',
+            title: '历史状态异常',
+            badge: '需核查',
             source
         }
     }
@@ -692,6 +709,139 @@ const handleAssessClick = () => {
     font-weight: 900;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.latest-outcome {
+    margin-top: 18rpx;
+    padding: 18rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 25rpx;
+    background: linear-gradient(135deg, #fff1ac 0%, #fff8dc 100%);
+    box-shadow: 5rpx 5rpx 0 #ff8f82;
+}
+
+.latest-outcome--empty {
+    background: #f3f0f6;
+    box-shadow: 5rpx 5rpx 0 #c9c1d3;
+}
+
+.latest-outcome-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12rpx;
+}
+
+.latest-outcome-head > view:first-child {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.latest-outcome-kicker {
+    color: #392f59;
+    font-size: 22rpx;
+    font-weight: 950;
+}
+
+.latest-outcome-source {
+    margin-top: 6rpx;
+    overflow: hidden;
+    color: #716986;
+    font-size: 18rpx;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.latest-outcome-arrow {
+    color: #392f59;
+    font-size: 34rpx;
+    font-weight: 900;
+}
+
+.outcome-pair {
+    display: grid;
+    grid-template-columns: 1fr 22rpx 1fr;
+    align-items: center;
+    margin-top: 15rpx;
+}
+
+.outcome-pair-item {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    min-height: 68rpx;
+    box-sizing: border-box;
+    gap: 9rpx;
+    padding: 10rpx;
+    border: 2rpx solid #392f59;
+    border-radius: 19rpx;
+    background: #ffffff;
+}
+
+.outcome-pair-item--report,
+.outcome-pair-item--ready {
+    background: #dff8ef;
+}
+
+.outcome-pair-item--progress {
+    background: #e7e0ff;
+}
+
+.outcome-pair-item--warning,
+.outcome-pair-item--danger {
+    background: #ffe4d7;
+}
+
+.outcome-pair-item--empty {
+    background: #f3f0f6;
+}
+
+.outcome-pair-index {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34rpx;
+    height: 34rpx;
+    flex: 0 0 auto;
+    border: 2rpx solid #392f59;
+    border-radius: 12rpx;
+    color: #ffffff;
+    background: #7c63e8;
+    font-size: 18rpx;
+    font-weight: 950;
+}
+
+.outcome-pair-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+}
+
+.outcome-pair-title {
+    color: #392f59;
+    font-size: 21rpx;
+    font-weight: 900;
+}
+
+.outcome-pair-state {
+    margin-top: 3rpx;
+    color: #716986;
+    font-size: 17rpx;
+    font-weight: 800;
+}
+
+.outcome-pair-link {
+    height: 4rpx;
+    border-top: 2rpx dashed #776b83;
+}
+
+.outcome-plan-arrow {
+    color: #392f59;
+    font-size: 29rpx;
+    font-weight: 900;
 }
 
 .action-area {

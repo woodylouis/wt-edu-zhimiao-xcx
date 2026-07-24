@@ -9,6 +9,10 @@
             "bsonType": "string",
             "description": "评估记录唯一标识"
         },
+        "assessmentId": {
+            "bsonType": "string",
+            "description": "关联的评估量表ID"
+        },
         "assessment_id": {
             "bsonType": "string",
             "description": "关联的评估量表ID"
@@ -78,6 +82,21 @@
                         "description": "是否已开始",
                         "defaultValue": false
                     },
+                    "prefilledQuestions": {
+                        "bsonType": "int",
+                        "minimum": 0,
+                        "description": "本模块历史预填题目数量"
+                    },
+                    "reviewedPrefilledQuestions": {
+                        "bsonType": "int",
+                        "minimum": 0,
+                        "description": "本模块已复核历史预填题目数量"
+                    },
+                    "pendingPrefilledQuestions": {
+                        "bsonType": "int",
+                        "minimum": 0,
+                        "description": "本模块待复核历史预填题目数量"
+                    },
                     "subSectionsProgress": {
                         "bsonType": "array",
                         "description": "每个子模块的进度",
@@ -144,6 +163,49 @@
         "restartedFromRecordId": {
             "bsonType": "string",
             "description": "重新开始前的评估记录ID"
+        },
+        "prefillMode": {
+            "bsonType": "string",
+            "enum": [
+                "history"
+            ],
+            "description": "新评估是否参考历史答题记录预填"
+        },
+        "prefilledFromRecordId": {
+            "bsonType": "string",
+            "description": "预填来源的已完成评估记录ID"
+        },
+        "prefilledAt": {
+            "bsonType": "timestamp",
+            "description": "历史答案预填时间"
+        },
+        "prefilledBy": {
+            "bsonType": "string",
+            "description": "发起历史答案预填的老师ID"
+        },
+        "prefillSourceCompletedAt": {
+            "bsonType": "timestamp",
+            "description": "预填来源评估的完成时间"
+        },
+        "prefilledQuestionCount": {
+            "bsonType": "int",
+            "minimum": 0,
+            "description": "成功预填的历史答案数量"
+        },
+        "prefillTotalQuestionCount": {
+            "bsonType": "int",
+            "minimum": 0,
+            "description": "新评估当前版本的题目总数"
+        },
+        "prefillReviewedQuestionCount": {
+            "bsonType": "int",
+            "minimum": 0,
+            "description": "已经由老师确认或修改的历史预填答案数量"
+        },
+        "prefillPendingQuestionCount": {
+            "bsonType": "int",
+            "minimum": 0,
+            "description": "尚未复核的历史预填答案数量"
         },
         "isCompleted": {
             "bsonType": "bool",

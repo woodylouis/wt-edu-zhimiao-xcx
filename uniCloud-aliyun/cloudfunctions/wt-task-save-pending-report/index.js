@@ -6,7 +6,7 @@ const dbRecord = db.collection('wtdb-business-assess-record')
 const dbTask = db.collection('wtdb-report-tasks')
 const dbLog = db.collection('wtdb-debug-logs')
 const taskAuth = require('report-task-auth')
-const { buildInitialReportData, buildReanalysisVersionUpdate } = require('./lib/report-analysis-version')
+const { buildInitialReportData } = require('./lib/report-analysis-version')
 
 async function log(tag, data = null, { taskId = '', recordId = '', level = 'info' } = {}) {
 	const now = Date.now()
@@ -34,23 +34,27 @@ exports.main = async (event = {}) => {
 		try {
 			await log('save-pending-start', {}, { taskId, recordId })
 
-			const existing = await dbReport.where({ reportId: reportData.reportId }).limit(1).get()
+			const existing = await dbReport.where(db.command.or([
+				{ reportId: reportData.reportId },
+				{ recordId }
+			])).limit(1).get()
 			const existingReport = existing.data[0] || null
+			let persistedReport
 			if (!existingReport) {
-				await dbReport.add(buildInitialReportData(reportData))
-				await log('report-inserted', {}, { taskId, recordId })
-			} else {
-				const analysisVersionUpdate = buildReanalysisVersionUpdate(existingReport)
-				await dbReport.doc(existingReport._id).update({
+				persistedReport = buildInitialReportData({
 					...reportData,
-					...analysisVersionUpdate,
-					createTime: existingReport.createTime || reportData.createTime,
-					pdfUrl: '',
-					pdfStatus: 'pending',
-					pdfGeneratedTime: 0,
-					updateTime: Date.now()
+					sourceTaskId: taskId
 				})
-				await log('report-updated-by-reanalysis', { reportId: reportData.reportId }, { taskId, recordId })
+				await dbReport.add(persistedReport)
+				await log('report-inserted', {}, { taskId, recordId })
+			} else if (
+				existingReport.recordId === recordId &&
+				existingReport.sourceTaskId === taskId
+			) {
+				persistedReport = existingReport
+				await log('report-save-resumed-idempotently', {}, { taskId, recordId })
+			} else {
+				throw new Error('该评估已生成报告，不能覆盖；请创建一次新的评估')
 			}
 
 			const recordRes = await dbRecord.where({ recordId }).get()
@@ -69,15 +73,15 @@ exports.main = async (event = {}) => {
 				isCompleted: true,
 				lastCompletedTime: completedTime,
 				reportStatus: 'completed',
-				reportId: reportData.reportId,
+				reportId: persistedReport.reportId,
 				updateTime: Date.now()
 			})
 
 			await dbTask.where({ taskId }).update({
 				status: 'completed',
 				progress: 100,
-				completedSections: reportData.sectionSummaryList?.length || 0,
-				report: reportData,
+				completedSections: persistedReport.sectionSummaryList?.length || 0,
+				report: persistedReport,
 				endTime: Date.now(),
 				updateTime: Date.now()
 			})

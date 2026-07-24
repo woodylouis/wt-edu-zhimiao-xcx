@@ -124,7 +124,6 @@
           <button v-if="generationFailed && generationTask.retryable !== false && !readOnly && !editing" class="task-primary-button" :disabled="submitting" @click="retryGeneration">
             {{ submitting ? '正在提交…' : '从当前进度重试' }}
           </button>
-          <button v-if="generationFailed && !readOnly && !editing" class="task-secondary-button" @click="beginEditing">调整方向和周期</button>
         </view>
       </view>
 
@@ -150,9 +149,6 @@
           </view>
         </view>
         <view v-if="!editing" class="compact-actions">
-          <button v-if="!readOnly" class="secondary-button" :class="{ refresh: planMismatched }" @click="beginEditing">
-            {{ planMismatched ? '及时重新生成' : '重新生成' }}
-          </button>
           <button
             v-if="!readOnly && !planMismatched"
             class="manual-edit-button"
@@ -172,7 +168,6 @@
           <text class="mismatch-title">训练计划与当前报告不匹配</text>
           <text class="mismatch-text">{{ planMismatchMessage }}</text>
         </view>
-        <button v-if="!readOnly" class="mismatch-action" @click="beginEditing">及时重新生成</button>
       </view>
     </view>
 
@@ -704,9 +699,9 @@ export default {
       const reportRevision = Number(this.report?.analysisRevision || 0)
       const sourceRevision = Number(this.plan?.sourceAnalysisRevision || 0)
       if (reportRevision && sourceRevision && reportRevision !== sourceRevision) {
-        return '报告的AI分析已经更新，请基于最新结果重新生成计划。'
+        return '这是历史数据形成的异常状态。为避免覆盖既有方案，系统不再提供 AI 重新生成；请联系管理员核查。'
       }
-      return '计划的日期周期或每日安排不完整，请及时重新生成。'
+      return '计划的日期周期或每日安排不完整。为避免覆盖既有方案，请联系管理员核查。'
     },
     rangeFeedbackTitle() {
       if (this.rangeInfo.valid) return `已选择 ${this.rangeInfo.weeks} 个完整周，共 ${this.rangeInfo.totalDays} 天`
@@ -1196,26 +1191,12 @@ export default {
       const key = `${this.selectedWeek}-${dayIndex}`
       this.openedDayKey = this.openedDayKey === key ? '' : key
     },
-    async confirmRegeneration() {
-      if (!this.hasPlan) return true
-      const manualWarning = this.hasManualAdjustments
-        ? '老师手动新增、移出或恢复的调整会被新计划覆盖。'
-        : ''
-      return new Promise(resolve => {
-        uni.showModal({
-          title: this.planMismatched ? '生成匹配当前报告的新计划？' : '重新生成训练计划？',
-          content: this.planMismatched
-            ? `当前计划与最新报告不匹配。重新生成后会按当前报告、已选${this.selectedFocusDomainsCount}个训练方向和日期区间覆盖旧计划。${manualWarning}`
-            : `新的日期区间和已选${this.selectedFocusDomainsCount}个训练方向会覆盖当前计划。${manualWarning}`,
-          confirmText: '重新生成',
-          success: result => resolve(!!result.confirm),
-          fail: () => resolve(false)
-        })
-      })
-    },
     async generatePlan() {
       if (this.submitting || this.isGenerationActive || !this.rangeInfo.valid || !this.reportId || !this.focusSelectionValid) return
-      if (!await this.confirmRegeneration()) return
+      if (this.hasPlan) {
+        uni.showToast({ title: '已有训练方案仅支持手动调整', icon: 'none' })
+        return
+      }
       this.submitting = true
       this.errorMessage = ''
       try {
@@ -1227,7 +1208,7 @@ export default {
             startDate: this.startDate,
             endDate: this.endDate,
             focusDomains: this.effectiveSelectedFocusDomains,
-            forceRegenerate: this.hasPlan,
+            forceRegenerate: false,
             uniIdToken: uni.getStorageSync('uni_id_token')
           },
           timeout: 15000

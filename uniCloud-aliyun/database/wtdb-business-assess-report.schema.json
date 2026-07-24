@@ -219,6 +219,10 @@
             "bsonType": "string",
             "description": "报告唯一ID"
         },
+        "sourceTaskId": {
+            "bsonType": "string",
+            "description": "首次生成该报告的后台任务ID，用于幂等恢复且不可用于覆盖报告"
+        },
         "reportVersion": {
             "bsonType": "string",
             "description": "报告版本"

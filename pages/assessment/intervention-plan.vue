@@ -29,7 +29,7 @@
 
       <view class="source-note">
         <text class="source-note-icon">i</text>
-        <text>计划始终关联当前评估报告；报告重新分析后，这里会提示重新生成。</text>
+        <text>本方案仅对应上方这一次评估报告；已有方案可手动调整，不会被 AI 覆盖生成。</text>
       </view>
 
       <intervention-plan

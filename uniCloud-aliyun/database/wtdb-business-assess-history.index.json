@@ -1,0 +1,22 @@
+[
+  {
+    "IndexName": "record_section",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "recordId", "Direction": "1" },
+        { "Name": "sectionId", "Direction": "1" }
+      ],
+      "MgoIsUnique": false
+    }
+  },
+  {
+    "IndexName": "child_record",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "childId", "Direction": "1" },
+        { "Name": "recordId", "Direction": "1" }
+      ],
+      "MgoIsUnique": false
+    }
+  }
+]

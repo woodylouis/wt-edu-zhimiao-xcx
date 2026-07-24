@@ -167,7 +167,6 @@ exports.main = async (event = {}) => {
 		const { taskId, originalParams = {}, assessmentId, metadata = {} } = task
 		const recordId = originalParams.query?.recordId || ''
 		const assessorId = originalParams.query?.assessorId || ''
-		const reanalysis = metadata.reanalysis || {}
 		try {
 			await log('merge-start', {}, { taskId, recordId })
 
@@ -259,7 +258,7 @@ exports.main = async (event = {}) => {
 
 			const reportData = {
 				reportVersion: 'v2',
-				reportId: reanalysis.targetReportId || `report_${recordId}_${Date.now()}`,
+				reportId: `report_${recordId}`,
 				recordId,
 				assessmentId,
 				assessorId,

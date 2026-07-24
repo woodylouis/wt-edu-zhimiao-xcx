@@ -38,6 +38,60 @@
                     </view>
                 </view>
             </view>
+
+            <view v-if="selectedAssessment && !isContinuing" class="start-mode-section">
+                <view class="start-mode-heading">
+                    <text class="start-mode-title">选择开始方式</text>
+                    <text class="start-mode-subtitle">每次都会创建一份新的评估记录</text>
+                </view>
+                <view
+                    class="start-mode-option"
+                    :class="{ selected: startMode === 'blank' }"
+                    @click="selectStartMode('blank')"
+                >
+                    <view class="mode-radio">{{ startMode === 'blank' ? '✓' : '' }}</view>
+                    <view class="mode-copy">
+                        <text class="mode-title">从空白开始</text>
+                        <text class="mode-hint">重新完成全部题目，适合完整复评</text>
+                    </view>
+                </view>
+                <view
+                    v-if="prefillSources.length"
+                    class="start-mode-option"
+                    :class="{ selected: startMode === 'prefill' }"
+                    @click="selectStartMode('prefill')"
+                >
+                    <view class="mode-radio">{{ startMode === 'prefill' ? '✓' : '' }}</view>
+                    <view class="mode-copy">
+                        <text class="mode-title">参考历史评估预填</text>
+                        <text class="mode-hint">带入历史答案，进入后需要逐项复核</text>
+                    </view>
+                </view>
+
+                <view v-if="startMode === 'prefill'" class="prefill-source-list">
+                    <view
+                        v-for="source in prefillSources"
+                        :key="source.recordId"
+                        class="prefill-source"
+                        :class="{ selected: selectedPrefillRecordId === source.recordId }"
+                        @click="selectedPrefillRecordId = source.recordId"
+                    >
+                        <view class="source-main">
+                            <text class="source-date">{{ formatDate(source.completionTime) }}</text>
+                            <text class="source-assessor">评估老师：{{ source.assessorName }}</text>
+                        </view>
+                        <view class="source-match">
+                            <text>可预填 {{ source.matchedCount }}/{{ source.totalQuestions }} 项</text>
+                            <text v-if="source.unmatchedCount">另有{{ source.unmatchedCount }}项需重新填写</text>
+                        </view>
+                        <view class="source-check">{{ selectedPrefillRecordId === source.recordId ? '✓' : '' }}</view>
+                    </view>
+                    <text class="prefill-warning">历史报告和训练方案不会复制；所有预填答案复核后才能生成新报告。</text>
+                </view>
+                <text v-else-if="prefillSourceLoaded && !prefillSources.length" class="no-prefill">
+                    暂无可安全匹配的历史答题记录，本次请从空白开始
+                </text>
+            </view>
             
             <!-- 提示信息 -->
             <view class="hint-text" :class="{ 'hint-text--stale': shouldSuggestRestart }">
@@ -59,17 +113,17 @@
                 </button>
                 <button
                     class="confirm-btn"
-                    :disabled="!selectedAssessment || restarting || navigationLoading"
+                    :disabled="!canStartAssessment || restarting || navigationLoading"
                     @click="onStartAssess"
                 >
-                    {{ isContinuing ? '继续评估' : '开始评估' }}
+                    {{ isContinuing ? '继续评估' : startMode === 'prefill' ? '创建预填评估' : '开始新评估' }}
                 </button>
             </view>
         </view>
 
         <DopamineLoading
-            :show="loading || locationLoading || restarting || navigationLoading"
-            :text="loading ? '正在准备成长量表' : locationLoading ? '正在确认校园位置' : restarting ? '正在重新开始评估' : '正在打开评估任务'"
+            :show="loading || prefillSourceLoading || locationLoading || restarting || navigationLoading"
+            :text="loading ? '正在准备成长量表' : prefillSourceLoading ? '正在查找历史评估' : locationLoading ? '正在确认校园位置' : restarting ? '正在重新开始评估' : '正在打开评估任务'"
             :subtext="loading ? '小芽在挑选合适的成长任务' : locationLoading ? '定位小雷达正在转圈圈' : restarting ? '正在作废旧进度并创建全新评估' : '量表已选好，马上开始闯关'"
         />
     </view>
@@ -99,8 +153,14 @@ const loading = ref(false)
 const locationLoading = ref(false)
 const navigationLoading = ref(false)
 const restarting = ref(false)
+const prefillSourceLoading = ref(false)
+const prefillSourceLoaded = ref(false)
 const assessmentList = ref([])
 const selectedAssessment = ref(null)
+const prefillSources = ref([])
+const startMode = ref('blank')
+const selectedPrefillRecordId = ref('')
+let prefillRequestId = 0
 
 const inProgressAssessmentId = computed(() =>
     String(props.student?.inProgressAssessment?.assessmentId || '')
@@ -111,6 +171,12 @@ const isInProgressAssessment = (assessment) =>
     String(assessment?.id || '') === inProgressAssessmentId.value
 
 const isContinuing = computed(() => isInProgressAssessment(selectedAssessment.value))
+const canStartAssessment = computed(() =>
+    Boolean(selectedAssessment.value) &&
+    (isContinuing.value ||
+        startMode.value === 'blank' ||
+        (startMode.value === 'prefill' && Boolean(selectedPrefillRecordId.value)))
+)
 
 const modalTitle = computed(() =>
     inProgressAssessmentId.value ? '继续评估' : '选择评估量表'
@@ -221,7 +287,12 @@ const ageInt = computed(() => {
 // 监听弹窗显示，加载评估列表
 watch(() => props.visible, (val) => {
     if (val) {
+        prefillRequestId += 1
         selectedAssessment.value = null
+        prefillSources.value = []
+        startMode.value = 'blank'
+        selectedPrefillRecordId.value = ''
+        prefillSourceLoaded.value = false
         loadAssessments()
     }
 })
@@ -268,6 +339,57 @@ const loadAssessments = async () => {
 // 选择评估
 const onSelectAssessment = (item) => {
     selectedAssessment.value = item
+    startMode.value = 'blank'
+    selectedPrefillRecordId.value = ''
+    prefillSources.value = []
+    prefillSourceLoaded.value = false
+    if (!isInProgressAssessment(item)) loadPrefillSources(item)
+}
+
+const loadPrefillSources = async (assessment) => {
+    if (!assessment?.id || !props.student?._id) return
+    const requestId = ++prefillRequestId
+    prefillSourceLoading.value = true
+    try {
+        const { result } = await uniCloud.callFunction({
+            name: 'wt-upload-assess-record',
+            data: {
+                action: 'prefillSources',
+                childId: props.student._id,
+                data: {
+                    assessmentId: assessment.id,
+                    assessmentTitle: assessment.title,
+                    ageInt: ageInt.value
+                },
+                uniIdToken: uni.getStorageSync('uni_id_token')
+            }
+        })
+        if (requestId !== prefillRequestId ||
+            selectedAssessment.value?.id !== assessment.id) return
+        prefillSources.value = result?.code === 200 && Array.isArray(result.data)
+            ? result.data
+            : []
+        if (prefillSources.value.length) {
+            selectedPrefillRecordId.value = prefillSources.value[0].recordId
+        }
+    } catch (error) {
+        if (requestId !== prefillRequestId) return
+        console.warn('加载历史评估预填来源失败:', error)
+        prefillSources.value = []
+    } finally {
+        if (requestId === prefillRequestId) {
+            prefillSourceLoaded.value = true
+            prefillSourceLoading.value = false
+        }
+    }
+}
+
+const selectStartMode = (mode) => {
+    if (mode === 'prefill' && !prefillSources.value.length) return
+    startMode.value = mode
+    if (mode === 'prefill' && !selectedPrefillRecordId.value) {
+        selectedPrefillRecordId.value = prefillSources.value[0]?.recordId || ''
+    }
 }
 
 // 关闭弹窗
@@ -518,7 +640,11 @@ const navigateToAssessment = async ({ restartAssessment = false } = {}) => {
             `&childAge=${studentAge.value}` +
             `&ageInt=${ageInt.value}` +
             `&assessmentId=${selectedAssessment.value.id}` +
-            `&assessmentTitle=${selectedAssessment.value.title}`,
+            `&assessmentTitle=${selectedAssessment.value.title}` +
+            `&startMode=${restartAssessment ? 'blank' : startMode.value}` +
+            (startMode.value === 'prefill' && !restartAssessment
+                ? `&prefillFromRecordId=${encodeURIComponent(selectedPrefillRecordId.value)}`
+                : ''),
         success: () => {
             trackUserAction(
                 restartAssessment
@@ -954,6 +1080,141 @@ const onRestartAssess = () => {
 
 .hint-text--stale text {
     color: #9f3f2e;
+}
+
+.start-mode-section {
+    margin: 18rpx 24rpx 0;
+    padding: 20rpx;
+    border: 3rpx solid #392f59;
+    border-radius: 24rpx;
+    background: #fffdf7;
+    box-shadow: 5rpx 5rpx 0 #eadfff;
+}
+
+.start-mode-heading,
+.mode-copy,
+.source-main,
+.source-match {
+    display: flex;
+    flex-direction: column;
+}
+
+.start-mode-title {
+    color: #392f59;
+    font-size: 27rpx;
+    font-weight: 950;
+}
+
+.start-mode-subtitle {
+    margin-top: 4rpx;
+    color: #847b91;
+    font-size: 21rpx;
+}
+
+.start-mode-option {
+    display: flex;
+    align-items: center;
+    gap: 14rpx;
+    margin-top: 14rpx;
+    padding: 16rpx;
+    border: 2rpx solid #d8d0e1;
+    border-radius: 19rpx;
+    background: #faf8fc;
+}
+
+.start-mode-option.selected {
+    border: 3rpx solid #5f49aa;
+    background: #f2edff;
+}
+
+.mode-radio,
+.source-check {
+    display: flex;
+    width: 36rpx;
+    height: 36rpx;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 2rpx solid #756987;
+    border-radius: 50%;
+    color: #fff;
+    background: #fff;
+    font-size: 20rpx;
+    font-weight: 900;
+}
+
+.selected > .mode-radio,
+.prefill-source.selected .source-check {
+    border-color: #5f49aa;
+    background: #6d55be;
+}
+
+.mode-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.mode-title,
+.source-date {
+    color: #41364f;
+    font-size: 24rpx;
+    font-weight: 900;
+}
+
+.mode-hint,
+.source-assessor,
+.source-match,
+.no-prefill,
+.prefill-warning {
+    margin-top: 4rpx;
+    color: #7c7486;
+    font-size: 20rpx;
+    line-height: 1.45;
+}
+
+.prefill-source-list {
+    margin-top: 14rpx;
+}
+
+.prefill-source {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    margin-top: 10rpx;
+    padding: 14rpx;
+    border: 2rpx solid #ddd6e5;
+    border-radius: 17rpx;
+    background: #fff;
+}
+
+.prefill-source.selected {
+    border-color: #6d55be;
+    background: #fff9dc;
+}
+
+.source-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.source-match {
+    align-items: flex-end;
+    color: #68549f;
+    text-align: right;
+}
+
+.source-check {
+    border-radius: 10rpx;
+}
+
+.prefill-warning,
+.no-prefill {
+    display: block;
+    margin-top: 14rpx;
+    padding: 12rpx 14rpx;
+    border-radius: 14rpx;
+    background: #fff2c9;
+    color: #78612c;
 }
 
 .modal-footer {

@@ -22,8 +22,7 @@ const {
 	rankInterventionSections
 } = require('../uniCloud-aliyun/cloudfunctions/common/intervention-plan-service/lib/intervention-plan')
 const {
-	buildInitialReportData,
-	buildReanalysisVersionUpdate
+	buildInitialReportData
 } = require('../uniCloud-aliyun/cloudfunctions/wt-task-save-pending-report/lib/report-analysis-version')
 
 function createRawPlan(weeksCount = 4) {
@@ -285,21 +284,13 @@ test('split prompts and assembly generate one week per AI request', () => {
 	assert.equal(plan.weeklyPlans[3].dailyPlans[6].date, '2026-08-18')
 })
 
-test('reanalyzing a report marks its existing training plan as stale', () => {
+test('new reports begin with one immutable analysis revision', () => {
 	assert.deepEqual(buildInitialReportData({ reportId: 'report-a' }), {
 		reportId: 'report-a',
 		analysisRevision: 1
 	})
-	assert.deepEqual(buildReanalysisVersionUpdate({
-		analysisRevision: 2,
-		interventionPlan: { title: '旧计划' }
-	}, 456), {
-		analysisRevision: 3,
-		interventionPlanStatus: 'stale',
-		interventionPlanStaleReason: '报告已重新AI分析，原训练计划与当前报告不再匹配',
-		interventionPlanUpdatedAt: 456
-	})
-	assert.deepEqual(buildReanalysisVersionUpdate({ analysisRevision: 1 }, 456), {
-		analysisRevision: 2
+	assert.deepEqual(buildInitialReportData({ reportId: 'report-b', analysisRevision: 9 }), {
+		reportId: 'report-b',
+		analysisRevision: 1
 	})
 })

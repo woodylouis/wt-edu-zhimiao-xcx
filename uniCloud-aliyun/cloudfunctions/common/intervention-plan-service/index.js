@@ -281,6 +281,14 @@ async function createTask({ report, requestedBy, startDate, endDate, weeksCount,
 	if (!reportDocumentId) throw new TaskError('REPORT_NOT_FOUND', '报告不存在', 404)
 	const normalizedFocusDomains = normalizeFocusDomains(report, focusDomains)
 	const defaultFocusDomains = normalizeFocusDomains(report)
+	const existing = report.interventionPlan
+	if (existing) {
+		throw new TaskError(
+			'PLAN_ALREADY_EXISTS',
+			'该报告已生成训练方案；请使用手动调整，不支持重复调用 AI 覆盖生成',
+			409
+		)
+	}
 
 	const latest = await findLatestTask(reportDocumentId)
 	await reconcileTimeout(latest)
@@ -296,17 +304,11 @@ async function createTask({ report, requestedBy, startDate, endDate, weeksCount,
 		}
 		throw new TaskError('TASK_ALREADY_RUNNING', '当前报告已有训练计划正在生成，请等待完成后再调整日期或训练方向。', 409)
 	}
-
-	const existing = report.interventionPlan
-	const existingFocusDomains = Array.isArray(existing?.focusDomains) && existing.focusDomains.length
-		? existing.focusDomains
-		: defaultFocusDomains
-	if (!forceRegenerate &&
-		existing?.startDate === startDate &&
-		existing?.endDate === endDate &&
-		Number(existing?.weeksCount) === Number(weeksCount) &&
-		sameStringArray(existingFocusDomains, normalizedFocusDomains)) {
-		return { plan: existing, cached: true }
+	if (latest && isErrorStatus(latest.status)) {
+		throw new TaskError('TASK_RETRY_REQUIRED', '已有失败的训练方案任务，请从原任务进度重试', 409)
+	}
+	if (latest?.status === 'completed') {
+		throw new TaskError('PLAN_STATE_INVALID', '训练方案任务已完成但方案数据异常，请联系管理员核查', 409)
 	}
 
 	const now = Date.now()
@@ -358,6 +360,9 @@ async function createTask({ report, requestedBy, startDate, endDate, weeksCount,
 async function retryTask(task, report) {
 	if (!task || !report || compactId(task.reportDocumentId) !== compactId(report._id)) {
 		throw new TaskError('TASK_NOT_FOUND', '训练计划任务不存在', 404)
+	}
+	if (report.interventionPlan) {
+		throw new TaskError('PLAN_ALREADY_EXISTS', '该报告已生成训练方案，不需要再次生成', 409)
 	}
 	if (!isErrorStatus(task.status)) return task
 	if (task.retryable === false) throw new TaskError('TASK_NOT_RETRYABLE', task.errorMessage || '该异常需要管理员处理后再重试', 409)
@@ -466,9 +471,9 @@ async function ensureTaskCanContinue(task, report) {
 		return false
 	}
 	if (Number(report.analysisRevision || 1) !== Number(task.sourceAnalysisRevision || 1)) {
-		await failTask(task, new Error('报告分析已更新，当前任务基于旧版本评估结果'))
+		await failTask(task, new Error('报告与训练方案任务的版本状态异常'))
 		task.errorCode = 'REPORT_CHANGED'
-		task.errorMessage = '报告分析已更新，本次生成已停止，请基于最新报告重新生成。'
+		task.errorMessage = '报告版本状态异常，本次生成已停止，请联系管理员核查。'
 		await persistTask(task, {
 			errorCode: task.errorCode,
 			errorMessage: task.errorMessage,
@@ -670,7 +675,6 @@ async function processTask(taskId, { maxRunMs = 8 * 60 * 1000 } = {}) {
 			interventionPlanStatus: 'completed',
 			interventionPlanStaleReason: '',
 			interventionPlanUpdatedAt: completedAt,
-			analysisRevision: plan.sourceAnalysisRevision,
 			updateTime: completedAt
 		})
 		shouldRelease = false

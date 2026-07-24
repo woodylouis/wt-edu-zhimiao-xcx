@@ -70,7 +70,10 @@ async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
 		await updateTaskStatus(taskId, 'processing', 99, '保存报告中...')
 
 		// 检查是否已存在
-		const existing = await reportCollection.where({ reportId: reportData.reportId }).get()
+		const existing = await reportCollection.where(db.command.or([
+			{ reportId: reportData.reportId },
+			{ recordId }
+		])).get()
 		if (!existing.data.length) {
 			await log('report-not-exist', {}, { taskId, recordId })
 
@@ -107,7 +110,7 @@ async function saveReportAndUpdateStatus(reportData, recordId, taskId) {
 
 			await log('report-updated-large-fields', { updateCount: updateRes.updated }, { taskId, recordId })
 		} else {
-			await log('report-exists-skip-add', {}, { taskId, recordId })
+			throw new Error('该评估已生成报告，不能覆盖；请创建一次新的评估')
 		}
 
 		// 更新记录模块状态
@@ -251,7 +254,7 @@ async function generateReportAsync(taskId, completedSectionList, query) {
 
 		const reportData = {
 			reportVersion: 'v2',
-			reportId: `report_${recordId}_${Date.now()}`,
+			reportId: `report_${recordId}`,
 			recordId,
 			assessmentId: query.assessmentId,
 			assessorId: query.assessorId,

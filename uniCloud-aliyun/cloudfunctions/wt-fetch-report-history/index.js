@@ -91,7 +91,10 @@ exports.main = async (event = {}, context) => {
 					assessmentTitle: '$assessmentTitle',
 					reportTime: { $ifNull: ['$completionTime', '$createTime'] },
 					interventionPlanStatus: '$interventionPlanStatus',
-					interventionPlanGeneration: '$interventionPlanGeneration'
+					interventionPlanGeneration: '$interventionPlanGeneration',
+					planWeeksCount: '$interventionPlan.weeksCount',
+					planStartDate: '$interventionPlan.startDate',
+					planEndDate: '$interventionPlan.endDate'
 				})
 				.sort({ reportTime: -1 })
 				.group({
@@ -103,7 +106,10 @@ exports.main = async (event = {}, context) => {
 					assessmentTitle: dbCmd.aggregate.first('$assessmentTitle'),
 					reportTime: dbCmd.aggregate.first('$reportTime'),
 					interventionPlanStatus: dbCmd.aggregate.first('$interventionPlanStatus'),
-					interventionPlanGeneration: dbCmd.aggregate.first('$interventionPlanGeneration')
+					interventionPlanGeneration: dbCmd.aggregate.first('$interventionPlanGeneration'),
+					planWeeksCount: dbCmd.aggregate.first('$planWeeksCount'),
+					planStartDate: dbCmd.aggregate.first('$planStartDate'),
+					planEndDate: dbCmd.aggregate.first('$planEndDate')
 				})
 				.end()
 		])
@@ -171,7 +177,12 @@ exports.main = async (event = {}, context) => {
 				completionTime,
 				reportDate: formatDate(completionTime),
 				interventionPlanStatus: String(report.interventionPlanStatus || ''),
-				interventionPlanGeneration: report.interventionPlanGeneration || null
+				interventionPlanGeneration: report.interventionPlanGeneration || null,
+				interventionPlan: report.planWeeksCount ? {
+					weeksCount: Number(report.planWeeksCount) || 0,
+					startDate: String(report.planStartDate || ''),
+					endDate: String(report.planEndDate || '')
+				} : null
 			})
 		}
 		const list = childrenRes.data.map(child => {

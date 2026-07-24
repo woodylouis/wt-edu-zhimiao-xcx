@@ -54,12 +54,12 @@ exports.main = async (event = {}, context) => {
 			const sourceRevision = Number(report.interventionPlan.sourceAnalysisRevision || 1)
 			const reportRevision = Number(report.analysisRevision || 1)
 			if (report.interventionPlanStatus === 'stale' || sourceRevision !== reportRevision) {
-				throw new planService.TaskError('PLAN_STALE', '报告分析已更新，请先重新生成训练计划再手动调整', 409)
+				throw new planService.TaskError('PLAN_STALE', '历史训练计划状态异常，为避免覆盖既有方案，请联系管理员核查', 409)
 			}
 			const latestTask = await planService.findLatestTask(report._id)
 			await planService.reconcileTimeout(latestTask)
 			if (latestTask && planService.isActiveStatus(latestTask.status)) {
-				throw new planService.TaskError('TASK_ALREADY_RUNNING', '训练计划正在重新生成，请完成后再手动调整', 409)
+				throw new planService.TaskError('TASK_ALREADY_RUNNING', '训练计划正在生成，请完成后再手动调整', 409)
 			}
 			const expectedManualRevision = Number(event.expectedManualRevision || 0)
 			const currentManualRevision = Number(report.interventionPlan.manualRevision || 0)

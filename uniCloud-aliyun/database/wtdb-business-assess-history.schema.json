@@ -4,6 +4,48 @@
     "properties": {
         "_id": {
             "description": "记录ID"
+        },
+        "recordId": {
+            "bsonType": "string",
+            "description": "所属评估记录ID"
+        },
+        "assessmentId": {
+            "bsonType": "string",
+            "description": "所属评估量表ID"
+        },
+        "assessorId": {
+            "bsonType": "string",
+            "description": "当前评估老师ID"
+        },
+        "childId": {
+            "bsonType": "string",
+            "description": "儿童ID"
+        },
+        "sectionId": {
+            "bsonType": "string",
+            "description": "评估模块ID"
+        },
+        "assessmentRecords": {
+            "bsonType": "array",
+            "description": "子模块及题目答题记录；历史预填题目包含reviewStatus复核状态"
+        },
+        "hasCompleted": {
+            "bsonType": "bool",
+            "description": "当前模块是否完成作答和历史答案复核"
+        },
+        "prefilled": {
+            "bsonType": "bool",
+            "description": "是否包含从历史评估预填的答案"
+        },
+        "prefilledFromRecordId": {
+            "bsonType": "string",
+            "description": "预填来源评估记录ID"
+        },
+        "createTime": {
+            "bsonType": "timestamp"
+        },
+        "updateTime": {
+            "bsonType": "timestamp"
         }
     }
 }

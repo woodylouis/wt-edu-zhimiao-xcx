@@ -63,6 +63,59 @@
         </view>
 
         <view class="question-part">
+          <view
+            v-if="currentQuestion.prefilled"
+            class="prefill-review-card"
+            :class="`prefill-review-card--${currentQuestion.reviewStatus || 'pending'}`"
+          >
+            <view class="prefill-review-head">
+              <view>
+                <text class="prefill-review-eyebrow">历史答题参考</text>
+                <text class="prefill-review-title">
+                  {{
+                    currentQuestion.reviewStatus === "pending"
+                      ? "请确认这次评估是否仍是这个答案"
+                      : currentQuestion.reviewStatus === "changed"
+                        ? "已按本次观察修改"
+                        : "已确认本次仍适用"
+                  }}
+                </text>
+              </view>
+              <text class="prefill-review-status">
+                {{
+                  currentQuestion.reviewStatus === "pending"
+                    ? "待复核"
+                    : currentQuestion.reviewStatus === "changed"
+                      ? "已修改"
+                      : "已确认"
+                }}
+              </text>
+            </view>
+            <text class="prefill-review-source">
+              原评估完成于 {{ formatReviewSourceDate(currentQuestion.sourceCompletedAt) }}；仅带入答题，不带入原报告和训练方案
+            </text>
+            <view class="prefill-review-progress">
+              本组已复核 {{ prefillReviewCounts.reviewed }}/{{ prefillReviewCounts.total }} 项
+            </view>
+            <view
+              v-if="currentQuestion.reviewStatus === 'pending'"
+              class="prefill-review-actions"
+            >
+              <view
+                class="prefill-review-button prefill-review-button--primary"
+                @click="confirmCurrentPrefill"
+              >
+                确认本题
+              </view>
+              <view
+                v-if="prefillReviewCounts.pending > 1"
+                class="prefill-review-button"
+                @click="confirmCurrentGroupPrefill"
+              >
+                本组保持原答案
+              </view>
+            </view>
+          </view>
           <view class="answer-card">
             <wt-radio
               :content="question"
@@ -178,6 +231,20 @@
   const progressPercent = computed(() => {
     if (!count.value) return 0;
     return Math.min(100, Math.round((current.value / count.value) * 100));
+  });
+  const currentQuestion = computed(
+    () => questions.value[currentIndex.value] || {}
+  );
+  const prefillReviewCounts = computed(() => {
+    const prefilled = questions.value.filter((item) => item.prefilled);
+    const reviewed = prefilled.filter((item) =>
+      ["confirmed", "changed"].includes(item.reviewStatus)
+    );
+    return {
+      total: prefilled.length,
+      reviewed: reviewed.length,
+      pending: Math.max(0, prefilled.length - reviewed.length),
+    };
   });
   const section = computed(
     () => questions.value[currentIndex.value]?.ablls_r_section || ""
@@ -430,6 +497,14 @@
   };
 
   const restoreQuestionProgress = () => {
+    const firstPendingReviewIndex = questions.value.findIndex(
+      (item) => item.prefilled && item.reviewStatus === "pending"
+    );
+    if (firstPendingReviewIndex >= 0) {
+      currentIndex.value = firstPendingReviewIndex;
+      return;
+    }
+
     let lastAnsweredIndex = -1;
     questions.value.forEach((item, index) => {
       if (item.options?.some((option) => option.selected)) {
@@ -680,8 +755,79 @@
     }
   };
 
+  const getOptionText = (item = {}) =>
+    String(item.text || item.name || "").trim();
+
+  const markQuestionReviewed = (targetQuestion, status) => {
+    if (!targetQuestion?.prefilled) return;
+    targetQuestion.reviewStatus = status;
+    targetQuestion.reviewedBy = assessmentMeta.assessorId;
+    targetQuestion.reviewedAt = Date.now();
+  };
+
+  const formatReviewSourceDate = (value) => {
+    if (!value) return "历史记录";
+    const rawValue = value?.$date || value?.$numberLong || value;
+    const numericValue = Number(rawValue);
+    const date = new Date(Number.isFinite(numericValue) ? numericValue : rawValue);
+    if (Number.isNaN(date.getTime())) return "历史记录";
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(date.getDate()).padStart(2, "0")}`;
+  };
+
+  const persistPrefillReview = async (successMessage) => {
+    const result = await updateSingleAbllsSectionsForm();
+    if (!result) return;
+    updateAllAbllsSectionsRecord();
+    await prepareAllRecords(false, false);
+    if (successMessage) {
+      uni.showToast({ title: successMessage, icon: "none" });
+    }
+  };
+
+  const confirmCurrentPrefill = async () => {
+    markQuestionReviewed(currentQuestion.value, "confirmed");
+    try {
+      await persistPrefillReview("本题已确认");
+    } catch (error) {
+      console.error("保存预填复核失败:", error);
+      uni.showToast({ title: "保存失败，请重试", icon: "none" });
+    }
+  };
+
+  const confirmCurrentGroupPrefill = async () => {
+    questions.value.forEach((item) => {
+      if (
+        item.prefilled &&
+        item.reviewStatus === "pending" &&
+        item.options?.some((option) => option.selected)
+      ) {
+        markQuestionReviewed(item, "confirmed");
+      }
+    });
+    try {
+      await persistPrefillReview("本组历史答案已确认");
+    } catch (error) {
+      console.error("保存整组预填复核失败:", error);
+      uni.showToast({ title: "保存失败，请重试", icon: "none" });
+    }
+  };
+
   const handleOptionChange = async (item) => {
     try {
+      if (currentQuestion.value.prefilled) {
+        const isOriginalAnswer =
+          getOptionText(item) ===
+            String(currentQuestion.value.prefillOriginalAnswer || "").trim() &&
+          Number(item?.score) ===
+            Number(currentQuestion.value.prefillOriginalScore);
+        markQuestionReviewed(
+          currentQuestion.value,
+          isOriginalAnswer ? "confirmed" : "changed"
+        );
+      }
       const result = await updateSingleAbllsSectionsForm();
       if (result) {
         updateAllAbllsSectionsRecord();
@@ -754,7 +900,12 @@
         // 每次更新都需要检查本子模块是否所有题目都已完成
         allQuestionsCompleted:
           questions.value.length > 0 &&
-          questions.value.every((q) => q.options.some((opt) => opt.selected)),
+          questions.value.every(
+            (q) =>
+              q.options.some((opt) => opt.selected) &&
+              (!q.prefilled ||
+                ["confirmed", "changed"].includes(q.reviewStatus))
+          ),
       };
       console.log("singleAbllsSectionsForm:", singleAbllsSectionsForm.value);
       resolve(true);
@@ -781,6 +932,17 @@
         title: "请先填写当前题目",
         icon: "none",
         duration: 2000,
+      });
+      return;
+    }
+    if (
+      currentQuestion?.prefilled &&
+      !["confirmed", "changed"].includes(currentQuestion.reviewStatus)
+    ) {
+      uni.showToast({
+        title: "请先确认或修改这道历史预填答案",
+        icon: "none",
+        duration: 2200,
       });
       return;
     }
@@ -906,25 +1068,6 @@
         // 查询到有该section的历史记录
         if (res.result.data && res.result.data.length > 0) {
           const history = res.result.data[0];
-          // TODO: 只出现一次，后续需要优化，先注释掉
-          // if (history.hasCompleted) {
-          //     uni.showModal({
-          //         title: '提示',
-          //         content: '该部分已完成，是否修改？修改后报告将重新生成。',
-          //         confirmText: '去修改',
-          //         cancelText: '返回',
-          //         showCancel: true,
-          //         success: (res) => {
-          //             if (res.confirm) {
-          //                 console.log('用户点击确定')
-          //             } else if (res.cancel) {
-          //                 console.log('用户点击取消')
-          //                 // 返回上一页
-          //                 uni.navigateBack();
-          //             }
-          //         }
-          //     })
-          // }
           console.log("history:", history.hasCompleted);
           allAbllsSectionsRecordForm.value = history.assessmentRecords; // 直接将所有记录赋值给allAbllsSectionsRecordForm
           const questions = mergeQuestions(
@@ -1504,6 +1647,101 @@
 
 .answer-card {
   padding-top: 2rpx;
+}
+
+.prefill-review-card {
+  margin-bottom: 22rpx;
+  padding: 20rpx;
+  border: 3rpx solid #44365f;
+  border-radius: 24rpx;
+  background: #fff5ca;
+  box-shadow: 4rpx 5rpx 0 rgba(68, 54, 95, 0.13);
+}
+
+.prefill-review-card--confirmed {
+  background: #e4f8ef;
+}
+
+.prefill-review-card--changed {
+  background: #f0eaff;
+}
+
+.prefill-review-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.prefill-review-head > view:first-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.prefill-review-eyebrow {
+  color: #8d6a22;
+  font-size: 20rpx;
+  font-weight: 850;
+}
+
+.prefill-review-title {
+  color: #3b3052;
+  font-size: 25rpx;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.prefill-review-status {
+  flex: 0 0 auto;
+  padding: 7rpx 12rpx;
+  border: 2rpx solid #44365f;
+  border-radius: 16rpx;
+  color: #44365f;
+  background: #ffffff;
+  font-size: 19rpx;
+  font-weight: 850;
+}
+
+.prefill-review-source,
+.prefill-review-progress {
+  display: block;
+  margin-top: 12rpx;
+  color: #6f6278;
+  font-size: 21rpx;
+  line-height: 1.55;
+}
+
+.prefill-review-progress {
+  color: #44365f;
+  font-weight: 800;
+}
+
+.prefill-review-actions {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.prefill-review-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60rpx;
+  flex: 1;
+  padding: 8rpx 12rpx;
+  border: 2rpx solid #44365f;
+  border-radius: 19rpx;
+  color: #44365f;
+  background: #ffffff;
+  font-size: 22rpx;
+  font-weight: 850;
+}
+
+.prefill-review-button--primary {
+  color: #ffffff;
+  background: #6f58d9;
 }
 
 .assessment .content .bottom {

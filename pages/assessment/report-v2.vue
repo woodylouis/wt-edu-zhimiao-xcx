@@ -55,6 +55,30 @@
           <text class="history-hint">仅当前报告</text>
         </view>
       </view>
+      <view v-if="currentReport" class="outcome-switcher">
+        <view class="outcome-tab outcome-tab--active">
+          <view class="outcome-tab-index">1</view>
+          <view class="outcome-tab-copy">
+            <text class="outcome-tab-title">评估报告</text>
+            <text class="outcome-tab-hint">当前查看</text>
+          </view>
+          <text class="outcome-tab-status">已完成</text>
+        </view>
+        <view class="outcome-connector"></view>
+        <view
+          class="outcome-tab"
+          :class="`outcome-tab--${trainingPlanEntry.tone}`"
+          @click="openInterventionPlanPage"
+        >
+          <view class="outcome-tab-index">2</view>
+          <view class="outcome-tab-copy">
+            <text class="outcome-tab-title">训练方案</text>
+            <text class="outcome-tab-hint">{{ trainingPlanEntry.title }}</text>
+          </view>
+          <text class="outcome-tab-status">{{ trainingPlanEntry.status }}</text>
+          <text class="outcome-tab-arrow">›</text>
+        </view>
+      </view>
       <view class="report-toolbox">
         <view class="toolbox-heading">
           <view>
@@ -145,27 +169,6 @@
           </view>
         </div>
       </div>
-      <view
-        v-if="currentReport"
-        class="training-plan-entry"
-        :class="`training-plan-entry--${trainingPlanEntry.tone}`"
-        @click="openInterventionPlanPage"
-      >
-        <view class="training-entry-icon" aria-label="训练计划">
-          <view class="training-target-ring">
-            <view class="training-target-core"></view>
-          </view>
-          <view class="training-target-spark">✦</view>
-        </view>
-        <view class="training-entry-copy">
-          <view class="training-entry-topline">
-            <text class="training-entry-title">{{ trainingPlanEntry.title }}</text>
-            <text class="training-entry-status">{{ trainingPlanEntry.status }}</text>
-          </view>
-          <text class="training-entry-hint">{{ trainingPlanEntry.hint }}</text>
-        </view>
-        <text class="training-entry-arrow">›</text>
-      </view>
       <view
         class="collapse"
         v-for="(section, index) in sectionSummaryList"
@@ -390,6 +393,7 @@
     <view style="z-index: 9999">
       <popup
         :historyReports="historyReports"
+        :selectedReportId="currentReportId"
         :show="showHistory"
         @update:show="(val) => (showHistory = val)"
         @onclickReportCard="onclickReportCard"
@@ -544,9 +548,9 @@
     if (mismatched) {
       return {
         tone: "warning",
-        status: "需要更新",
-        title: "干预训练计划与报告不匹配",
-        hint: "报告分析已变化，请进入计划页及时重新生成",
+        status: "需核查",
+        title: "历史训练计划状态异常",
+        hint: "为避免覆盖既有方案，请联系管理员核查",
       };
     }
 
@@ -3041,5 +3045,99 @@
   background: #7c63e8;
   font-size: 18rpx;
   font-weight: 850;
+}
+
+.outcome-switcher {
+  display: grid;
+  grid-template-columns: 1fr 22rpx 1fr;
+  align-items: center;
+  margin: 24rpx 24rpx 0;
+}
+
+.outcome-tab {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 94rpx;
+  box-sizing: border-box;
+  gap: 11rpx;
+  padding: 15rpx;
+  border: 3rpx solid #392f59;
+  border-radius: 24rpx;
+  background: #ffffff;
+  box-shadow: 5rpx 6rpx 0 rgba(57, 47, 89, 0.14);
+}
+
+.outcome-tab--active {
+  background: #fff0a9;
+  box-shadow: 5rpx 6rpx 0 #ff8f82;
+}
+
+.outcome-tab--ready {
+  background: #e1f8ef;
+}
+
+.outcome-tab--progress {
+  background: #e8f4ff;
+}
+
+.outcome-tab--danger,
+.outcome-tab--warning {
+  background: #ffe8e1;
+}
+
+.outcome-tab-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
+  flex: 0 0 auto;
+  border: 2rpx solid #392f59;
+  border-radius: 14rpx;
+  color: #ffffff;
+  background: #7c63e8;
+  font-size: 20rpx;
+  font-weight: 900;
+}
+
+.outcome-tab-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.outcome-tab-title {
+  color: #392f59;
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.outcome-tab-hint {
+  margin-top: 4rpx;
+  overflow: hidden;
+  color: #766c84;
+  font-size: 18rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outcome-tab-status {
+  flex: 0 0 auto;
+  color: #5d526d;
+  font-size: 18rpx;
+  font-weight: 850;
+}
+
+.outcome-tab-arrow {
+  color: #392f59;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.outcome-connector {
+  height: 4rpx;
+  border-top: 3rpx dashed #7c6e89;
 }
 </style>

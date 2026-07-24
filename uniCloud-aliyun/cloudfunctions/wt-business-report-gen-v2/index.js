@@ -6,6 +6,7 @@ const db = uniCloud.database()
 const dbCmd = db.command
 const dbHistory = db.collection('wtdb-business-assess-history')
 const dbTask = db.collection('wtdb-report-tasks')
+const dbReport = db.collection('wtdb-business-assess-report')
 
 const ACTIVE_STATUSES = ['pending', 'processing', 'waiting_merge', 'pending_save']
 
@@ -19,6 +20,14 @@ async function getActiveTask(recordId, assessorId) {
 		.limit(1)
 		.get()
 
+	return res.data?.[0] || null
+}
+
+async function getLatestTask(recordId, assessorId) {
+	const res = await dbTask.where({ recordId, assessorId })
+		.orderBy('updateTime', 'desc')
+		.limit(1)
+		.get()
 	return res.data?.[0] || null
 }
 
@@ -65,6 +74,20 @@ function buildTaskResponse(result, taskId, status, message, modelInfo = {}) {
 	}
 }
 
+function countPendingPrefillReviews(historyRecords = []) {
+	let pending = 0
+	for (const history of historyRecords || []) {
+		for (const group of history.assessmentRecords || []) {
+			for (const question of group.questions || []) {
+				if (question.prefilled && !['confirmed', 'changed'].includes(question.reviewStatus)) {
+					pending++
+				}
+			}
+		}
+	}
+	return pending
+}
+
 exports.main = async (event = {}, context) => {
 	try {
 		const { recordId, assessmentId, childId, confirmToGenerateReport = false } = event
@@ -83,6 +106,13 @@ exports.main = async (event = {}, context) => {
 
 		const query = { recordId, assessmentId, assessorId, childId }
 		const historyRes = await dbHistory.where(query).get()
+		const pendingPrefillReviews = countPendingPrefillReviews(historyRes.data || [])
+		if (confirmToGenerateReport && pendingPrefillReviews > 0) {
+			return {
+				code: 409,
+				message: `还有${pendingPrefillReviews}项历史预填答案待复核，完成确认或修改后才能生成报告`
+			}
+		}
 
 		const { result, completedSectionList } = buildAssessmentResult(
 			ownedRecord.modulesStatus || [],
@@ -106,6 +136,15 @@ exports.main = async (event = {}, context) => {
 			}
 		}
 
+		const existingReport = await dbReport.where({ recordId }).limit(1).get()
+		if (existingReport.data?.length || ownedRecord.reportStatus === 'completed' || ownedRecord.reportId) {
+			return {
+				code: 409,
+				data: result,
+				message: '该评估已生成报告；如需更新，请创建一次新的评估'
+			}
+		}
+
 		const activeTask = await getActiveTask(recordId, assessorId)
 		if (activeTask) {
 			const activeTaskModel = activeTask.metadata || {}
@@ -119,6 +158,22 @@ exports.main = async (event = {}, context) => {
 					activeTaskModel
 				),
 				message: '已有报告任务正在执行'
+			}
+		}
+
+		const latestTask = await getLatestTask(recordId, assessorId)
+		if (latestTask?.status === 'failed') {
+			return {
+				code: 409,
+				data: result,
+				message: '本次报告生成任务失败，请由后台重试原任务，不要重复提交分析'
+			}
+		}
+		if (latestTask?.status === 'completed') {
+			return {
+				code: 409,
+				data: result,
+				message: '本次报告任务已完成但报告状态异常，请联系管理员核查'
 			}
 		}
 
