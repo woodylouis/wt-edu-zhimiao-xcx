@@ -255,6 +255,28 @@
             "bsonType": "string",
             "description": "报告总结"
         },
+        "aiModel": {
+            "bsonType": "object",
+            "description": "本次报告AI分析实际使用的模型快照",
+            "properties": {
+                "providerId": {
+                    "bsonType": "string",
+                    "description": "模型供应商路由标识"
+                },
+                "provider": {
+                    "bsonType": "string",
+                    "description": "模型供应商"
+                },
+                "model": {
+                    "bsonType": "string",
+                    "description": "实际使用的模型名称"
+                },
+                "label": {
+                    "bsonType": "string",
+                    "description": "后台展示名称"
+                }
+            }
+        },
         "interventionPlan": {
             "bsonType": "object",
             "description": "AI模型生成的结构化个性化训练计划，包含每周目标和每日任务"

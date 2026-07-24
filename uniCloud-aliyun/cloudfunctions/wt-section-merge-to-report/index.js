@@ -137,7 +137,15 @@ async function generateReportSummary(reportData, taskId, recordId, providerId = 
 			model: completion.model,
 			length: summary.length
 		}, { taskId, recordId })
-		return summary
+		return {
+			content: summary,
+			aiModel: {
+				providerId: completion.providerId,
+				provider: completion.provider,
+				model: completion.model,
+				label: completion.providerLabel
+			}
+		}
 	} catch (error) {
 		await log('report-summary-ai-failed', { error: error.message }, { taskId, recordId, level: 'error' })
 		throw error
@@ -235,7 +243,7 @@ exports.main = async (event = {}) => {
 			console.log("sectionSummaryList", sectionSummaryList)
 			const sectionNames = sectionSummaryList.map(s => s.sectionName)
 
-			const reportSummary = await generateReportSummary({
+			const reportSummaryResult = await generateReportSummary({
 				childName: record.childName,
 				childAge: record.childAge,
 				ageInt: record.ageInt,
@@ -265,7 +273,8 @@ exports.main = async (event = {}) => {
 				ageInt: record.ageInt,
 				assessmentTitle: record.assessmentTitle || 'ABLLS-R',
 				sectionSummaryList,
-				reportSummary,
+				reportSummary: reportSummaryResult.content,
+				aiModel: reportSummaryResult.aiModel,
 				createTime: completionTime,
 				updateTime: completionTime,
 				completionTime,
