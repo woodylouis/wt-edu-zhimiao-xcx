@@ -32,7 +32,7 @@ const CLOUD_FUNCTION_LABELS = {
   'wt-get-report-task-status': '查看报告生成进度',
   'wt-fetch-child-report-history': '查看学生评估报告',
   'wt-fetch-report-history': '查看班级最近评估',
-  'wtdb-generate-report-pdf': '生成或下载评估报告',
+  'wtdb-generate-report-pdf': '生成或下载评估与训练PDF',
   'wtdb-check-school-location': '验证评估位置'
 }
 

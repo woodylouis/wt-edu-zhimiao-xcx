@@ -162,6 +162,30 @@
           </button>
         </view>
       </view>
+      <view v-if="hasPlan && !planMismatched" class="plan-pdf-card">
+        <view class="plan-pdf-mark">PDF</view>
+        <view class="plan-pdf-copy">
+          <text class="plan-pdf-title">个性化训练计划 PDF</text>
+          <text class="plan-pdf-hint">{{ planPdfHint }}</text>
+        </view>
+        <view class="plan-pdf-actions">
+          <button
+            class="plan-pdf-button"
+            :disabled="planPdfBusy || (readOnly && !planPdfUrl)"
+            @click="handlePlanPdfAction"
+          >
+            {{ planPdfActionText }}
+          </button>
+          <button
+            v-if="planPdfUrl && !readOnly"
+            class="plan-pdf-regenerate"
+            :disabled="planPdfBusy"
+            @click="regeneratePlanPdf"
+          >
+            重新生成
+          </button>
+        </view>
+      </view>
       <view v-if="hasPlan && planMismatched" class="mismatch-alert">
         <view class="mismatch-icon">!</view>
         <view class="mismatch-copy">
@@ -556,7 +580,9 @@ export default {
       statusRequestInFlight: false,
       workerRunning: false,
       workerKickAt: 0,
-      pollFailures: 0
+      pollFailures: 0,
+      planPdfGenerating: false,
+      planPdfOpening: false
     }
   },
   computed: {
@@ -703,6 +729,42 @@ export default {
       }
       return '计划的日期周期或每日安排不完整。为避免覆盖既有方案，请联系管理员核查。'
     },
+    planPdfSourceUpdatedAt() {
+      return this.timestampValue(this.plan?.manuallyAdjustedAt) ||
+        this.timestampValue(this.plan?.generatedAt) ||
+        this.timestampValue(this.report?.interventionPlanUpdatedAt)
+    },
+    planPdfIsFresh() {
+      const pdfSourceUpdatedAt = this.timestampValue(this.report?.interventionPlanPdfSourceUpdatedAt)
+      return !!(
+        this.report?.interventionPlanPdfUrl &&
+        this.report?.interventionPlanPdfStatus === 'completed' &&
+        this.planPdfSourceUpdatedAt &&
+        pdfSourceUpdatedAt >= this.planPdfSourceUpdatedAt
+      )
+    },
+    planPdfUrl() {
+      return this.planPdfIsFresh ? this.report.interventionPlanPdfUrl : ''
+    },
+    planPdfBusy() {
+      return this.planPdfGenerating || this.planPdfOpening
+    },
+    planPdfActionText() {
+      if (this.planPdfOpening) return '正在打开…'
+      if (this.planPdfGenerating) return '正在生成…'
+      if (this.planPdfUrl) return '查看 PDF'
+      if (this.readOnly) return '尚未生成'
+      return '生成 PDF'
+    },
+    planPdfHint() {
+      if (this.planPdfGenerating || this.report?.interventionPlanPdfStatus === 'generating') {
+        return '正在整理所有周次、每日步骤和老师调整'
+      }
+      if (this.planPdfUrl) return '已包含完整周计划、每日步骤及老师人工调整'
+      if (this.report?.interventionPlanPdfStatus === 'failed') return '上次生成未完成，可以重新尝试'
+      if (this.readOnly) return '请联系报告管理者生成后再查看'
+      return '生成后可预览、下载或转发给家长'
+    },
     rangeFeedbackTitle() {
       if (this.rangeInfo.valid) return `已选择 ${this.rangeInfo.weeks} 个完整周，共 ${this.rangeInfo.totalDays} 天`
       if (this.isCustomRange && !this.customWeeksNumber) return this.customWeeksError || '请输入超过10周的训练周期'
@@ -740,6 +802,125 @@ export default {
     this.stopPolling()
   },
   methods: {
+    timestampValue(value) {
+      if (!value) return 0
+      const number = Number(value)
+      if (Number.isFinite(number)) return number
+      const parsed = new Date(value).getTime()
+      return Number.isFinite(parsed) ? parsed : 0
+    },
+    async resolvePlanPdfUrl(sourceUrl) {
+      if (!sourceUrl) throw new Error('PDF地址不存在')
+      if (/^https?:\/\//i.test(sourceUrl)) return sourceUrl
+      const result = await uniCloud.getTempFileURL({ fileList: [sourceUrl] })
+      return result?.fileList?.[0]?.tempFileURL || sourceUrl
+    },
+    downloadPlanPdf(url) {
+      return new Promise((resolve, reject) => {
+        uni.downloadFile({
+          url,
+          success: result => {
+            if (result.statusCode === 200 && result.tempFilePath) resolve(result.tempFilePath)
+            else reject(new Error('PDF下载失败'))
+          },
+          fail: reject
+        })
+      })
+    },
+    openPlanPdfFile(filePath) {
+      return new Promise((resolve, reject) => {
+        uni.openDocument({
+          filePath,
+          fileType: 'pdf',
+          showMenu: true,
+          success: resolve,
+          fail: reject
+        })
+      })
+    },
+    async previewPlanPdf(sourceUrl) {
+      if (this.planPdfOpening) return
+      this.planPdfOpening = true
+      try {
+        const accessibleUrl = await this.resolvePlanPdfUrl(sourceUrl)
+        // #ifdef H5
+        window.open(accessibleUrl, '_blank')
+        return
+        // #endif
+        // #ifndef H5
+        const filePath = await this.downloadPlanPdf(accessibleUrl)
+        await this.openPlanPdfFile(filePath)
+        // #endif
+      } catch (error) {
+        console.error('训练计划PDF打开失败:', error)
+        uni.showToast({ title: 'PDF打开失败，请稍后重试', icon: 'none' })
+      } finally {
+        this.planPdfOpening = false
+      }
+    },
+    async generatePlanPdf(forceRegenerate = false) {
+      if (this.planPdfGenerating || !this.reportId || !this.hasPlan || this.planMismatched) return ''
+      if (this.readOnly) {
+        uni.showToast({ title: '请联系报告管理者生成PDF', icon: 'none' })
+        return ''
+      }
+      this.planPdfGenerating = true
+      try {
+        const response = await uniCloud.callFunction({
+          name: 'wtdb-generate-report-pdf',
+          data: {
+            reportId: this.reportId,
+            childId: this.report?.childId || '',
+            pdfType: 'intervention-plan',
+            forceRegenerate,
+            uniIdToken: uni.getStorageSync('uni_id_token')
+          }
+        })
+        const result = response?.result || {}
+        const generatedUrl = result?.data?.pdfUrl || ''
+        if (result.code !== 200 || !generatedUrl) {
+          const error = new Error(result.msg || '训练计划PDF生成失败')
+          error.code = result.code
+          throw error
+        }
+        this.$emit('pdf-generated', {
+          interventionPlanPdfUrl: generatedUrl,
+          interventionPlanPdfStatus: 'completed',
+          interventionPlanPdfGeneratedTime: result.data.generatedTime || Date.now(),
+          interventionPlanPdfSourceUpdatedAt: result.data.sourceUpdatedAt || this.planPdfSourceUpdatedAt
+        })
+        uni.showToast({
+          title: result.data.cached ? 'PDF已准备好' : 'PDF生成成功',
+          icon: 'success'
+        })
+        return generatedUrl
+      } catch (error) {
+        console.error('训练计划PDF生成失败:', error)
+        const message = error.code === 401
+          ? '登录已过期，请重新登录'
+          : error.code === 403
+            ? '暂无生成该计划的权限'
+            : error.message || 'PDF生成失败，请稍后重试'
+        uni.showToast({ title: message, icon: 'none' })
+        return ''
+      } finally {
+        this.planPdfGenerating = false
+      }
+    },
+    async handlePlanPdfAction() {
+      if (this.planPdfBusy) return
+      if (this.readOnly && !this.planPdfUrl) {
+        uni.showToast({ title: '请联系报告管理者生成PDF', icon: 'none' })
+        return
+      }
+      const targetUrl = this.planPdfUrl || await this.generatePlanPdf(false)
+      if (targetUrl) await this.previewPlanPdf(targetUrl)
+    },
+    async regeneratePlanPdf() {
+      if (this.planPdfBusy || this.readOnly) return
+      const generatedUrl = await this.generatePlanPdf(true)
+      if (generatedUrl) await this.previewPlanPdf(generatedUrl)
+    },
     parseDate(value) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return null
       const date = new Date(`${value}T00:00:00.000Z`)
@@ -1290,6 +1471,7 @@ export default {
 .create-callout { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 15px; border: 1px solid #ede6d8; border-radius: 13px; background: rgba(255,255,255,.86); }.callout-copy { min-width: 0; flex: 1; }.callout-title { display: block; color: #493e2e; font-size: 14px; font-weight: 800; }.callout-text { display: block; margin-top: 4px; color: #8d8374; font-size: 11px; line-height: 1.5; }
 button { margin: 0; padding: 0; border: 0; background: none; line-height: normal; }button::after { border: 0; }.create-button { min-width: 108px; padding: 11px 13px; border-radius: 11px; background: #6650b7; color: #fff; font-size: 12px; font-weight: 800; box-shadow: 0 6px 13px rgba(80,60,154,.2); }
 .compact-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 14px 15px; border: 1px solid #e8e2f5; border-radius: 13px; background: #fff; }.compact-summary.mismatch { border-color: #edc58f; background: #fffdf8; }.compact-copy { min-width: 0; flex: 1; }.compact-title { display: block; overflow: hidden; color: #41375d; font-size: 14px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }.compact-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; color: #877f95; font-size: 11px; }.meta-divider { color: #c0b9ca; }.manual-adjustment-meta { color: #477b98; font-weight: 750; }.compact-actions { display: flex; flex-shrink: 0; gap: 8px; }.secondary-button, .view-button, .manual-edit-button { padding: 9px 11px; border-radius: 9px; font-size: 11px; font-weight: 800; }.secondary-button { border: 1px solid #ddd6eb; color: #70677e; }.secondary-button.refresh { border-color: #dda453; background: #fff1d9; color: #995e18; }.manual-edit-button { border: 1px solid #cfc3ed; background: #faf8ff; color: #654fad; }.manual-edit-button.active { border-color: #6751b7; background: #6751b7; color: #fff; }.view-button { background: #eee9fb; color: #604ca8; }
+.plan-pdf-card { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 12px 13px; border: 1px solid #f0d894; border-radius: 12px; background: linear-gradient(135deg, #fff8d9, #f1ecff 68%, #e9fbf5); }.plan-pdf-mark { display: flex; width: 38px; height: 38px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 11px; background: #ff765f; color: #fff; font-size: 10px; font-weight: 900; box-shadow: 0 5px 12px rgba(216,84,64,.2); }.plan-pdf-copy { min-width: 0; flex: 1; }.plan-pdf-title { display: block; color: #443655; font-size: 12px; font-weight: 900; }.plan-pdf-hint { display: block; margin-top: 4px; color: #7f7487; font-size: 9px; line-height: 1.45; }.plan-pdf-actions { display: flex; flex-shrink: 0; gap: 7px; }.plan-pdf-button, .plan-pdf-regenerate { padding: 8px 10px; border-radius: 9px; font-size: 10px; font-weight: 850; }.plan-pdf-button { background: #6751b7; color: #fff; }.plan-pdf-regenerate { border: 1px solid #cfc5e7; background: rgba(255,255,255,.72); color: #6655a0; }.plan-pdf-button[disabled], .plan-pdf-regenerate[disabled] { opacity: .55; }
 .mismatch-alert { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 11px 12px; border: 1px solid #f0c788; border-radius: 11px; background: #fff5e6; }.mismatch-icon { display: flex; width: 23px; height: 23px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #dc8c2e; color: #fff; font-size: 12px; font-weight: 900; }.mismatch-copy { min-width: 0; flex: 1; }.mismatch-title { display: block; color: #895317; font-size: 11px; font-weight: 850; }.mismatch-text { display: block; margin-top: 3px; color: #987246; font-size: 10px; line-height: 1.45; }.mismatch-action { flex-shrink: 0; padding: 7px 9px; border-radius: 8px; background: #d98427; color: #fff; font-size: 10px; font-weight: 850; }
 .plan-editor { padding: 20px 22px 22px; border-top: 1px solid #eee9f3; background: #faf9fc; }.editor-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }.editor-title { display: block; color: #3c344e; font-size: 16px; font-weight: 850; }.editor-hint { display: block; margin-top: 5px; color: #81798c; font-size: 11px; line-height: 1.5; }.text-button { flex-shrink: 0; color: #6752b2; font-size: 12px; font-weight: 800; }
 .schedule-builder { margin-top: 16px; padding: 6px 14px; border: 1px solid #e4deeb; border-radius: 16px; background: #fff; box-shadow: 0 5px 18px rgba(57,47,77,.04); }.schedule-picker { display: block; }.schedule-control { display: flex; min-height: 68px; align-items: center; gap: 12px; padding: 11px 3px; }.schedule-control--duration { position: relative; z-index: 4; }.schedule-control--result { margin: 0; }.control-index { display: flex; width: 27px; height: 27px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 9px; background: #6751b7; color: #fff; font-size: 11px; font-weight: 900; box-shadow: 0 3px 8px rgba(83,61,157,.18); }.control-index--done { background: #4fa978; box-shadow: 0 3px 8px rgba(66,143,99,.16); }.control-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }.control-label-row { display: flex; align-items: center; gap: 7px; }.control-label { color: #82798d; font-size: 10px; font-weight: 750; }.default-chip { padding: 2px 6px; border-radius: 8px; background: #fff1ce; color: #92701f; font-size: 8px; font-weight: 800; }.control-value { display: block; overflow: hidden; margin-top: 3px; color: #3c334c; font-size: 14px; font-weight: 850; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }.control-hint { display: block; overflow: hidden; margin-top: 2px; color: #9a92a2; font-size: 9px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }.control-hint--duration { max-width: 260px; margin-top: 5px; white-space: normal; }.control-action { flex-shrink: 0; padding: 7px 9px; border-radius: 8px; background: #f0ecfa; color: #654fad; font-size: 10px; font-weight: 850; }.duration-select-wrap { position: relative; z-index: 5; width: 150px; flex-shrink: 0; }.duration-select-wrap :deep(.uni-stat__select) { width: 100%; }.duration-select-wrap :deep(.uni-select) { border-color: #d9d1e8; border-radius: 9px; background: #faf8fd; }.duration-select-wrap :deep(.uni-select__input-box) { height: 36px; padding: 0 10px; }.duration-select-wrap :deep(.uni-select__input-text) { color: #4a3d61; font-size: 11px; font-weight: 800; }.duration-select-wrap :deep(.uni-select__selector) { z-index: 20; border-color: #ded7e9; box-shadow: 0 8px 22px rgba(54,42,78,.13); }.duration-select-wrap :deep(.uni-select__selector-scroll) { height: 250px; max-height: 250px !important; overflow-y: auto; }.calculated-chip { flex-shrink: 0; padding: 6px 8px; border-radius: 8px; background: #e7f6ee; color: #347457; font-size: 9px; font-weight: 850; }.schedule-connector { height: 12px; margin: -6px 0 -6px 16px; border-left: 1px dashed #c7bdd8; }.schedule-connector text { display: none; }
@@ -1308,5 +1490,5 @@ button { margin: 0; padding: 0; border: 0; background: none; line-height: normal
 .excluded-detail { margin-top: 11px; padding: 10px; border-radius: 9px; background: #f0edf1; color: #837a87; font-size: 10px; line-height: 1.5; }.manual-activity-section { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #dcd4e6; }.manual-activity-section-title { display: block; color: #477695; font-size: 10px; font-weight: 850; }.manual-activity-card { margin-top: 8px; padding: 10px; border: 1px solid #cfe2ef; border-radius: 10px; background: #f3faff; }.manual-activity-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; }.manual-activity-title { color: #385f78; font-size: 11px; font-weight: 850; }.manual-activity-duration { margin-left: 7px; color: #7690a0; font-size: 8px; }.manual-remove-button { flex-shrink: 0; padding: 4px 7px; border-radius: 7px; background: #fff0ed; color: #a95b52; font-size: 8px; font-weight: 800; }.manual-activity-target { display: block; margin-top: 5px; color: #566f7e; font-size: 10px; line-height: 1.5; }.manual-materials { margin-top: 7px; }.manual-activity-notes { display: block; margin-top: 7px; padding-top: 7px; border-top: 1px dashed #d1e1eb; color: #70828d; font-size: 9px; line-height: 1.5; }.add-manual-activity-button { width: 100%; margin-top: 11px; padding: 9px; border: 1px dashed #8ab2cb; border-radius: 9px; background: #f8fcff; color: #407c9f; font-size: 10px; font-weight: 850; }.add-manual-activity-button[disabled], .manual-remove-button[disabled] { opacity: .5; }
 .caregiver-guide { margin: 0 18px 18px; padding: 14px; border-radius: 12px; background: #373144; color: #fff; }.guide-title { display: block; margin-bottom: 8px; color: #ffedb5; font-size: 12px; font-weight: 850; }.guide-item { display: flex; align-items: flex-start; gap: 8px; margin-top: 7px; color: rgba(255,255,255,.82); font-size: 11px; line-height: 1.5; }.guide-number { display: flex; width: 18px; height: 18px; flex-shrink: 0; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.25); border-radius: 50%; color: #ffe39a; font-size: 8px; }.ai-note { display: block; margin-top: 11px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.5); font-size: 9px; line-height: 1.5; }
 .manual-modal-mask { position: fixed; z-index: 9999; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(41,34,55,.52); box-sizing: border-box; }.manual-modal { width: 520px; max-width: 100%; max-height: 88vh; overflow-y: auto; padding: 18px; border-radius: 16px; background: #fff; box-shadow: 0 20px 55px rgba(27,20,45,.25); box-sizing: border-box; }.manual-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }.manual-modal-title { display: block; color: #3f3452; font-size: 16px; font-weight: 900; }.manual-modal-subtitle { display: block; margin-top: 4px; color: #8c8396; font-size: 10px; }.manual-modal-close { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: #f1edf6; color: #716778; font-size: 18px; }.manual-form-field { min-width: 0; flex: 1; margin-top: 13px; }.manual-form-label { display: block; margin-bottom: 6px; color: #655b70; font-size: 10px; font-weight: 850; }.manual-form-label text { color: #c45f55; }.manual-form-input, .manual-form-textarea, .manual-duration-input { width: 100%; border: 1px solid #ddd6e5; border-radius: 9px; background: #fbfafc; box-sizing: border-box; }.manual-form-input { height: 38px; padding: 0 10px; color: #41394b; font-size: 11px; }.manual-form-textarea { height: 80px; padding: 9px 10px; color: #41394b; font-size: 11px; line-height: 1.5; }.manual-form-textarea--small { height: 64px; }.manual-form-row { display: flex; gap: 10px; }.manual-form-field--duration { max-width: 130px; }.manual-duration-input { display: flex; height: 38px; align-items: center; padding: 0 9px; }.manual-duration-input input { min-width: 0; height: 36px; flex: 1; color: #41394b; font-size: 11px; }.manual-duration-input text { flex-shrink: 0; color: #81788a; font-size: 9px; }.manual-form-error { display: block; margin-top: 9px; color: #b45149; font-size: 10px; }.manual-modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 16px; }.manual-modal-cancel, .manual-modal-save { min-width: 92px; padding: 10px 13px; border-radius: 9px; font-size: 11px; font-weight: 850; }.manual-modal-cancel { border: 1px solid #ddd7e5; color: #706777; }.manual-modal-save { background: #6751b7; color: #fff; }.manual-modal-save[disabled] { background: #c9c4d1; color: #f5f3f7; }
-@media screen and (max-width: 560px) { .training-plan { margin: 28px 12px 8px; border-radius: 16px; }.section-heading, .plan-editor { padding: 17px; }.heading-title { font-size: 17px; }.heading-subtitle { font-size: 10px; }.calendar-mark { width: 42px; height: 42px; }.ready-badge { display: none; }.direction-summary { padding: 13px; }.direction-source { display: none; }.direction-selection-bar { align-items: flex-start; }.direction-selection-hint { max-width: 180px; }.direction-selection-actions { align-items: flex-end; flex-direction: column; }.direction-option { width: 100%; min-width: 0; }.direction-group-details { max-height: 300px; padding-left: 10px; }.direction-selection-summary { flex-direction: column; gap: 3px; }.direction-text { font-size: 9px; }.create-callout, .compact-summary { align-items: stretch; flex-direction: column; }.create-button { width: 100%; }.compact-actions { width: 100%; flex-wrap: wrap; }.secondary-button, .view-button, .manual-edit-button { flex: 1; }.generation-card { padding: 13px; }.generation-title { font-size: 12px; }.generation-actions { justify-content: stretch; }.task-primary-button, .task-secondary-button { flex: 1; }.schedule-builder { padding-right: 10px; padding-left: 10px; }.schedule-control { gap: 9px; }.control-index { width: 25px; height: 25px; }.control-value { font-size: 12px; }.control-hint { max-width: 145px; }.duration-select-wrap { width: 118px; }.duration-select-wrap :deep(.uni-select__input-box) { padding: 0 7px; }.duration-select-wrap :deep(.uni-select__selector-scroll) { height: 220px; max-height: 220px !important; overflow-y: auto; }.custom-weeks-row { margin-left: 34px; padding: 9px; }.custom-weeks-hint { display: none; }.custom-weeks-input-wrap { width: 104px; }.week-panel { padding: 15px; }.day-detail { padding-left: 13px; }.caregiver-guide { margin: 0 15px 15px; }.manual-modal-mask { align-items: flex-end; padding: 0; }.manual-modal { width: 100%; max-height: 92vh; padding-bottom: calc(18px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; }.manual-form-row { flex-direction: column; gap: 0; }.manual-form-field--duration { max-width: none; }.manual-modal-actions { position: sticky; bottom: 0; padding-top: 10px; background: #fff; }.manual-modal-cancel, .manual-modal-save { flex: 1; } }
+@media screen and (max-width: 560px) { .training-plan { margin: 28px 12px 8px; border-radius: 16px; }.section-heading, .plan-editor { padding: 17px; }.heading-title { font-size: 17px; }.heading-subtitle { font-size: 10px; }.calendar-mark { width: 42px; height: 42px; }.ready-badge { display: none; }.direction-summary { padding: 13px; }.direction-source { display: none; }.direction-selection-bar { align-items: flex-start; }.direction-selection-hint { max-width: 180px; }.direction-selection-actions { align-items: flex-end; flex-direction: column; }.direction-option { width: 100%; min-width: 0; }.direction-group-details { max-height: 300px; padding-left: 10px; }.direction-selection-summary { flex-direction: column; gap: 3px; }.direction-text { font-size: 9px; }.create-callout, .compact-summary, .plan-pdf-card { align-items: stretch; flex-direction: column; }.create-button { width: 100%; }.compact-actions, .plan-pdf-actions { width: 100%; flex-wrap: wrap; }.secondary-button, .view-button, .manual-edit-button, .plan-pdf-button, .plan-pdf-regenerate { flex: 1; }.generation-card { padding: 13px; }.generation-title { font-size: 12px; }.generation-actions { justify-content: stretch; }.task-primary-button, .task-secondary-button { flex: 1; }.schedule-builder { padding-right: 10px; padding-left: 10px; }.schedule-control { gap: 9px; }.control-index { width: 25px; height: 25px; }.control-value { font-size: 12px; }.control-hint { max-width: 145px; }.duration-select-wrap { width: 118px; }.duration-select-wrap :deep(.uni-select__input-box) { padding: 0 7px; }.duration-select-wrap :deep(.uni-select__selector-scroll) { height: 220px; max-height: 220px !important; overflow-y: auto; }.custom-weeks-row { margin-left: 34px; padding: 9px; }.custom-weeks-hint { display: none; }.custom-weeks-input-wrap { width: 104px; }.week-panel { padding: 15px; }.day-detail { padding-left: 13px; }.caregiver-guide { margin: 0 15px 15px; }.manual-modal-mask { align-items: flex-end; padding: 0; }.manual-modal { width: 100%; max-height: 92vh; padding-bottom: calc(18px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; }.manual-form-row { flex-direction: column; gap: 0; }.manual-form-field--duration { max-width: none; }.manual-modal-actions { position: sticky; bottom: 0; padding-top: 10px; background: #fff; }.manual-modal-cancel, .manual-modal-save { flex: 1; } }
 </style>

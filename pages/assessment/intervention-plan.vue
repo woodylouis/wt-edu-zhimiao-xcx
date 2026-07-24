@@ -37,6 +37,7 @@
         :report="reportData"
         :read-only="isSharedView"
         @generated="handleGenerated"
+        @pdf-generated="handlePlanPdfGenerated"
         @status-change="handleStatusChange"
       />
     </view>
@@ -131,6 +132,10 @@ export default {
         documentId: this.reportData._id || '',
         task
       })
+    },
+    handlePlanPdfGenerated(pdfData) {
+      if (!pdfData || !this.reportData) return
+      this.reportData = { ...this.reportData, ...pdfData }
     },
     formatDate(value) {
       if (!value) return '评估日期未知'

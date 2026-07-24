@@ -303,6 +303,29 @@
             "bsonType": "timestamp",
             "description": "个性化训练计划最后更新时间"
         },
+        "interventionPlanPdfUrl": {
+            "bsonType": "string",
+            "description": "个性化训练计划PDF文件云存储URL"
+        },
+        "interventionPlanPdfStatus": {
+            "bsonType": "string",
+            "enum": [
+                "pending",
+                "generating",
+                "completed",
+                "failed",
+                "stale"
+            ],
+            "description": "个性化训练计划PDF生成状态"
+        },
+        "interventionPlanPdfGeneratedTime": {
+            "bsonType": "timestamp",
+            "description": "个性化训练计划PDF生成时间"
+        },
+        "interventionPlanPdfSourceUpdatedAt": {
+            "bsonType": "timestamp",
+            "description": "生成PDF时对应的训练计划更新时间，用于识别过期PDF"
+        },
         "interventionPlanStaleReason": {
             "bsonType": "string",
             "description": "训练计划与当前报告不匹配的原因"
