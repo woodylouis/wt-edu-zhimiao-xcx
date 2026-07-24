@@ -581,7 +581,7 @@
       }
       return;
     }
-    uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
+    uni.switchTab({ url: "/pages/dashboard/teacher/teacher" });
   };
 
   const handleClickHistory = () => {

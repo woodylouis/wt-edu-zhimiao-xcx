@@ -65,9 +65,15 @@
           </view>
         </view>
 
-        <!-- 右侧切换按钮 -->
-        <view class="switch-btn" @click="onClickSwitch">
+        <!-- 右侧班级切换入口 -->
+        <view
+          class="switch-btn"
+          hover-class="switch-btn--pressed"
+          :hover-stay-time="80"
+          @click="onClickSwitch"
+        >
           <image class="switch-icon" :src="switchIconUrl" mode="aspectFit" />
+          <text class="switch-label">切换班级</text>
         </view>
       </view>
     </u-sticky>
@@ -138,17 +144,6 @@
       </view>
     </view>
 
-    <!-- 悬浮球：可拖拽并自动吸附到屏幕左/右侧 -->
-    <QcSuspendBtn
-      :mainBtn="btnConfig.suspen.mainBtn"
-      :childSize="btnConfig.suspen.childSize"
-      :childBtns="btnConfig.suspen.childBtns"
-      :openType="btnConfig.suspen.openType"
-      :padding="10"
-      theme="dopamine"
-      @childClick="btnConfig.childClick"
-    />
-    
     <!-- 评估列表弹窗 -->
     <AssessModal 
       :visible="showAssessModal" 
@@ -188,13 +183,11 @@
   } from "@dcloudio/uni-app";
   import { CURRENT_STUDENT } from "@/lib/types/local_storage.js";
 
-  import QcSuspendBtn from "@/components/qc-suspendBtn/qc-suspendBtn.vue";
   import StudentList from "./components/student-list.vue";
   import AssessModal from "./components/assess-modal.vue";
   import ClassTeacherModal from "./components/class-teacher-modal.vue";
   import ClassInviteModal from "./components/class-invite-modal.vue";
   import DopamineLoading from "@/components/dopamine-loading/index.vue";
-  import btnConfig from "@/common/suspen-btn/config.js";
 
   const navCustomStyle =
     "background: linear-gradient(135deg, #FFF2B8 0%, #FFD778 48%, #FFB8AC 100%);height: calc(100vh / 8);";
@@ -954,25 +947,39 @@
       }
       
       .switch-btn {
-        width: 68rpx;
-        height: 68rpx;
-        background: rgba(255, 255, 255, 0.9);
-        border-radius: 50%;
+        width: 104rpx;
+        min-height: 76rpx;
+        box-sizing: border-box;
+        padding: 8rpx 10rpx;
+        background: linear-gradient(145deg, #8d73f6 0%, #6e52dc 100%);
+        border-radius: 20rpx;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2rpx 12rpx rgba(255, 138, 101, 0.2);
+        box-shadow: 0 5rpx 12rpx rgba(78, 58, 155, 0.24);
         z-index: 2;
         transition: all 0.2s ease;
         flex-shrink: 0;
         
-        &:active {
+        &:active,
+        &.switch-btn--pressed {
           transform: scale(0.92);
         }
         
         .switch-icon {
-          width: 38rpx;
-          height: 38rpx;
+          width: 34rpx;
+          height: 34rpx;
+          filter: brightness(0) invert(1);
+        }
+
+        .switch-label {
+          margin-top: 2rpx;
+          color: #fff;
+          font-size: 19rpx;
+          font-weight: 800;
+          line-height: 1.2;
+          white-space: nowrap;
         }
       }
     }
@@ -1334,22 +1341,35 @@
 }
 
 .dashboard .user-profile .switch-btn {
-  width: 70rpx;
-  height: 70rpx;
+  width: 112rpx;
+  min-height: 84rpx;
+  padding: 8rpx 10rpx 7rpx;
   border: 4rpx solid #392f59;
   border-radius: 22rpx;
-  background: #79dfc2;
+  background: linear-gradient(145deg, #8d73f6 0%, #694bd8 100%);
   box-shadow: 5rpx 5rpx 0 #ffd447;
 
-  &:active {
+  &:active,
+  &.switch-btn--pressed {
     transform: translate(3rpx, 3rpx);
     box-shadow: 2rpx 2rpx 0 #ffd447;
   }
 }
 
 .dashboard .user-profile .switch-btn .switch-icon {
-  width: 38rpx;
-  height: 38rpx;
+  width: 34rpx;
+  height: 34rpx;
+  filter: brightness(0) invert(1);
+}
+
+.dashboard .user-profile .switch-btn .switch-label {
+  margin-top: 3rpx;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 900;
+  line-height: 1.2;
+  text-shadow: 0 2rpx 0 rgba(47, 40, 84, 0.25);
+  white-space: nowrap;
 }
 
 .dashboard .search-bar {
@@ -1492,7 +1512,7 @@
 .dashboard > .student-list {
   position: relative;
   z-index: 1;
-  padding: 12rpx 28rpx 200rpx;
+  padding: 12rpx 28rpx 120rpx;
 }
 
 .dashboard .empty-state {

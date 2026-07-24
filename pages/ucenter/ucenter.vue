@@ -386,12 +386,12 @@ export default {
       return this.currentMembership ? this.currentMembership.role : "teacher";
     },
     assessmentActionTitle() {
-      return this.activeRole === "parent" ? "成长报告" : "成长评估";
+      return this.activeRole === "parent" ? "成长报告" : "量表库";
     },
     assessmentActionDesc() {
       return this.activeRole === "parent"
         ? "查看孩子的评估记录"
-        : "开始或查看评估";
+        : "浏览量表并开始评估";
     },
     maskedMobile() {
       const mobile = String(this.userInfo.mobile || "");

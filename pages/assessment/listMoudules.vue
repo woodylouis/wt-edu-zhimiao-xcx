@@ -463,14 +463,17 @@ const fetchAssessmentRecordData = async (childId, assessmentSections) => {
             console.log('查询结果:', temp);
             console.log('是否继续评估:', res.result.isContinue);
             console.log('是否第一次:', res.result.isFirstTime);
-            
+
             applyAssessmentRecordData(temp, assessmentSections, {
                 isContinue: res.result.isContinue,
                 isFirstTime: res.result.isFirstTime,
             });
+        } else {
+            throw new Error(res.result.message || '评估记录加载失败');
         }
     } catch (error) {
         console.error('查询失败:', error);
+        uni.showToast({ title: error.message || '评估记录加载失败', icon: 'none' });
     }
 };
 
@@ -536,7 +539,7 @@ onUnload(() => {
 })
 
 const handleNavBack = () => {
-    uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
+    uni.switchTab({ url: '/pages/dashboard/teacher/teacher' })
     uni.removeStorageSync(ASSESS_STUDENT)
     uni.removeStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS)
 }

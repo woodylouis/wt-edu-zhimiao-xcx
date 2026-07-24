@@ -6,10 +6,12 @@ const collection = db.collection('wtdb-business-assess-record')
 
 exports.main = async (event = {}, context) => {
 	try {
-		const { childId, data = {} } = event
+		const { childId, data = {}, restartAssessment = false, restartRecordId = '' } = event
 		if (!childId || !data || typeof data !== 'object' || Array.isArray(data)) {
 			return { code: 400, message: '缺少必要参数: childId 或 data' }
 		}
+		const shouldRestart = restartAssessment === true || restartAssessment === '1'
+		const expectedRestartRecordId = String(restartRecordId || '').trim().slice(0, 200)
 
 		const scope = await subjectAuth.getAuthScope(event, context)
 		const { child, classInfo } = await subjectAuth.assertChildAssessmentAccess(scope, childId)
@@ -24,25 +26,66 @@ exports.main = async (event = {}, context) => {
 			.filter(record => record.isCompleted === true || record.reportStatus === 'completed')
 			.sort((a, b) => getCompletedTime(b) - getCompletedTime(a))[0]
 		const lastCompletedTime = latestCompletedRecord ? getCompletedTime(latestCompletedRecord) : null
-		const unfinishedRecord = (existingRecord.data || []).find(record =>
-			(record.modulesStatus || []).some(module => module.status !== 1)
-		)
+		const activeRecords = (existingRecord.data || [])
+			.filter(isActiveUnfinishedRecord)
+			.sort((a, b) => getCompletedTime(b) - getCompletedTime(a))
+		const unfinishedRecord = activeRecords[0]
 
-		if (unfinishedRecord) {
-			const modulesStatus = unfinishedRecord.modulesStatus || []
-			let lastSectionId = unfinishedRecord.lastSectionId || ''
-			let lastSectionIndex = 0
-			if (!lastSectionId) {
-				lastSectionIndex = modulesStatus.findIndex(module => module.status !== 1)
-				if (lastSectionIndex < 0) lastSectionIndex = 0
-				lastSectionId = modulesStatus[lastSectionIndex]?.sectionId || ''
-			} else {
-				lastSectionIndex = modulesStatus.findIndex(module => module.sectionId === lastSectionId)
-				if (lastSectionIndex < 0) lastSectionIndex = 0
+		if (shouldRestart) {
+			const restartedRecord = expectedRestartRecordId
+				? (existingRecord.data || [])
+					.filter(record =>
+						record.restartedFromRecordId === expectedRestartRecordId &&
+						record.isAbandoned !== true
+					)
+					.sort((a, b) => getCompletedTime(b) - getCompletedTime(a))[0]
+				: null
+			if (restartedRecord) {
+				const sourceRecord = activeRecords.find(
+					record => record.recordId === expectedRestartRecordId
+				)
+				if (sourceRecord) {
+					await abandonAssessmentRecords([sourceRecord])
+				}
+				return {
+					code: 200,
+					result: withResumePosition(restartedRecord, lastCompletedTime),
+					isContinue: isActiveUnfinishedRecord(restartedRecord),
+					isRestarted: true,
+					message: `已为${child.name}重新开始评估。`
+				}
 			}
+
+			const restartTarget = expectedRestartRecordId
+				? activeRecords.find(record => record.recordId === expectedRestartRecordId)
+				: unfinishedRecord
+			if (!restartTarget) {
+				throw new subjectAuth.AuthError(409, '当前评估进度已变化，请返回首页刷新后重试')
+			}
+
+			const newRecord = await createNewAssessmentRecord({
+				child,
+				classInfo,
+				assessment,
+				data,
+				assessorId,
+				restartedFromRecordId: restartTarget.recordId
+			})
+			await abandonAssessmentRecords(activeRecords)
 			return {
 				code: 200,
-				result: { ...unfinishedRecord, lastSectionId, lastSectionIndex, lastCompletedTime },
+				result: { ...newRecord, lastCompletedTime },
+				isContinue: false,
+				isFirstTime: false,
+				isRestarted: true,
+				message: `已保留原进度，并为${child.name}重新开始评估。`
+			}
+		}
+
+		if (unfinishedRecord) {
+			return {
+				code: 200,
+				result: withResumePosition(unfinishedRecord, lastCompletedTime),
 				isContinue: true,
 				message: `查到${child.name}的评估记录，请继续完成。`
 			}
@@ -66,6 +109,39 @@ exports.main = async (event = {}, context) => {
 
 function getCompletedTime(record = {}) {
 	return record.lastCompletedTime || record.lastSaveTime || record.updateTime || record.createTime || 0
+}
+
+function isActiveUnfinishedRecord(record = {}) {
+	const isCompleted = record.isCompleted === true || record.reportStatus === 'completed'
+	return !isCompleted &&
+		record.isAbandoned !== true &&
+		(record.modulesStatus || []).some(module => Number(module.status) !== 1)
+}
+
+function withResumePosition(record = {}, lastCompletedTime = null) {
+	const modulesStatus = record.modulesStatus || []
+	let lastSectionId = record.lastSectionId || ''
+	let lastSectionIndex = 0
+	if (!lastSectionId) {
+		lastSectionIndex = modulesStatus.findIndex(module => Number(module.status) !== 1)
+		if (lastSectionIndex < 0) lastSectionIndex = 0
+		lastSectionId = modulesStatus[lastSectionIndex]?.sectionId || ''
+	} else {
+		lastSectionIndex = modulesStatus.findIndex(module => module.sectionId === lastSectionId)
+		if (lastSectionIndex < 0) lastSectionIndex = 0
+	}
+	return { ...record, lastSectionId, lastSectionIndex, lastCompletedTime }
+}
+
+async function abandonAssessmentRecords(records = []) {
+	const abandonedAt = Date.now()
+	await Promise.all(records.map(record =>
+		collection.doc(record._id).update({
+			isAbandoned: true,
+			abandonedAt,
+			abandonReason: 'manual_restart'
+		})
+	))
 }
 
 async function getAssessmentDefinition(data) {
@@ -110,7 +186,14 @@ function sanitizeModulesStatus(modulesStatus, assessment) {
 	})
 }
 
-async function createNewAssessmentRecord({ child, classInfo, assessment, data, assessorId }) {
+async function createNewAssessmentRecord({
+	child,
+	classInfo,
+	assessment,
+	data,
+	assessorId,
+	restartedFromRecordId = ''
+}) {
 	const now = Date.now()
 	const recordIdSuffix = `${child._id}_${now}`
 	const recordId = `ablls_${recordIdSuffix}`
@@ -121,7 +204,8 @@ async function createNewAssessmentRecord({ child, classInfo, assessment, data, a
 		'assessorId', 'childId', 'child_id', 'childName',
 		'classId', 'class_id', 'className', 'modulesStatus', 'createTime', 'updateTime',
 		'lastSaveTime', 'lastCompletedTime', 'lastSectionId', 'lastSectionIndex',
-		'isCompleted', 'reportStatus'
+		'isCompleted', 'reportStatus', 'restartAssessment', 'restartRecordId',
+		'isAbandoned', 'abandonedAt', 'abandonReason', 'restartedFromRecordId'
 	]) delete safeData[key]
 
 	const params = {
@@ -140,7 +224,9 @@ async function createNewAssessmentRecord({ child, classInfo, assessment, data, a
 		lastSaveTime: now,
 		lastSectionId: modulesStatus[0]?.sectionId || '',
 		lastSectionIndex: 0,
-		isCompleted: false
+		isCompleted: false,
+		isAbandoned: false,
+		...(restartedFromRecordId ? { restartedFromRecordId } : {})
 	}
 	const addRes = await collection.add(params)
 	return { ...params, _id: addRes.id }

@@ -432,6 +432,12 @@
         "text": "首页"
       },
       {
+        "pagePath": "pages/dashboard/teacher/teacher",
+        "iconPath": "static/tabbar/assessment.png",
+        "selectedIconPath": "static/tabbar/assessment_active.png",
+        "text": "评估"
+      },
+      {
         "pagePath": "pages/ucenter/ucenter",
         "iconPath": "static/tabbar/profile.png",
         "selectedIconPath": "static/tabbar/profile_active.png",

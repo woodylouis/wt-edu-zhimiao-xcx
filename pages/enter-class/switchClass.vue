@@ -394,14 +394,18 @@ export default {
                         schoolName: this.selectedSchoolName
                     }
                     this.currentClassCode = currentClass.code || ''
-					this.currentMembershipId = currentClass.memberId || ''
+                    this.currentMembershipId = currentClass.memberId || ''
 					this.currentChildId = currentClass.childId || ''
                     uni.setStorageSync('currentClass', currentClass)
-                    uni.redirectTo({
-						url: this.selectedClass.role === 'parent'
-							? '/pages/assessment/list?role=parent'
-							: '/pages/dashboard/teacher/teacher?role=teacher'
-                    })
+                    if (this.selectedClass.role === 'parent') {
+                        uni.redirectTo({
+                            url: '/pages/assessment/list?role=parent'
+                        })
+                    } else {
+                        uni.switchTab({
+                            url: '/pages/dashboard/teacher/teacher'
+                        })
+                    }
                 }
             } catch (e) {
                 uni.showToast({ title: '进入失败', icon: 'none' })

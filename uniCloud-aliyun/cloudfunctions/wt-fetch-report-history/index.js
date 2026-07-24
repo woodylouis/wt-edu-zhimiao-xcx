@@ -60,6 +60,7 @@ exports.main = async (event = {}, context) => {
 					{ assessorId: scope.uid }
 				]))
 				.field({
+					recordId: true,
 					childId: true,
 					child_id: true,
 					assessmentId: true,
@@ -68,6 +69,7 @@ exports.main = async (event = {}, context) => {
 					modulesStatus: true,
 					isCompleted: true,
 					reportStatus: true,
+					isAbandoned: true,
 					lastSaveTime: true,
 					updateTime: true,
 					createTime: true
@@ -127,17 +129,27 @@ exports.main = async (event = {}, context) => {
 			const isCompleted = record.isCompleted === true || record.reportStatus === 'completed'
 			const hasUnfinishedModule = Array.isArray(record.modulesStatus) &&
 				record.modulesStatus.some(module => Number(module.status) !== 1)
-			if (isCompleted || !hasUnfinishedModule) continue
+			if (isCompleted || record.isAbandoned === true || !hasUnfinishedModule) continue
 
 			const childId = subjectAuth.compactId(record.childId || record.child_id)
 			if (!childId) continue
-			const updatedAt = toTimestamp(record.lastSaveTime || record.updateTime || record.createTime)
+			const createTime = toTimestamp(record.createTime)
+			const lastSaveTime = toTimestamp(record.lastSaveTime || record.updateTime || record.createTime)
+			const updatedAt = lastSaveTime
 			const current = activeMap.get(childId)
-			if (!current || updatedAt > current.updatedAt) {
+			const isNewerRecord = !current ||
+				updatedAt > current.updatedAt ||
+				(updatedAt === current.updatedAt && createTime > current.createTime)
+			if (isNewerRecord) {
 				activeMap.set(childId, {
+					recordId: String(record.recordId || ''),
 					assessmentId: subjectAuth.compactId(record.assessmentId || record.assessment_id),
 					assessmentTitle: String(record.assessmentTitle || '').trim(),
 					assessorId: scope.uid,
+					createTime,
+					lastSaveTime,
+					startDate: createTime ? formatDate(createTime) : '',
+					lastSaveDate: lastSaveTime ? formatDate(lastSaveTime) : '',
 					updatedAt
 				})
 			}

@@ -12,6 +12,9 @@ exports.main = async (event = {}, context) => {
 		const { child } = await subjectAuth.assertChildAssessmentAccess(scope, childId)
 		const res = await collection.where({ childId: child._id, assessorId: scope.uid }).get()
 		const existing = (res.data || []).find(record =>
+			record.isAbandoned !== true &&
+			record.isCompleted !== true &&
+			record.reportStatus !== 'completed' &&
 			(record.modulesStatus || []).some(module => module.status !== 1)
 		)
 		if (existing) return { code: 200, data: { recordId: existing.recordId } }

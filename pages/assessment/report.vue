@@ -70,7 +70,7 @@ const listIconUrl = "../../static/general/list.png";
 const historyReports = ref([])
 
 const handleNavBack = () => {
-    uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
+    uni.switchTab({ url: '/pages/dashboard/teacher/teacher' })
 };
 
 const handleClickHistory = () => {

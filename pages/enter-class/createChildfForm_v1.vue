@@ -184,7 +184,7 @@
                 showCancel: true,
               };
             } else {
-              uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
+              uni.switchTab({ url: "/pages/dashboard/teacher/teacher" });
             }
           } else {
             uni.showToast({
@@ -245,7 +245,7 @@
         const type = this.promptDialog.type;
         this.promptDialog.show = false;
         if (type === "assessment") {
-          uni.redirectTo({ url: "/pages/dashboard/teacher/teacher" });
+          uni.switchTab({ url: "/pages/dashboard/teacher/teacher" });
         }
       },
     },

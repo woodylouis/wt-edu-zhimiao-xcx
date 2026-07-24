@@ -76,6 +76,9 @@ exports.main = async (event = {}, context) => {
 		}
 		const scope = await subjectAuth.getAuthScope(event, context)
 		const ownedRecord = await subjectAuth.assertOwnedAssessmentRecord(scope, { recordId, assessmentId, childId })
+		if (ownedRecord.isAbandoned === true) {
+			throw new subjectAuth.AuthError(409, '该评估已重新开始，原进度不能生成报告')
+		}
 		const assessorId = ownedRecord.assessorId
 
 		const query = { recordId, assessmentId, assessorId, childId }

@@ -17,6 +17,9 @@ exports.main = async (event = {}, context) => {
 
 		const scope = await subjectAuth.getAuthScope(event, context)
 		const record = await subjectAuth.assertOwnedAssessmentRecord(scope, { recordId, childId, assessmentId })
+		if (record.isAbandoned === true) {
+			throw new subjectAuth.AuthError(409, '该评估已重新开始，原进度不能再修改')
+		}
 		if (!(record.modulesStatus || []).some(module => module.sectionId === sectionId)) {
 			return { code: 400, message: '该模块不属于当前评估记录' }
 		}

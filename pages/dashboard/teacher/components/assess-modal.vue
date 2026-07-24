@@ -40,24 +40,37 @@
             </view>
             
             <!-- 提示信息 -->
-            <view class="hint-text">
-                <text class="hint-icon">💡</text>
+            <view class="hint-text" :class="{ 'hint-text--stale': shouldSuggestRestart }">
+                <text class="hint-icon">{{ shouldSuggestRestart ? '⚠️' : '💡' }}</text>
                 <text>{{ actionHint }}</text>
             </view>
             
             <!-- 底部按钮 -->
             <view class="modal-footer">
                 <button class="cancel-btn" @click="onClose">取消</button>
-                <button class="confirm-btn" :disabled="!selectedAssessment" @click="onStartAssess">
+                <button
+                    v-if="isContinuing"
+                    class="restart-btn"
+                    :class="{ 'restart-btn--recommended': shouldSuggestRestart }"
+                    :disabled="restarting || navigationLoading"
+                    @click="onRestartAssess"
+                >
+                    重新开始
+                </button>
+                <button
+                    class="confirm-btn"
+                    :disabled="!selectedAssessment || restarting || navigationLoading"
+                    @click="onStartAssess"
+                >
                     {{ isContinuing ? '继续评估' : '开始评估' }}
                 </button>
             </view>
         </view>
 
         <DopamineLoading
-            :show="loading || locationLoading || navigationLoading"
-            :text="loading ? '正在准备成长量表' : locationLoading ? '正在确认校园位置' : '正在打开评估任务'"
-            :subtext="loading ? '小芽在挑选合适的成长任务' : locationLoading ? '定位小雷达正在转圈圈' : '量表已选好，马上开始闯关'"
+            :show="loading || locationLoading || restarting || navigationLoading"
+            :text="loading ? '正在准备成长量表' : locationLoading ? '正在确认校园位置' : restarting ? '正在重新开始评估' : '正在打开评估任务'"
+            :subtext="loading ? '小芽在挑选合适的成长任务' : locationLoading ? '定位小雷达正在转圈圈' : restarting ? '正在作废旧进度并创建全新评估' : '量表已选好，马上开始闯关'"
         />
     </view>
 </template>
@@ -85,6 +98,7 @@ const emit = defineEmits(['close', 'confirm'])
 const loading = ref(false)
 const locationLoading = ref(false)
 const navigationLoading = ref(false)
+const restarting = ref(false)
 const assessmentList = ref([])
 const selectedAssessment = ref(null)
 
@@ -102,10 +116,63 @@ const modalTitle = computed(() =>
     inProgressAssessmentId.value ? '继续评估' : '选择评估量表'
 )
 
-const actionHint = computed(() => isContinuing.value
-    ? '已定位到上次的量表，点击「继续评估」即可恢复进度'
-    : '点击「开始评估」将直接进入，请确认学生和量表信息无误'
+const toTimestamp = (value) => {
+    if (!value) return 0
+    if (value instanceof Date) return value.getTime()
+    if (typeof value === 'number') return value < 1e12 ? value * 1000 : value
+    if (value.$date) return toTimestamp(value.$date)
+    if (value.$numberLong) return toTimestamp(value.$numberLong)
+    const timestamp = Date.parse(value)
+    return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+const formatDate = (value) => {
+    const timestamp = toTimestamp(value)
+    if (!timestamp) return ''
+    const date = new Date(timestamp)
+    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
+}
+
+const threeMonthsAgo = (now = Date.now()) => {
+    const date = new Date(now)
+    const day = date.getDate()
+    date.setDate(1)
+    date.setMonth(date.getMonth() - 3)
+    const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+    date.setDate(Math.min(day, lastDay))
+    date.setHours(0, 0, 0, 0)
+    return date.getTime()
+}
+
+const inProgressAssessment = computed(() => props.student?.inProgressAssessment || {})
+
+const lastSaveTimestamp = computed(() => toTimestamp(
+    inProgressAssessment.value.lastSaveTime ||
+    inProgressAssessment.value.updatedAt ||
+    inProgressAssessment.value.updateTime
+))
+
+const lastSaveDateText = computed(() =>
+    inProgressAssessment.value.lastSaveDate ||
+    formatDate(lastSaveTimestamp.value) ||
+    '日期未知'
 )
+
+const shouldSuggestRestart = computed(() =>
+    isContinuing.value &&
+    lastSaveTimestamp.value > 0 &&
+    new Date(lastSaveTimestamp.value).setHours(0, 0, 0, 0) <= threeMonthsAgo()
+)
+
+const actionHint = computed(() => {
+    if (!isContinuing.value) {
+        return '点击「开始评估」将直接进入，请确认学生和量表信息无误'
+    }
+    if (shouldSuggestRestart.value) {
+        return `上次进度保存于 ${lastSaveDateText.value}，距今已满3个月，建议重新开始评估`
+    }
+    return `上次进度保存于 ${lastSaveDateText.value}，可继续恢复，也可重新开始`
+})
 
 const applyAssessmentList = (list) => {
     assessmentList.value = Array.isArray(list) ? list : []
@@ -350,8 +417,59 @@ const performLocationCheck = async (latitude, longitude, schoolId, resolve) => {
     }
 }
 
-// 开始评估
-const onStartAssess = async () => {
+const getRestartModulesStatus = async () => {
+    const { result } = await uniCloud.callFunction({
+        name: 'wt-fetch-assessment-section',
+        data: {
+            assessmentId: selectedAssessment.value.id,
+            age: ageInt.value
+        }
+    })
+    if (result?.code !== 200 || !Array.isArray(result.data?.section)) {
+        throw new Error(result?.message || '评估模块加载失败')
+    }
+    return result.data.section.map(section => ({
+        sectionId: section.section_id,
+        sectionName: section.section || '',
+        totalSubSections: Array.isArray(section.abllsSections)
+            ? section.abllsSections.length
+            : 0
+    }))
+}
+
+const restartCurrentAssessment = async () => {
+    const restartRecordId = String(inProgressAssessment.value.recordId || '')
+    if (!restartRecordId) {
+        throw new Error('未找到需要作废的评估记录，请刷新后重试')
+    }
+    const modulesStatus = await getRestartModulesStatus()
+    if (modulesStatus.length === 0) {
+        throw new Error('当前量表没有可用的评估模块')
+    }
+
+    const { result } = await uniCloud.callFunction({
+        name: 'wt-upload-assess-record',
+        data: {
+            childId: props.student._id,
+            restartAssessment: true,
+            restartRecordId,
+            data: {
+                assessmentId: selectedAssessment.value.id,
+                assessmentTitle: selectedAssessment.value.title,
+                modulesStatus
+            },
+            uniIdToken: uni.getStorageSync('uni_id_token')
+        }
+    })
+    if (result?.code !== 200 || !result.result?.recordId) {
+        throw new Error(result?.message || '重新开始评估失败')
+    }
+    return result.result
+}
+
+const navigateToAssessment = async ({ restartAssessment = false } = {}) => {
+    if (restarting.value || navigationLoading.value || locationLoading.value) return
+
     // 先检查位置权限和是否在学校范围内
     const { canProceed } = await checkLocationPermission()
     
@@ -365,12 +483,28 @@ const onStartAssess = async () => {
     const className = currentClass.grade && currentClass.class 
         ? `${currentClass.grade}${currentClass.class}班` 
         : '未知班级'
+
+    let restartedRecord = null
+    if (restartAssessment) {
+        restarting.value = true
+        try {
+            restartedRecord = await restartCurrentAssessment()
+        } catch (error) {
+            console.error('重新开始评估失败:', error)
+            uni.showToast({ title: error.message || '重新开始评估失败', icon: 'none' })
+            return
+        } finally {
+            restarting.value = false
+        }
+    }
     
     emit('confirm', {
         student: props.student,
         assessment: selectedAssessment.value,
         ageInt: ageInt.value,
-        studentAge: studentAge.value
+        studentAge: studentAge.value,
+        restartAssessment,
+        restartedRecord
     })
     
     // 跳转到评估模块页面
@@ -387,9 +521,13 @@ const onStartAssess = async () => {
             `&assessmentTitle=${selectedAssessment.value.title}`,
         success: () => {
             trackUserAction(
-                isContinuing.value ? 'assessment:continue' : 'assessment:start',
+                restartAssessment
+                    ? 'assessment:restart'
+                    : isContinuing.value ? 'assessment:continue' : 'assessment:start',
                 {
-                    actionDetail: isContinuing.value ? '继续学生评估' : '开始学生评估',
+                    actionDetail: restartAssessment
+                        ? '重新开始学生评估'
+                        : isContinuing.value ? '继续学生评估' : '开始学生评估',
                     resultStatus: 'success',
                     targetType: 'student',
                     targetId: props.student._id
@@ -402,6 +540,23 @@ const onStartAssess = async () => {
         },
         complete: () => {
             navigationLoading.value = false
+        }
+    })
+}
+
+// 开始或继续评估
+const onStartAssess = () => navigateToAssessment()
+
+// 放弃当前进度并创建新的评估记录
+const onRestartAssess = () => {
+    uni.showModal({
+        title: shouldSuggestRestart.value ? '建议重新开始' : '确认重新开始？',
+        content: `当前进度最后保存于 ${lastSaveDateText.value}。重新开始后将从第一项评估，原进度会保留用于记录追溯。`,
+        cancelText: '继续评估',
+        confirmText: '重新开始',
+        confirmColor: '#E66A4E',
+        success: ({ confirm }) => {
+            if (confirm) navigateToAssessment({ restartAssessment: true })
         }
     })
 }
@@ -552,7 +707,7 @@ const onStartAssess = async () => {
     border-top: 1rpx solid #f0f0f0;
 }
 
-.cancel-btn, .confirm-btn {
+.cancel-btn, .restart-btn, .confirm-btn {
     flex: 1;
     height: 80rpx;
     border-radius: 40rpx;
@@ -569,6 +724,11 @@ const onStartAssess = async () => {
 .cancel-btn {
     background: #f5f5f5;
     color: #666;
+}
+
+.restart-btn {
+    color: #D7583E;
+    background: #FFF0EA;
 }
 
 .confirm-btn {
@@ -786,6 +946,16 @@ const onStartAssess = async () => {
     font-weight: 650;
 }
 
+.hint-text--stale {
+    border-style: solid;
+    border-color: #d7583e;
+    background: #ffe1d8;
+}
+
+.hint-text--stale text {
+    color: #9f3f2e;
+}
+
 .modal-footer {
     gap: 18rpx;
     padding: 22rpx 24rpx 26rpx;
@@ -793,6 +963,7 @@ const onStartAssess = async () => {
 }
 
 .cancel-btn,
+.restart-btn,
 .confirm-btn {
     height: 82rpx;
     border: 3rpx solid #392f59;
@@ -809,6 +980,18 @@ const onStartAssess = async () => {
     color: #392f59;
     background: #fff;
     box-shadow: 5rpx 5rpx 0 #ffb6ad;
+}
+
+.restart-btn {
+    color: #9f3f2e;
+    background: #ffe1d8;
+    box-shadow: 5rpx 5rpx 0 #ffb6ad;
+}
+
+.restart-btn--recommended {
+    color: #fff;
+    background: #e66a4e;
+    box-shadow: 5rpx 5rpx 0 #ffd447;
 }
 
 .confirm-btn {

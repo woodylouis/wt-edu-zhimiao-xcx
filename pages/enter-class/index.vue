@@ -444,10 +444,14 @@
           this.currentClass.memberRole ||
           this.currentMembership?.role ||
           "teacher";
-        uni.navigateTo({
-		  url: role === "parent"
-			? "/pages/assessment/list?role=parent"
-			: "/pages/dashboard/teacher/teacher?role=teacher",
+        if (role === "parent") {
+          uni.navigateTo({
+            url: "/pages/assessment/list?role=parent",
+          });
+          return;
+        }
+        uni.switchTab({
+          url: "/pages/dashboard/teacher/teacher",
         });
       },
       handleSecondaryAction() {

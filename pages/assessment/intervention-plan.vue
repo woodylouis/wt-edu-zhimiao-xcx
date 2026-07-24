@@ -141,7 +141,7 @@ export default {
     goBack() {
       const pages = getCurrentPages()
       if (pages.length > 1) uni.navigateBack()
-      else uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
+      else uni.switchTab({ url: '/pages/dashboard/teacher/teacher' })
     }
   }
 }

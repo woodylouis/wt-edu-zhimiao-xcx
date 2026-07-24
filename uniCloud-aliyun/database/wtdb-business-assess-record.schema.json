@@ -128,6 +128,23 @@
             "bsonType": "string",
             "description": "上次做到的模块ID"
         },
+        "isAbandoned": {
+            "bsonType": "bool",
+            "description": "是否因重新开始评估而停止使用",
+            "defaultValue": false
+        },
+        "abandonedAt": {
+            "bsonType": "timestamp",
+            "description": "停止使用当前进度的时间"
+        },
+        "abandonReason": {
+            "bsonType": "string",
+            "description": "停止使用当前进度的原因"
+        },
+        "restartedFromRecordId": {
+            "bsonType": "string",
+            "description": "重新开始前的评估记录ID"
+        },
         "isCompleted": {
             "bsonType": "bool",
             "description": "是否已完成全部评估",

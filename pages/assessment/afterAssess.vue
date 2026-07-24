@@ -159,11 +159,11 @@ const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, 
 
 
 const handleNavBack = () => {
-    uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
+    uni.switchTab({ url: '/pages/dashboard/teacher/teacher' })
 };
 
 const backToHome = () => {
-    uni.redirectTo({ url: '/pages/dashboard/teacher/teacher' })
+    uni.switchTab({ url: '/pages/dashboard/teacher/teacher' })
 }
 
 const statusMessageMap = {

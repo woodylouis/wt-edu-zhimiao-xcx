@@ -65,7 +65,7 @@
         </view>
         
         <!-- 操作按钮区域 -->
-        <view class="action-area">
+        <view class="action-area" :class="{ 'action-area--continue': isAssessing }">
             <button
                 class="action-btn report-btn"
                 :class="{ 'report-btn--empty': !hasAssessments }"
@@ -88,7 +88,11 @@
                 <view class="action-icon action-icon--assess">{{ isAssessing ? '⏱️' : '✍️' }}</view>
                 <view class="action-copy">
                     <text class="action-title">{{ isAssessing ? '继续评估' : '开始评估' }}</text>
-                    <text class="action-hint">{{ isAssessing ? '恢复上次进度' : '选择成长量表' }}</text>
+                    <view v-if="isAssessing" class="assessment-progress-dates">
+                        <text class="assessment-progress-date">开始评估 {{ inProgressDates.startDate }}</text>
+                        <text class="assessment-progress-date">进度保存 {{ inProgressDates.lastSaveDate }}</text>
+                    </view>
+                    <text v-else class="action-hint">选择成长量表</text>
                 </view>
                 <text class="action-arrow">›</text>
             </button>
@@ -159,6 +163,33 @@ const hasAssessments = computed(() => {
 const isAssessing = computed(() =>
     Boolean(props.student.hasInProgressAssessment || props.student.inProgressAssessment)
 )
+
+const toTimestamp = (value) => {
+    if (!value) return 0
+    if (value instanceof Date) return value.getTime()
+    if (typeof value === 'number') return value < 1e12 ? value * 1000 : value
+    if (value.$date) return toTimestamp(value.$date)
+    if (value.$numberLong) return toTimestamp(value.$numberLong)
+    const timestamp = Date.parse(value)
+    return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
+const formatAssessmentDate = (value) => {
+    const timestamp = toTimestamp(value)
+    if (!timestamp) return '日期未知'
+    const date = new Date(timestamp)
+    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
+}
+
+const inProgressDates = computed(() => {
+    const assessment = props.student.inProgressAssessment || {}
+    return {
+        startDate: assessment.startDate ||
+            formatAssessmentDate(assessment.createTime || assessment.startTime || assessment.startedAt),
+        lastSaveDate: assessment.lastSaveDate ||
+            formatAssessmentDate(assessment.lastSaveTime || assessment.updatedAt || assessment.updateTime)
+    }
+})
 
 const hasAssessmentActivity = computed(() => hasAssessments.value || isAssessing.value)
 
@@ -692,6 +723,10 @@ const handleAssessClick = () => {
     }
 }
 
+.action-area--continue .action-btn {
+    height: 122rpx;
+}
+
 .action-btn--pressed {
     transform: translate(3rpx, 3rpx);
     box-shadow: 2rpx 2rpx 0 #392f59;
@@ -762,6 +797,21 @@ const handleAssessClick = () => {
     font-weight: 700;
     line-height: 1;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.assessment-progress-dates {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 6rpx;
+}
+
+.assessment-progress-date {
+    color: #615878;
+    font-size: 17rpx;
+    font-weight: 800;
+    line-height: 1.35;
     white-space: nowrap;
 }
 
