@@ -48,8 +48,14 @@
                 :hover-stay-time="80"
                 @click.stop
               >
-                <text class="share-mark">↗</text>
-                <text class="btn-text">分享</text>
+                <view class="invite-icon invite-icon--share">
+                  <view class="invite-share-node invite-share-node--top"></view>
+                  <view class="invite-share-node invite-share-node--left"></view>
+                  <view class="invite-share-node invite-share-node--bottom"></view>
+                  <view class="invite-share-line invite-share-line--top"></view>
+                  <view class="invite-share-line invite-share-line--bottom"></view>
+                </view>
+                <text class="btn-text">邀老师</text>
               </button>
               <button
                 class="invite-btn invite-btn--parent"
@@ -58,7 +64,12 @@
                 :hover-stay-time="80"
                 @click.stop="openClassInvite"
               >
-                <text class="share-mark">▣</text>
+                <view class="invite-icon invite-icon--qr">
+                  <view class="invite-qr-corner invite-qr-corner--top-left"></view>
+                  <view class="invite-qr-corner invite-qr-corner--top-right"></view>
+                  <view class="invite-qr-corner invite-qr-corner--bottom-left"></view>
+                  <view class="invite-qr-dot"></view>
+                </view>
                 <text class="btn-text">家长码</text>
               </button>
             </view>
@@ -279,7 +290,7 @@
     } else if (isHeadTeacher) {
       labels.push({ key: "head-teacher", label: "班主任" });
     } else {
-      labels.push({ key: "teacher", label: "老师" });
+      labels.push({ key: "teacher", label: "本班老师" });
     }
 
     if (isSchoolDirector) {
@@ -860,56 +871,75 @@
         .class-row {
           display: flex;
           align-items: center;
-          gap: 12rpx;
+          width: 100%;
+          min-width: 0;
+          gap: 6rpx;
           
           .class-tag {
             height: 40rpx;
             display: flex;
+            flex: 1;
             align-items: center;
             justify-content: center;
+            min-width: 0;
+            overflow: hidden;
             background: #FFFFFF;
-            padding: 0 16rpx;
+            padding: 0 8rpx;
             border-radius: 20rpx;
             box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
             
             .tag-text {
+              display: block;
+              flex: 1;
+              min-width: 0;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
               font-size: 22rpx;
               color: #666;
               line-height: 40rpx;
             }
 
             .copy-text {
-              margin-left: 9rpx;
-              padding-left: 9rpx;
+              flex-shrink: 0;
+              margin-left: 6rpx;
+              padding-left: 6rpx;
               color: #7c63e8;
               border-left: 1rpx solid rgba(57, 47, 89, 0.18);
-              font-size: 18rpx;
+              font-size: 17rpx;
               font-weight: 700;
               line-height: 1;
+              white-space: nowrap;
             }
           }
           
           .invite-btn {
             height: 40rpx;
             display: flex;
+            flex-shrink: 0;
             align-items: center;
             justify-content: center;
             background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%);
-            padding: 0 20rpx;
+            padding: 0 8rpx;
             margin: 0;
             border: 0;
             border-radius: 20rpx;
             box-shadow: 0 2rpx 6rpx rgba(102, 187, 106, 0.25);
             transition: all 0.2s ease;
             line-height: 40rpx;
+            white-space: nowrap;
 
             &::after {
               border: 0;
             }
 
             &.invite-btn--parent {
-              background: linear-gradient(135deg, #a58bff 0%, #7c63e8 100%);
-              box-shadow: 0 2rpx 6rpx rgba(124, 99, 232, 0.28);
+              background: linear-gradient(135deg, #98ead1 0%, #62d3b4 100%);
+              box-shadow: 0 2rpx 6rpx rgba(66, 184, 142, 0.28);
+
+              .btn-text {
+                color: #31284f;
+              }
             }
 
             &[disabled] {
@@ -920,19 +950,99 @@
               transform: scale(0.95);
             }
 
-            .share-mark {
-              margin-right: 6rpx;
-              color: #fff;
-              font-size: 20rpx;
-              font-weight: 900;
-              line-height: 40rpx;
+            .invite-icon {
+              position: relative;
+              flex-shrink: 0;
+              width: 20rpx;
+              height: 20rpx;
+              margin-right: 3rpx;
+            }
+
+            .invite-share-node {
+              position: absolute;
+              z-index: 2;
+              width: 6rpx;
+              height: 6rpx;
+              border-radius: 50%;
+              background: #fff;
+            }
+
+            .invite-share-node--top {
+              top: 0;
+              right: 0;
+            }
+
+            .invite-share-node--left {
+              top: 7rpx;
+              left: 0;
+            }
+
+            .invite-share-node--bottom {
+              right: 0;
+              bottom: 0;
+            }
+
+            .invite-share-line {
+              position: absolute;
+              z-index: 1;
+              left: 5rpx;
+              width: 11rpx;
+              height: 3rpx;
+              border-radius: 999rpx;
+              background: #fff;
+              transform-origin: left center;
+            }
+
+            .invite-share-line--top {
+              top: 8rpx;
+              transform: rotate(-29deg);
+            }
+
+            .invite-share-line--bottom {
+              bottom: 7rpx;
+              transform: rotate(29deg);
+            }
+
+            .invite-qr-corner {
+              position: absolute;
+              width: 8rpx;
+              height: 8rpx;
+              box-sizing: border-box;
+              border: 2rpx solid #31284f;
+            }
+
+            .invite-qr-corner--top-left {
+              top: 0;
+              left: 0;
+            }
+
+            .invite-qr-corner--top-right {
+              top: 0;
+              right: 0;
+            }
+
+            .invite-qr-corner--bottom-left {
+              bottom: 0;
+              left: 0;
+            }
+
+            .invite-qr-dot {
+              position: absolute;
+              right: 1rpx;
+              bottom: 1rpx;
+              width: 6rpx;
+              height: 6rpx;
+              border-radius: 2rpx;
+              background: #31284f;
             }
             
             .btn-text {
-              font-size: 22rpx;
+              flex-shrink: 0;
+              font-size: 20rpx;
               color: #FFFFFF;
               font-weight: 600;
               line-height: 40rpx;
+              white-space: nowrap;
             }
           }
         }
@@ -1317,7 +1427,7 @@
 }
 
 .dashboard .user-profile .info .class-row .class-tag {
-  padding: 7rpx 14rpx;
+  padding: 7rpx 8rpx;
   border: 2rpx solid #392f59;
   border-radius: 999rpx;
   background: #fff;
@@ -1329,7 +1439,7 @@
 }
 
 .dashboard .user-profile .info .class-row .invite-btn {
-  padding: 7rpx 16rpx;
+  padding: 7rpx 8rpx;
   border: 2rpx solid #392f59;
   border-radius: 999rpx;
   background: #a58bff;

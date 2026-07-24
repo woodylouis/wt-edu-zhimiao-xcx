@@ -435,7 +435,7 @@ export default {
 
         getClassRoleLabel(item) {
 			if (item.role === 'parent') return item.childName ? `家长 · ${item.childName}` : '家长'
-            return item.isHeadTeacher ? '班主任' : '老师'
+            return item.isHeadTeacher ? '班主任' : '本班老师'
         },
         
         getSchoolAvatarClass(index) {
@@ -878,11 +878,14 @@ export default {
 .school-name-row {
     display: flex;
     align-items: center;
+    min-width: 0;
     gap: 12rpx;
     margin-bottom: 8rpx;
 }
 
 .school-name {
+    flex: 1;
+    min-width: 0;
     font-size: 30rpx;
     font-weight: 600;
     color: #1a1a1a;
@@ -892,12 +895,24 @@ export default {
 }
 
 .nearest-badge {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    height: 34rpx;
+    box-sizing: border-box;
     background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
     color: #fff;
     font-size: 20rpx;
     font-weight: 600;
-    padding: 4rpx 12rpx;
+    padding: 0 12rpx;
+    line-height: 1;
+    white-space: nowrap;
     border-radius: 12rpx;
+
+    text {
+        white-space: nowrap;
+    }
 }
 
 .school-meta {
