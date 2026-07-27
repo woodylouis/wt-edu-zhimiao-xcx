@@ -84,18 +84,24 @@ exports.main = async (event = {}, context) => {
 		const school = await resolveSchool(event, scope)
 		const nickname = clean(event.nickname, 40)
 		const year = clean(event.year || new Date().getFullYear(), 4)
+		const section = clean(event.section, 20)
+		const grade = clean(event.grade, 20)
+		const className = clean(event.class, 20)
 		const headTeacherUserId = businessAuth.compactId(event.head_teacher_user_id)
 		if (!nickname) throw new businessAuth.AuthError(400, '请填写班级名称')
 		if (!/^\d{4}$/.test(year)) throw new businessAuth.AuthError(400, '年份应为4位数字')
+		if (!section) throw new businessAuth.AuthError(400, '请选择学段')
+		if (!grade) throw new businessAuth.AuthError(400, '请选择年级')
+		if (!className) throw new businessAuth.AuthError(400, '请选择班级')
 		if (headTeacherUserId) await assertHeadTeacherCandidate(headTeacherUserId, school.school_id)
 		const creatorNickname = await getUserNickname(scope.uid)
 
 		const classData = {
 			school_id: school.school_id,
 			year,
-			section: clean(event.section, 20),
-			grade: clean(event.grade, 20),
-			class: clean(event.class, 20),
+			section,
+			grade,
+			class: className,
 			nickname,
 			description: clean(event.description, 200),
 			remark: clean(event.remark, 200),

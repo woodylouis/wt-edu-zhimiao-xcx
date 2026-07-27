@@ -4,7 +4,10 @@
   "required": [
     "nickname",
     "created_by",
-    "code"
+    "code",
+    "section",
+    "grade",
+    "class"
   ], // 新增必填字段
   "permission": {
     "read": "'admin' in auth.role || 'diana-admin' in auth.role || 'business-all' in auth.permission || doc.created_by == auth.uid",

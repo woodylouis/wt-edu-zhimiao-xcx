@@ -173,7 +173,26 @@
     },
     // 修正handleSubmit中的逻辑
     methods: {
+      getRequiredClassStructure(cacheData = {}) {
+        const structure = {
+          section: String(cacheData.section || "").trim(),
+          grade: String(cacheData.grade || "").trim(),
+          class: String(cacheData.class == null ? "" : cacheData.class).trim(),
+        };
+        return structure.section && structure.grade && structure.class ? structure : null;
+      },
+      showMissingClassStructure() {
+        uni.showToast({
+          title: "请先选择学段、年级和班级",
+          icon: "none",
+        });
+      },
       async handleSubmit() {
+        const cacheData = uni.getStorageSync("classFormData") || {};
+        if (!this.getRequiredClassStructure(cacheData)) {
+          this.showMissingClassStructure();
+          return;
+        }
         try {
           const valid = await this.$refs.uForm.validate();
           if (valid) {
@@ -195,18 +214,23 @@
 
       async handleConfirm() {
         if (this.loading) return;
+        const cacheData = uni.getStorageSync("classFormData") || {};
+        const structure = this.getRequiredClassStructure(cacheData);
+        if (!structure) {
+          this.show = false;
+          this.showMissingClassStructure();
+          return;
+        }
         this.loading = true;
         try {
-          const cacheData = uni.getStorageSync("classFormData") || {};
-
           const postData = {
             year: cacheData.year || String(new Date().getFullYear()),
-            grade: cacheData.grade,
-            class: cacheData.class,
+            grade: structure.grade,
+            class: structure.class,
             nickname: this.formData.nickname,
             teacherName: this.formData.teacherName,
             remark: this.formData.remark,
-            section: cacheData.section || "小学",
+            section: structure.section,
             uniIdToken: uni.getStorageSync("uni_id_token"),
           };
 
@@ -222,8 +246,9 @@
               id: result.data.classId,
               code: result.data.classCode,
               year: cacheData.year || String(new Date().getFullYear()),
-              grade: cacheData.grade,
-              class: cacheData.class,
+              section: structure.section,
+              grade: structure.grade,
+              class: structure.class,
               nickname: this.formData.nickname,
 			  memberNickname: result.data.nickname || this.formData.teacherName,
             });
@@ -278,14 +303,17 @@
     },
     // 删除重复的methods声明块
     onShow() {
-      const cacheData = uni.getStorageSync("classFormData");
-      if (cacheData) {
-		const accountInfo = uni.getStorageSync("uni-id-pages-userInfo") || {};
-        // 仅初始化本页字段
-        this.formData.className = `${cacheData.grade}${cacheData.class}班`;
-        this.formData.nickname = this.formData.className;
-		this.formData.teacherName = accountInfo.nickname || "";
+      const cacheData = uni.getStorageSync("classFormData") || {};
+      const structure = this.getRequiredClassStructure(cacheData);
+      if (!structure) {
+        this.formData.className = "";
+        this.showMissingClassStructure();
+        return;
       }
+	  const accountInfo = uni.getStorageSync("uni-id-pages-userInfo") || {};
+      this.formData.className = `${structure.grade}${structure.class}班`;
+      this.formData.nickname = this.formData.className;
+	  this.formData.teacherName = accountInfo.nickname || "";
     },
   };
 </script>

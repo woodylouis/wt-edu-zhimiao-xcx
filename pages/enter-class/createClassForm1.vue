@@ -21,7 +21,7 @@
             <view class="section-group">
                 <view class="section-header">
                     <view class="indicator-bar"></view>
-                    <text class="section-title">选择学段</text>
+                    <text class="section-title">选择学段 <text class="required-mark">*</text></text>
                 </view>
                 <view class="options-wrap">
                     <view v-for="(section, idx) in schoolSections" :key="idx" class="option-button" :class="{ 'option-selected': selectedSection === section }" @tap="selectSection(section)">
@@ -34,7 +34,7 @@
             <view class="section-group">
                 <view class="section-header">
                     <view class="indicator-bar"></view>
-                    <text class="section-title">选择年级</text>
+                    <text class="section-title">选择年级 <text class="required-mark">*</text></text>
                 </view>
                 <view class="options-grid">
                     <view v-for="(grade, idx) in grades" :key="idx" class="option-button" :class="{ 'option-selected': selectedGrade === grade }" @tap="selectGrade(grade)">
@@ -47,7 +47,7 @@
             <view class="section-group">
                 <view class="section-header">
                     <view class="indicator-bar"></view>
-                    <text class="section-title">选择班级</text>
+                    <text class="section-title">选择班级 <text class="required-mark">*</text></text>
                 </view>
                 <view class="options-grid">
                     <view v-for="(classNum, idx) in classes" :key="idx" class="option-button" :class="{ 'option-selected': selectedClass === classNum }" @tap="selectClass(classNum)">
@@ -217,6 +217,11 @@ export default {
 .section-title {
     font-size: 24rpx;
     color: rgba(0, 33, 77, 1);
+}
+
+.required-mark {
+    color: #E35D6A;
+    font-weight: 700;
 }
 
 .options-grid,
