@@ -16,6 +16,14 @@
       }
     },
     {
+      "path": "pages/admin-login/confirm",
+      "style": {
+        "navigationBarTitleText": "确认后台登录",
+        "navigationBarTextStyle": "black",
+        "navigationBarBackgroundColor": "#FFF8E9"
+      }
+    },
+    {
       "path": "pages/dashboard/teacher/teacher",
       "style": {
         "navigationStyle": "custom",

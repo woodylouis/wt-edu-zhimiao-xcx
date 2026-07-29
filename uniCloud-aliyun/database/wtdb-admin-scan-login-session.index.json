@@ -1,0 +1,12 @@
+[
+  {
+    "IndexName": "status_expires_at",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "status", "Direction": "1" },
+        { "Name": "expires_at", "Direction": "1" }
+      ],
+      "MgoIsUnique": false
+    }
+  }
+]

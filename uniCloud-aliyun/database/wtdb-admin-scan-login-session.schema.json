@@ -1,0 +1,29 @@
+{
+  "bsonType": "object",
+  "required": ["status", "poll_secret_hash", "create_time", "expires_at"],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "bsonType": "string", "description": "32位随机扫码会话ID" },
+    "status": {
+      "bsonType": "string",
+      "enum": ["pending", "scanned", "approved", "consuming", "consumed", "expired"],
+      "description": "一次性登录会话状态"
+    },
+    "poll_secret_hash": { "bsonType": "string", "description": "仅电脑端持有的轮询凭证摘要" },
+    "scanned_uid": { "bsonType": "string", "foreignKey": "uni-id-users._id" },
+    "approved_uid": { "bsonType": "string", "foreignKey": "uni-id-users._id" },
+    "approved_identity_count": { "bsonType": "int" },
+    "admin_client_ip": { "bsonType": "string" },
+    "create_time": { "bsonType": "timestamp" },
+    "scan_time": { "bsonType": "timestamp" },
+    "confirm_time": { "bsonType": "timestamp" },
+    "consume_start_time": { "bsonType": "timestamp" },
+    "consume_time": { "bsonType": "timestamp" },
+    "expires_at": { "bsonType": "timestamp" }
+  }
+}
