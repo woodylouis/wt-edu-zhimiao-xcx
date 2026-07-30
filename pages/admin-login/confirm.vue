@@ -19,10 +19,11 @@
 			<text class="description">{{ description }}</text>
 
 			<view v-if="status === 'ready'" class="identity-box">
-				<text class="identity-heading">将登录为 {{ displayName || '当前微信用户' }}</text>
+				<text class="identity-heading">已匹配手机号 {{ accountIdentifier || '当前微信账号' }}</text>
 				<view v-for="identity in identities" :key="identity.key" class="identity-row">
 					<view class="identity-icon">{{ identity.type === 'school' ? '校' : identity.type === 'system' ? '超' : '业' }}</view>
 					<view class="identity-copy">
+						<text class="identity-name">{{ identity.displayName || displayName || '未设置昵称' }}</text>
 						<text class="identity-label">{{ identity.label }}</text>
 						<text class="identity-description">{{ identity.description }}</text>
 					</view>
@@ -61,6 +62,7 @@
 				sessionId: '',
 				status: 'loading',
 				displayName: '',
+				accountIdentifier: '',
 				identities: [],
 				confirming: false,
 				inspecting: false,
@@ -130,6 +132,7 @@
 				try {
 					const data = await this.callScanLogin('inspect')
 					this.displayName = data.displayName || ''
+					this.accountIdentifier = data.accountIdentifier || ''
 					this.identities = data.identities || []
 					this.status = 'ready'
 				} catch (error) {
@@ -176,7 +179,7 @@
 	.decor-purple { bottom: -150rpx; left: -100rpx; width: 360rpx; height: 360rpx; background: rgba(108, 76, 255, .18); }
 	.brand { position: relative; z-index: 1; display: flex; align-items: center; max-width: 680rpx; margin: 0 auto 42rpx; }
 	.brand-mark { display: flex; align-items: center; justify-content: center; width: 88rpx; height: 88rpx; margin-right: 22rpx; border: 5rpx solid #28233c; border-radius: 26rpx; color: #28233c; background: #ffd84d; box-shadow: 8rpx 8rpx 0 #ff795d; font-size: 38rpx; font-weight: 900; transform: rotate(-4deg); }
-	.brand-name, .brand-caption, .title, .description, .identity-heading, .identity-label, .identity-description, .identity-tip { display: block; }
+	.brand-name, .brand-caption, .title, .description, .identity-heading, .identity-name, .identity-label, .identity-description, .identity-tip { display: block; }
 	.brand-name { color: #28233c; font-size: 38rpx; font-weight: 900; }
 	.brand-caption { margin-top: 6rpx; color: #847d8c; font-size: 22rpx; }
 	.card { position: relative; z-index: 1; display: flex; align-items: center; max-width: 680rpx; box-sizing: border-box; margin: 0 auto; padding: 52rpx 38rpx 38rpx; border: 5rpx solid #fff; border-radius: 42rpx; flex-direction: column; background: rgba(255, 255, 255, .97); box-shadow: 0 30rpx 80rpx rgba(67, 49, 96, .15); }
@@ -190,7 +193,8 @@
 	.identity-row { display: flex; align-items: center; margin-top: 14rpx; padding: 18rpx; border: 2rpx solid #ebe5f3; border-radius: 20rpx; background: #fff; }
 	.identity-icon { display: flex; align-items: center; justify-content: center; width: 66rpx; height: 66rpx; flex: 0 0 66rpx; border-radius: 20rpx; color: #5f45ce; background: #eee9ff; font-size: 24rpx; font-weight: 900; }
 	.identity-copy { min-width: 0; margin-left: 18rpx; }
-	.identity-label { color: #352e43; font-size: 26rpx; font-weight: 800; }
+	.identity-name { color: #28233c; font-size: 28rpx; font-weight: 900; }
+	.identity-label { margin-top: 4rpx; color: #5f566a; font-size: 23rpx; font-weight: 800; }
 	.identity-description { margin-top: 6rpx; color: #948d9c; font-size: 20rpx; line-height: 1.5; }
 	.identity-tip { margin-top: 20rpx; color: #756d7e; font-size: 21rpx; line-height: 1.7; }
 	.primary-button, .secondary-button { width: 100%; height: 94rpx; margin: 36rpx 0 0; border: 4rpx solid #28233c; border-radius: 26rpx; font-size: 28rpx; font-weight: 900; line-height: 88rpx; }

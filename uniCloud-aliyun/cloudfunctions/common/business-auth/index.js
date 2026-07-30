@@ -23,6 +23,7 @@ try {
 
 const db = uniCloud.database()
 const CLASS_COLLECTION = 'wtdb-business-class-list'
+const ACCOUNT_ALIAS_COLLECTION = 'wtdb-user-account-alias'
 
 class AuthError extends Error {
 	constructor(code, message) {
@@ -54,21 +55,16 @@ function hasGlobalBusinessAccess(roles) {
 }
 
 async function getLinkedUserIds(uid) {
-	const ids = new Set([uid])
-	const userRes = await db.collection('uni-id-users')
-		.where({ _id: uid })
-		.field({ mobile: true })
-		.limit(1)
-		.get()
-	const mobile = userRes.data && userRes.data[0] && userRes.data[0].mobile
-	if (!mobile) return [...ids]
-
-	const linkedRes = await db.collection('uni-id-users')
-		.where({ mobile })
+	const requestedUid = compactId(uid)
+	const aliasRes = await db.collection(ACCOUNT_ALIAS_COLLECTION).doc(requestedUid).get()
+	const canonicalUid = compactId(aliasRes.data && aliasRes.data[0] && aliasRes.data[0].canonical_user_id) || requestedUid
+	const ids = new Set([canonicalUid])
+	const linkedRes = await db.collection(ACCOUNT_ALIAS_COLLECTION)
+		.where({ canonical_user_id: canonicalUid })
 		.field({ _id: true })
 		.get()
-	;(linkedRes.data || []).forEach(user => {
-		const linkedId = compactId(user._id)
+	;(linkedRes.data || []).forEach(alias => {
+		const linkedId = compactId(alias._id)
 		if (linkedId) ids.add(linkedId)
 	})
 	return [...ids]

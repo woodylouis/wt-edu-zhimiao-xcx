@@ -1,0 +1,22 @@
+{
+	"bsonType": "object",
+	"required": ["canonical_user_id", "merge_log_id", "create_time"],
+	"permission": {
+		"read": false,
+		"create": false,
+		"update": false,
+		"delete": false
+	},
+	"properties": {
+		"_id": { "description": "已停用的旧 uni-id 用户 UID" },
+		"canonical_user_id": { "bsonType": "string", "title": "主账号 UID" },
+		"merge_log_id": { "bsonType": "string", "title": "合并审计记录 ID" },
+		"create_time": { "bsonType": "timestamp", "title": "建立映射时间" }
+	},
+	"indexes": [
+		{
+			"name": "canonical_user_id_1",
+			"key": { "canonical_user_id": 1 }
+		}
+	]
+}

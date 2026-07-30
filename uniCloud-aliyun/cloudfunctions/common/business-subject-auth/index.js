@@ -10,6 +10,7 @@ const CLASS_COLLECTION = 'wtdb-business-class-list'
 const MEMBER_COLLECTION = 'wtdb-business-class-member'
 const CHILD_COLLECTION = 'wtdb-business-children'
 const RECORD_COLLECTION = 'wtdb-business-assess-record'
+const ACCOUNT_ALIAS_COLLECTION = 'wtdb-user-account-alias'
 
 class AuthError extends Error {
 	constructor(code, message) {
@@ -38,21 +39,16 @@ function hasGlobalBusinessAccess(roles, permissions = []) {
 }
 
 async function getLinkedUserIds(uid) {
-	const ids = new Set([uid])
-	const userRes = await db.collection(USER_COLLECTION)
-		.where({ _id: uid })
-		.field({ mobile: true })
-		.limit(1)
-		.get()
-	const mobile = userRes.data?.[0]?.mobile
-	if (!mobile) return [...ids]
-
-	const linkedRes = await db.collection(USER_COLLECTION)
-		.where({ mobile })
+	const requestedUid = compactId(uid)
+	const aliasRes = await db.collection(ACCOUNT_ALIAS_COLLECTION).doc(requestedUid).get()
+	const canonicalUid = compactId(aliasRes.data?.[0]?.canonical_user_id) || requestedUid
+	const ids = new Set([canonicalUid])
+	const linkedRes = await db.collection(ACCOUNT_ALIAS_COLLECTION)
+		.where({ canonical_user_id: canonicalUid })
 		.field({ _id: true })
 		.get()
-	for (const user of linkedRes.data || []) {
-		const linkedId = compactId(user._id)
+	for (const alias of linkedRes.data || []) {
+		const linkedId = compactId(alias._id)
 		if (linkedId) ids.add(linkedId)
 	}
 	return [...ids]

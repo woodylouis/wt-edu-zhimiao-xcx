@@ -1,0 +1,28 @@
+{
+	"bsonType": "object",
+	"required": ["user_id", "identity_key", "identity_type", "display_name", "create_time", "update_time"],
+	"permission": {
+		"read": false,
+		"create": false,
+		"update": false,
+		"delete": false
+	},
+	"properties": {
+		"_id": { "description": "身份资料记录 ID" },
+		"user_id": { "bsonType": "string", "title": "主账号 UID" },
+		"identity_key": { "bsonType": "string", "title": "身份唯一键" },
+		"identity_type": { "bsonType": "string", "enum": ["system", "business", "school"] },
+		"display_name": { "bsonType": "string", "title": "该身份使用的昵称" },
+		"school_record_id": { "bsonType": "string", "title": "学校记录 ID" },
+		"source_user_id": { "bsonType": "string", "title": "迁移来源账号 UID" },
+		"create_time": { "bsonType": "timestamp", "title": "创建时间" },
+		"update_time": { "bsonType": "timestamp", "title": "更新时间" }
+	},
+	"indexes": [
+		{
+			"name": "user_identity_unique",
+			"key": { "user_id": 1, "identity_key": 1 },
+			"unique": true
+		}
+	]
+}
