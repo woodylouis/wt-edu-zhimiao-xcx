@@ -7,6 +7,7 @@ const dbCmd = db.command
 const dbHistory = db.collection('wtdb-business-assess-history')
 const dbTask = db.collection('wtdb-report-tasks')
 const dbReport = db.collection('wtdb-business-assess-report')
+const dbRecord = db.collection('wtdb-business-assess-record')
 
 const ACTIVE_STATUSES = ['pending', 'processing', 'waiting_merge', 'pending_save']
 
@@ -206,6 +207,15 @@ exports.main = async (event = {}, context) => {
 				runAuthorizedBy: scope.uid
 			}
 		})
+		try {
+			await dbRecord.doc(ownedRecord._id).update({
+				assessmentStatus: 'completed',
+				reportStatus: 'generating',
+				updateTime: now
+			})
+		} catch (statusError) {
+			console.warn('更新评估报告状态失败:', statusError)
+		}
 
 		return {
 			code: 200,

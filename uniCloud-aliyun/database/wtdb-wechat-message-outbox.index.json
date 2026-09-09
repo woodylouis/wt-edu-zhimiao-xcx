@@ -1,0 +1,11 @@
+[
+  {
+    "IndexName": "event_id_unique",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "event_id", "Direction": "1" }
+      ],
+      "MgoIsUnique": true
+    }
+  }
+]

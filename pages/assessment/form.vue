@@ -193,6 +193,13 @@
   import modalBox from "../../components/modalBox-v3/modalBox";
   import DopamineModal from "@/components/dopamine-modal/index.vue";
   import DopamineLoading from "@/components/dopamine-loading/index.vue";
+  import {
+    WECHAT_SUBSCRIBE_TEMPLATE_KEYS,
+    flushPendingWechatSubscriptionDecisions,
+    getWechatSubscriptionStatus,
+    requestWechatSubscription,
+    warmWechatSubscribeConfig,
+  } from "@/common/wechat-subscribe.js";
   let classId = ref(""); // 通过班级idwatch
   const accessStudentInfo = uni.getStorageSync(ASSESS_STUDENT);
   const childId = accessStudentInfo.childId; // 通过childId获取儿童名字以及年龄
@@ -437,11 +444,53 @@
     console.log(pages);
   };
 
+  const offerReportResultSubscription = async () => {
+    try {
+      const config = await warmWechatSubscribeConfig();
+      if (!config[WECHAT_SUBSCRIBE_TEMPLATE_KEYS.REPORT_RESULT]?.enabled) return;
+      const grant = await getWechatSubscriptionStatus({
+        templateKey: WECHAT_SUBSCRIBE_TEMPLATE_KEYS.REPORT_RESULT,
+        recordId: assessmentMeta.recordId,
+      });
+      if (grant.status !== "not_requested") return;
+    } catch (_) {
+      return;
+    }
+
+    return new Promise((resolve) => {
+      uni.showModal({
+        title: "接收报告生成通知",
+        content: "报告生成需要一些时间。开启后，无论生成成功或最终失败，都会通过微信通知您。",
+        confirmText: "接收通知",
+        cancelText: "仅提交",
+        success: async ({ confirm }) => {
+          if (confirm) {
+            try {
+              const result = await requestWechatSubscription({
+                templateKey: WECHAT_SUBSCRIBE_TEMPLATE_KEYS.REPORT_RESULT,
+                recordId: assessmentMeta.recordId,
+              });
+              if (result.status === "not_configured") {
+                uni.showToast({ title: "报告通知模板尚未配置", icon: "none" });
+              }
+            } catch (error) {
+              console.warn("申请报告结果订阅失败:", error);
+            }
+          }
+          resolve();
+        },
+        fail: () => resolve(),
+      });
+    });
+  };
+
   const handleConfirm = async () => {
     const checkModuleStatus = true;
     const confirmToGenerateReport = true;
-    showDopamineLoading("正在提交成长评估", "小芽正在整理答题记录和成长线索");
     try {
+      show.value = false;
+      await offerReportResultSubscription();
+      showDopamineLoading("正在提交成长评估", "小芽正在整理答题记录和成长线索");
       const result = await prepareAllRecords(
         checkModuleStatus,
         confirmToGenerateReport
@@ -1142,6 +1191,8 @@
   };
 
   onLoad(async (options) => {
+    warmWechatSubscribeConfig().catch(() => {});
+    flushPendingWechatSubscriptionDecisions().catch(() => {});
     // 初始化questions为tempQuestions的questions数组
     // console.log("options", options)
     // 新增加载提示

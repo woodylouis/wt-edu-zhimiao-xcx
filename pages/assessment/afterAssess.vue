@@ -96,6 +96,7 @@ import { onLoad, onShow, onHide } from '@dcloudio/uni-app'
 import { ref, onUnmounted, computed } from "vue";
 import customNav from '@/components/customNav';
 import { ASSESS_STUDENT, CURRENT_ASSESSMENT_MODULE_STATUS } from '@/lib/types/local_storage.js';
+import { flushPendingWechatSubscriptionDecisions } from '@/common/wechat-subscribe.js';
 
 const assessStudent = uni.getStorageSync(ASSESS_STUDENT) || {};
 let displayName = assessStudent.childName || '';
@@ -352,6 +353,7 @@ const viewReport = () => {
 
 
 onLoad(async function (options) {
+    flushPendingWechatSubscriptionDecisions().catch(() => {});
     taskId.value = options.taskId || '';
     recordId.value = options.recordId || currentAssessmentModuleStatus?.recordId || '';
     childId.value = options.childId || assessStudent.childId || '';

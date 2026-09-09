@@ -1,0 +1,11 @@
+{
+  "name": "wtdb-wechat-subscription",
+  "dependencies": {
+    "uni-id-common": "file:../../../uni_modules/uni-id-common/uniCloud/cloudfunctions/common/uni-id-common",
+    "business-subject-auth": "file:../common/business-subject-auth",
+    "wechat-subscribe-service": "file:../common/wechat-subscribe-service"
+  },
+  "extensions": {
+    "uni-cloud-jql": {}
+  }
+}

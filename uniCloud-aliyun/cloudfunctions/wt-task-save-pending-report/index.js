@@ -71,6 +71,7 @@ exports.main = async (event = {}) => {
 			await dbRecord.where({ recordId }).update({
 				modulesStatus: updatedModules,
 				isCompleted: true,
+				assessmentStatus: 'completed',
 				lastCompletedTime: completedTime,
 				reportStatus: 'completed',
 				reportId: persistedReport.reportId,

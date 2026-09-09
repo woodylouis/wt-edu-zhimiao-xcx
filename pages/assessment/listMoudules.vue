@@ -126,6 +126,13 @@ import { onShow, onLoad, onUnload, onReachBottom } from '@dcloudio/uni-app'
 import modalBox from '../../components/modalBox-v3/modalBox.vue';
 import DopamineLoading from '@/components/dopamine-loading/index.vue';
 import { ASSESS_STUDENT, CURRENT_ASSESSMENT_MODULE_STATUS } from '@/lib/types/local_storage.js';
+import {
+    WECHAT_SUBSCRIBE_TEMPLATE_KEYS,
+    flushPendingWechatSubscriptionDecisions,
+    getWechatSubscriptionStatus,
+    requestWechatSubscription,
+    warmWechatSubscribeConfig,
+} from '@/common/wechat-subscribe.js';
 
 const navCustomStyle = 'background: linear-gradient(to right, #F5FDF8, #F1FCF5, #F9FCEF);height: calc(100vh / 8);'
 const defaultAvatarUrl = ref("https://mp-8372f87f-e5a8-4950-9f38-35142d9971d4.cdn.bspapp.com/avatar/profile.png");
@@ -136,6 +143,7 @@ const recordObj = ref({});
 const activeCollapse = ref(''); // 当前展开的模块
 const moduleLoading = ref(false);
 const openingSection = ref(false);
+const promptedReminderRecords = new Set();
 
 // 状态信息
 const isContinue = ref(false); // 是否继续评估
@@ -411,7 +419,10 @@ const loadAssessmentSections = async (assessmentId, age, useCachedRecord = false
                     cachedRecord.childId === currentStudent.value.childId &&
                     cachedRecord.assessmentId === currentStudent.value.assessmentId;
                 if (canReviewCachedRecord) {
-                    applyAssessmentRecordData(cachedRecord, assessmentSections.value);
+                    applyAssessmentRecordData(cachedRecord, assessmentSections.value, {
+                        isContinue: cachedRecord.isCompleted !== true,
+                        isFirstTime: false,
+                    });
                 } else {
                     isReviewingCompleted.value = false;
                     await fetchAssessmentRecordData(
@@ -468,6 +479,61 @@ const applyAssessmentRecordData = (temp, assessmentSections, recordState = {}) =
     uni.setStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS, temp);
 };
 
+const offerAssessmentReminderSubscription = async (record, recordState = {}) => {
+    const recordId = record?.recordId || '';
+    if (!recordId || recordState.isContinue || record?.isCompleted || isReviewingCompleted.value) return;
+    if (promptedReminderRecords.has(recordId)) return;
+
+    try {
+        const config = await warmWechatSubscribeConfig();
+        if (!config[WECHAT_SUBSCRIBE_TEMPLATE_KEYS.ASSESSMENT_REMINDER]?.enabled) return;
+        const grant = await getWechatSubscriptionStatus({
+            templateKey: WECHAT_SUBSCRIBE_TEMPLATE_KEYS.ASSESSMENT_REMINDER,
+            recordId,
+        });
+        if (grant.status !== 'not_requested') return;
+    } catch (_) {
+        return;
+    }
+    promptedReminderRecords.add(recordId);
+
+    uni.showModal({
+        title: '开启评估进度提醒',
+        content: '如果本次评估超过24小时没有继续，我们将通过微信提醒您。每次评估最多提醒一次。',
+        confirmText: '开启提醒',
+        cancelText: '暂不开启',
+        success: async ({ confirm }) => {
+            if (!confirm) return;
+            try {
+                const result = await requestWechatSubscription({
+                    templateKey: WECHAT_SUBSCRIBE_TEMPLATE_KEYS.ASSESSMENT_REMINDER,
+                    recordId,
+                });
+                if (result.status === 'not_configured') {
+                    uni.showToast({ title: '微信提醒模板尚未配置', icon: 'none' });
+                }
+            } catch (error) {
+                console.warn('申请评估提醒订阅失败:', error);
+            }
+        },
+    });
+};
+
+const resolveNotificationRecord = async (recordId) => {
+    const res = await uniCloud.callFunction({
+        name: 'wtdb-wechat-subscription',
+        data: {
+            action: 'resolve-record',
+            recordId,
+            uniIdToken: uni.getStorageSync('uni_id_token'),
+        },
+    });
+    if (res.result?.code !== 200) {
+        throw new Error(res.result?.message || res.result?.msg || '评估记录加载失败');
+    }
+    return res.result.data;
+};
+
 
 const fetchAssessmentRecordData = async (childId, assessmentSections) => {
     console.log('assessmentSections', assessmentSections)
@@ -503,6 +569,10 @@ const fetchAssessmentRecordData = async (childId, assessmentSections) => {
                 isContinue: res.result.isContinue,
                 isFirstTime: res.result.isFirstTime,
             });
+            offerAssessmentReminderSubscription(temp, {
+                isContinue: res.result.isContinue,
+                isFirstTime: res.result.isFirstTime,
+            });
         } else {
             throw new Error(res.result.message || '评估记录加载失败');
         }
@@ -535,10 +605,35 @@ onReachBottom(() => {
 
 onLoad(async (options) => {
     console.log('onLoad options:', options);
+    warmWechatSubscribeConfig().catch(() => {});
+    flushPendingWechatSubscriptionDecisions().catch(() => {});
     isReviewingCompleted.value = options?.reviewCompleted === '1';
     moduleLoading.value = true;
     try {
-        if (options && options.childId) {
+        if (options?.recordId && !options.childId) {
+            const resolvedRecord = await resolveNotificationRecord(options.recordId);
+            currentStudent.value = {
+                childId: resolvedRecord.childId,
+                childName: resolvedRecord.childName,
+                childAge: resolvedRecord.childAge,
+                ageInt: Number(resolvedRecord.ageInt) || 0,
+                avatar: resolvedRecord.avatar || '',
+                birthdate: resolvedRecord.birthdate,
+                gender: resolvedRecord.gender,
+                classId: resolvedRecord.classId,
+                className: resolvedRecord.className,
+                assessmentId: resolvedRecord.assessmentId,
+                assessmentTitle: resolvedRecord.assessmentTitle,
+            };
+            isReviewingCompleted.value = resolvedRecord.isCompleted === true;
+            uni.setStorageSync(ASSESS_STUDENT, currentStudent.value);
+            uni.setStorageSync(CURRENT_ASSESSMENT_MODULE_STATUS, resolvedRecord);
+            await loadAssessmentSections(
+                resolvedRecord.assessmentId,
+                Number(resolvedRecord.ageInt),
+                true
+            );
+        } else if (options && options.childId) {
             currentStudent.value = {
                 ...options,
                 ageInt: Number(options.ageInt) || 0
@@ -552,11 +647,13 @@ onLoad(async (options) => {
             currentStudent.value = temp;
         }
 
-        await loadAssessmentSections(
-            currentStudent.value.assessmentId,
-            Number(currentStudent.value.ageInt),
-            isReviewingCompleted.value
-        );
+        if (!(options?.recordId && !options.childId)) {
+            await loadAssessmentSections(
+                currentStudent.value.assessmentId,
+                Number(currentStudent.value.ageInt),
+                isReviewingCompleted.value
+            );
+        }
     } catch (error) {
         uni.showToast({ title: "模块加载失败，请重试", icon: "none" });
     } finally {

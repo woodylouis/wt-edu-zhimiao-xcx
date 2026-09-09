@@ -1,0 +1,55 @@
+{
+  "bsonType": "object",
+  "required": [
+    "recipient_user_id",
+    "record_id",
+    "template_key",
+    "template_id",
+    "status",
+    "create_time",
+    "update_time"
+  ],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "一次性微信订阅授权记录ID" },
+    "recipient_user_id": { "bsonType": "string", "title": "接收人用户ID" },
+    "record_id": { "bsonType": "string", "title": "评估批次ID" },
+    "task_id": { "bsonType": "string", "title": "报告任务ID" },
+    "template_key": {
+      "bsonType": "string",
+      "enum": ["assessment_reminder", "report_result"],
+      "title": "业务模板类型"
+    },
+    "template_id": { "bsonType": "string", "title": "微信订阅消息模板ID" },
+    "status": {
+      "bsonType": "string",
+      "enum": [
+        "accepted",
+        "rejected",
+        "declined",
+        "banned",
+        "filtered",
+        "error",
+        "consumed",
+        "cancelled",
+        "unavailable"
+      ],
+      "title": "授权及消耗状态"
+    },
+    "native_result": { "bsonType": "string", "title": "微信原始授权结果" },
+    "planned_end_time": { "bsonType": "timestamp", "title": "评估计划结束时间" },
+    "accepted_time": { "bsonType": "timestamp", "title": "同意授权时间" },
+    "consumed_time": { "bsonType": "timestamp", "title": "授权消耗时间" },
+    "cancelled_time": { "bsonType": "timestamp", "title": "授权取消时间" },
+    "consumed_event_id": { "bsonType": "string", "title": "消耗授权的事件ID" },
+    "next_check_time": { "bsonType": "timestamp", "title": "下一次未完成提醒到期时间" },
+    "last_error": { "bsonType": "string", "title": "最后错误摘要" },
+    "create_time": { "bsonType": "timestamp", "title": "创建时间" },
+    "update_time": { "bsonType": "timestamp", "title": "更新时间" }
+  }
+}

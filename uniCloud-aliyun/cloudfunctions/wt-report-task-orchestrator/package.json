@@ -1,7 +1,8 @@
 {
 	"name": "wt-report-task-orchestrator",
 	"dependencies": {
-		"report-task-auth": "file:../common/report-task-auth"
+		"report-task-auth": "file:../common/report-task-auth",
+		"wechat-subscribe-service": "file:../common/wechat-subscribe-service"
 	},
 	"cloudfunction-config": {
 		"concurrency": 1,

@@ -6,7 +6,9 @@ const dbTask = db.collection('wtdb-report-tasks')
 const dbAnalysis = db.collection('wtdb-section-analysis-tasks')
 const dbPending = db.collection('wtdb-report-save-pending')
 const dbLog = db.collection('wtdb-debug-logs')
+const dbRecord = db.collection('wtdb-business-assess-record')
 const taskAuth = require('report-task-auth')
+const wechatSubscribe = require('wechat-subscribe-service')
 
 const MAX_LOOPS = 20
 const MAX_RUN_TIME = 7 * 60 * 1000
@@ -100,6 +102,32 @@ function isTerminalStatus(status) {
 	return status === 'completed' || status === 'failed'
 }
 
+async function syncRecordReportStatus(task) {
+	if (!task || !task.recordId || !isTerminalStatus(task.status)) return
+	try {
+		await dbRecord.where({ recordId: task.recordId }).update({
+			assessmentStatus: 'completed',
+			reportStatus: task.status === 'completed' ? 'completed' : 'failed',
+			updateTime: Date.now()
+		})
+	} catch (error) {
+		await log('record-report-status-sync-failed', {
+			recordId: task.recordId,
+			status: task.status,
+			error: error.message
+		}, { taskId: task.taskId, level: 'error' })
+	}
+	try {
+		await wechatSubscribe.handleReportTerminal(task)
+	} catch (error) {
+		await log('wechat-report-notification-failed', {
+			recordId: task.recordId,
+			status: task.status,
+			error: error.message
+		}, { taskId: task.taskId, level: 'error' })
+	}
+}
+
 async function runTaskPipeline(taskId, runToken, startTime) {
 	let loopCount = 0
 	let deadlineReached = false
@@ -186,6 +214,7 @@ exports.main = async (event = {}) => {
 			status: result.status
 		}, { taskId })
 		const failed = result.status?.status === 'failed'
+		await syncRecordReportStatus(result.status)
 		return {
 			code: failed ? 500 : 200,
 			message: failed
@@ -201,6 +230,7 @@ exports.main = async (event = {}) => {
 				failReason: error.message,
 				errorMessage: error.message
 			})
+			await syncRecordReportStatus(await getTaskStatus(taskId))
 		}
 		return {
 			code: 500,

@@ -1,0 +1,52 @@
+{
+  "bsonType": "object",
+  "required": [
+    "event_id",
+    "event_type",
+    "recipient_user_id",
+    "record_id",
+    "template_key",
+    "template_id",
+    "status",
+    "attempts",
+    "create_time",
+    "update_time"
+  ],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "微信发送任务ID" },
+    "event_id": { "bsonType": "string", "title": "幂等事件ID" },
+    "event_type": {
+      "bsonType": "string",
+      "enum": ["assessment_reminder", "report_succeeded", "report_failed"],
+      "title": "事件类型"
+    },
+    "recipient_user_id": { "bsonType": "string", "title": "接收人用户ID" },
+    "grant_id": { "bsonType": "string", "title": "关联授权ID" },
+    "record_id": { "bsonType": "string", "title": "评估批次ID" },
+    "task_id": { "bsonType": "string", "title": "报告任务ID" },
+    "template_key": { "bsonType": "string", "title": "业务模板类型" },
+    "template_id": { "bsonType": "string", "title": "微信模板ID" },
+    "page": { "bsonType": "string", "title": "消息卡片跳转页面" },
+    "data": { "bsonType": "object", "title": "模板数据" },
+    "expected_task_status": { "bsonType": "string", "title": "发送前需二次校验的报告状态" },
+    "status": {
+      "bsonType": "string",
+      "enum": ["pending", "processing", "sent", "failed", "skipped"],
+      "title": "发送状态"
+    },
+    "attempts": { "bsonType": "int", "minimum": 0, "title": "已尝试次数" },
+    "next_retry_time": { "bsonType": "timestamp", "title": "下次重试时间" },
+    "wechat_msgid": { "bsonType": "string", "title": "微信消息ID" },
+    "wechat_errcode": { "bsonType": "int", "title": "微信错误码" },
+    "last_error": { "bsonType": "string", "title": "最后错误摘要" },
+    "sent_time": { "bsonType": "timestamp", "title": "发送成功时间" },
+    "create_time": { "bsonType": "timestamp", "title": "创建时间" },
+    "update_time": { "bsonType": "timestamp", "title": "更新时间" }
+  }
+}

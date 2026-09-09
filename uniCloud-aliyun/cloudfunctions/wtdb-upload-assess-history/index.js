@@ -4,6 +4,8 @@ const subjectAuth = require('business-subject-auth')
 const db = uniCloud.database()
 const collection = db.collection('wtdb-business-assess-history')
 const recordCollection = db.collection('wtdb-business-assess-record')
+const grantCollection = db.collection('wtdb-wechat-sub-grants')
+const REMINDER_DELAY_MS = 24 * 60 * 60 * 1000
 
 exports.main = async (event = {}, context) => {
 	try {
@@ -180,6 +182,8 @@ async function updateRecordSaveTime({ record, sectionId, data, now, currentSubSe
 	const prefillSummary = await calculatePrefillReviewSummary(record.recordId)
 	const updateData = {
 		lastSaveTime: now,
+		assessmentStatus: allModulesCompleted ? 'completed' : 'in_progress',
+		nextReminderAt: now + REMINDER_DELAY_MS,
 		lastSectionId: sectionId,
 		modulesStatus: updatedModulesStatus,
 		isCompleted: allModulesCompleted,
@@ -189,6 +193,29 @@ async function updateRecordSaveTime({ record, sectionId, data, now, currentSubSe
 	}
 	if (allModulesCompleted && !record.lastCompletedTime) updateData.lastCompletedTime = now
 	await recordCollection.doc(record._id).update(updateData)
+	try {
+		const grantQuery = {
+			record_id: record.recordId,
+			template_key: 'assessment_reminder',
+			status: 'accepted'
+		}
+		if (allModulesCompleted) {
+			await grantCollection.where(grantQuery).update({
+				status: 'cancelled',
+				cancelled_time: now,
+				last_error: '评估已完成',
+				update_time: now
+			})
+		} else {
+			await grantCollection.where(grantQuery).update({
+				next_check_time: now + REMINDER_DELAY_MS,
+				update_time: now
+			})
+		}
+	} catch (error) {
+		// 提醒时间同步失败不应阻断评估进度保存；零点任务会再次核对评估记录。
+		console.warn('未完成提醒时间同步失败:', error)
+	}
 }
 
 async function calculatePrefillReviewSummary(recordId) {

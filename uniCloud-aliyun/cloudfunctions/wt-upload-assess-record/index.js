@@ -6,6 +6,8 @@ const db = uniCloud.database()
 const dbCmd = db.command
 const collection = db.collection('wtdb-business-assess-record')
 const getHistoryCollection = () => db.collection('wtdb-business-assess-history')
+const getGrantCollection = () => db.collection('wtdb-wechat-sub-grants')
+const DAY_MS = 24 * 60 * 60 * 1000
 
 exports.main = async (event = {}, context) => {
 	try {
@@ -204,10 +206,28 @@ async function abandonAssessmentRecords(records = []) {
 	await Promise.all(records.map(record =>
 		collection.doc(record._id).update({
 			isAbandoned: true,
+			assessmentStatus: 'abandoned',
 			abandonedAt,
 			abandonReason: 'manual_restart'
 		})
 	))
+	const recordIds = records.map(record => record.recordId).filter(Boolean)
+	if (!recordIds.length) return
+	try {
+		await getGrantCollection().where({
+			record_id: dbCmd.in(recordIds),
+			template_key: 'assessment_reminder',
+			status: 'accepted'
+		}).update({
+			status: 'cancelled',
+			cancelled_time: abandonedAt,
+			last_error: '评估已重新开始',
+			update_time: abandonedAt
+		})
+	} catch (error) {
+		// 取消提醒失败不应阻断重新开始；零点任务还会根据 isAbandoned 拦截。
+		console.warn('取消旧评估提醒失败:', error)
+	}
 }
 
 async function getAssessmentDefinition(data) {
@@ -271,7 +291,8 @@ async function createNewAssessmentRecord({
 		'assessorId', 'childId', 'child_id', 'childName',
 		'classId', 'class_id', 'className', 'modulesStatus', 'createTime', 'updateTime',
 		'lastSaveTime', 'lastCompletedTime', 'lastSectionId', 'lastSectionIndex',
-		'isCompleted', 'reportStatus', 'restartAssessment', 'restartRecordId',
+		'isCompleted', 'assessmentStatus', 'reportStatus', 'plannedEndTime',
+		'nextReminderAt', 'reminderSentAt', 'restartAssessment', 'restartRecordId',
 		'isAbandoned', 'abandonedAt', 'abandonReason', 'restartedFromRecordId',
 		'startMode', 'prefillFromRecordId', 'prefillMode', 'prefilledFromRecordId',
 		'prefilledAt', 'prefilledBy', 'prefillSourceCompletedAt',
@@ -293,6 +314,10 @@ async function createNewAssessmentRecord({
 		modulesStatus,
 		createTime: now,
 		lastSaveTime: now,
+		assessmentStatus: 'started',
+		reportStatus: 'not_requested',
+		plannedEndTime: now + (3 * DAY_MS),
+		nextReminderAt: now + DAY_MS,
 		lastSectionId: modulesStatus[0]?.sectionId || '',
 		lastSectionIndex: 0,
 		isCompleted: false,

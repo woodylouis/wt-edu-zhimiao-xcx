@@ -143,6 +143,28 @@
             "bsonType": "timestamp",
             "description": "上次完成评估的时间"
         },
+        "assessmentStatus": {
+            "bsonType": "string",
+            "enum": ["started", "in_progress", "completed", "abandoned"],
+            "description": "当前评估批次状态"
+        },
+        "reportStatus": {
+            "bsonType": "string",
+            "enum": ["not_requested", "generating", "completed", "failed"],
+            "description": "当前评估批次的报告状态"
+        },
+        "plannedEndTime": {
+            "bsonType": "timestamp",
+            "description": "计划完成时间，默认为开始后3天"
+        },
+        "nextReminderAt": {
+            "bsonType": "timestamp",
+            "description": "最后一次保存后24小时的提醒检查时间"
+        },
+        "reminderSentAt": {
+            "bsonType": "timestamp",
+            "description": "本次评估的未完成微信提醒发送时间"
+        },
         "lastSectionId": {
             "bsonType": "string",
             "description": "上次做到的模块ID"

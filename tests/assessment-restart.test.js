@@ -12,6 +12,15 @@ class AuthError extends Error {
 }
 
 function loadRestartCloudFunction(records) {
+	const grantCollection = {
+		where() {
+			return {
+				async update() {
+					return { updated: 0 }
+				}
+			}
+		}
+	}
 	const recordCollection = {
 		where(query) {
 			return {
@@ -42,8 +51,12 @@ function loadRestartCloudFunction(records) {
 		}
 	}
 	const database = {
+		command: {
+			in: values => ({ $in: values })
+		},
 		collection(name) {
 			if (name === 'wtdb-business-assess-record') return recordCollection
+			if (name === 'wtdb-wechat-sub-grants') return grantCollection
 			if (name === 'wtdb-business-assessment-list') {
 				return {
 					doc() {

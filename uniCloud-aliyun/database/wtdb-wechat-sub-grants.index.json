@@ -1,0 +1,35 @@
+[
+  {
+    "IndexName": "recipient_record_template_uniq",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "recipient_user_id", "Direction": "1" },
+        { "Name": "record_id", "Direction": "1" },
+        { "Name": "template_key", "Direction": "1" }
+      ],
+      "MgoIsUnique": true
+    }
+  },
+  {
+    "IndexName": "record_template_status",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "record_id", "Direction": "1" },
+        { "Name": "template_key", "Direction": "1" },
+        { "Name": "status", "Direction": "1" }
+      ],
+      "MgoIsUnique": false
+    }
+  },
+  {
+    "IndexName": "template_status_next_check",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "template_key", "Direction": "1" },
+        { "Name": "status", "Direction": "1" },
+        { "Name": "next_check_time", "Direction": "1" }
+      ],
+      "MgoIsUnique": false
+    }
+  }
+]
