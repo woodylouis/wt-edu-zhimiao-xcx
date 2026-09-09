@@ -3,10 +3,15 @@
 const assert = require('node:assert/strict')
 const test = require('node:test')
 const {
+	DEFAULT_KIMI_MAX_RPM,
+	PROVIDERS,
 	buildChatPayload,
 	chatCompletion,
+	createProviderHttpError,
 	getActiveModelInfo,
-	normalizeProvider
+	getKimiMinRequestIntervalMs,
+	normalizeProvider,
+	parseRetryAfterMs
 } = require('../uniCloud-aliyun/cloudfunctions/common/deepseek-client')
 
 const messages = [{ role: 'user', content: '你好' }]
@@ -15,6 +20,33 @@ test('normalizes supported providers and keeps DeepSeek as the compatibility def
 	assert.equal(normalizeProvider('kimi'), 'kimi')
 	assert.equal(normalizeProvider('DEEPSEEK'), 'deepseek')
 	assert.equal(normalizeProvider('unknown'), 'deepseek')
+})
+
+test('paces Kimi requests below the configured organization RPM ceiling', () => {
+	assert.equal(DEFAULT_KIMI_MAX_RPM, 3)
+	assert.equal(getKimiMinRequestIntervalMs(3), 21000)
+	assert.equal(getKimiMinRequestIntervalMs(6), 10500)
+})
+
+test('honors Kimi retry-after hints from headers and response messages', () => {
+	assert.equal(parseRetryAfterMs({ 'retry-after': '1.5' }), 1500)
+	assert.equal(parseRetryAfterMs({}, {
+		error: { message: 'please try again after 2 seconds' }
+	}), 2000)
+})
+
+test('turns Kimi rate-limit responses into a safe actionable error', () => {
+	const error = createProviderHttpError(PROVIDERS.kimi, 429, {
+		error: {
+			type: 'rate_limit_reached_error',
+			message: 'Your account org-secret<ak-secret> request reached organization max RPM: 3, please try again after 1 seconds'
+		}
+	})
+
+	assert.equal(error.code, 'AI_RATE_LIMITED')
+	assert.equal(error.retryAfterMs, 1000)
+	assert.match(error.message, /请求频率超出组织限制/)
+	assert.doesNotMatch(error.message, /org-secret|ak-secret|max RPM/)
 })
 
 test('resolves the official Kimi K3 endpoint and model', async () => {

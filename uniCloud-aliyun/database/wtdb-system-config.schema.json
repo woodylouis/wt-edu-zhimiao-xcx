@@ -21,6 +21,10 @@
       "title": "配置值",
       "trim": "both"
     },
+    "nextAllowedAt": {
+      "bsonType": "long",
+      "title": "AI 请求下次可执行时间"
+    },
     "updatedBy": {
       "bsonType": "string",
       "title": "更新人"

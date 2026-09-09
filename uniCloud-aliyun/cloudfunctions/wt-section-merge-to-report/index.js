@@ -54,6 +54,15 @@ function buildSkillItem(question, ageInt) {
 	}
 }
 
+function buildFailedSectionReason(failedSections) {
+	const details = failedSections.map(item => {
+		const name = item.sectionName || item.sectionId || '未命名模块'
+		const reason = String(item.failReason || '').trim()
+		return reason ? `${name}（${reason}）` : name
+	})
+	return `${failedSections.length} 个模块分析失败，无法合并：${details.join('、')}`
+}
+
 function buildAbllsSectionSummary(record, ageInt) {
 	const questions = record.questions || []
 	const skillBelowStandard = []
@@ -184,26 +193,50 @@ exports.main = async (event = {}) => {
 				continue
 			}
 
-			const hasPending = analysisList.some(item => item.status === 'pending' || item.status === 'processing')
-			const hasFailed = analysisList.some(item => item.status === 'failed')
+			const pendingSections = analysisList.filter(item => item.status === 'pending' || item.status === 'processing')
+			const failedSections = analysisList.filter(item => item.status === 'failed')
 			const doneCount = analysisList.filter(item => item.status === 'done').length
+			const expectedTotal = Number(task.totalSections) || originalParams.completedSectionList?.length || analysisList.length
 			await dbTask.where({ taskId }).update({
 				completedSections: doneCount,
-				progress: analysisList.length ? Math.min(90, Math.round((doneCount / analysisList.length) * 90)) : 0,
+				progress: expectedTotal ? Math.min(90, Math.round((doneCount / expectedTotal) * 90)) : 0,
 				updateTime: Date.now()
 			})
 
-			if (hasPending) {
-				await log('merge-skip-pending', {}, { taskId, recordId })
-				continue
-			}
-			if (hasFailed) {
+			if (failedSections.length) {
 				await dbTask.where({ taskId }).update({
 					status: 'failed',
-					failReason: '部分分析失败，无法合并',
+					failReason: buildFailedSectionReason(failedSections),
 					updateTime: Date.now()
 				})
-				await log('merge-failed-some-failed', {}, { taskId, recordId })
+				await log('merge-failed-some-failed', {
+					failedSections: failedSections.map(item => item.sectionName || item.sectionId)
+				}, { taskId, recordId })
+				continue
+			}
+			if (pendingSections.length) {
+				await dbTask.where({ taskId }).update({
+					status: 'processing',
+					failReason: '',
+					updateTime: Date.now()
+				})
+				await log('merge-return-to-analysis', {
+					pendingSections: pendingSections.map(item => item.sectionName || item.sectionId)
+				}, { taskId, recordId })
+				continue
+			}
+			if (analysisList.length !== expectedTotal || doneCount !== expectedTotal) {
+				const failReason = `模块分析结果不完整，无法合并：应有 ${expectedTotal} 个，实际完成 ${doneCount} 个`
+				await dbTask.where({ taskId }).update({
+					status: 'failed',
+					failReason,
+					updateTime: Date.now()
+				})
+				await log('merge-failed-incomplete-analysis', {
+					expectedTotal,
+					analysisTaskCount: analysisList.length,
+					doneCount
+				}, { taskId, recordId, level: 'error' })
 				continue
 			}
 			console.log('继续')

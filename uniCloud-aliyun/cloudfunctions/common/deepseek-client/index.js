@@ -4,6 +4,10 @@ const https = require('https')
 
 const CONFIG_COLLECTION = 'wtdb-system-config'
 const ACTIVE_PROVIDER_CONFIG_KEY = 'AI_MODEL_PROVIDER'
+const KIMI_MAX_RPM_CONFIG_KEY = 'KIMI_MAX_RPM'
+const KIMI_RATE_LIMIT_DOC_ID = 'kimi-organization-rate-limit'
+const DEFAULT_KIMI_MAX_RPM = 3
+const KIMI_REQUEST_ATTEMPTS = 3
 const DEFAULT_PROVIDER = 'deepseek'
 const PROVIDERS = Object.freeze({
 	deepseek: Object.freeze({
@@ -32,6 +36,22 @@ const PROVIDERS = Object.freeze({
 
 const DEFAULT_BASE_URL = PROVIDERS[DEFAULT_PROVIDER].baseURL
 const DEFAULT_MODEL = PROVIDERS[DEFAULT_PROVIDER].model
+let localKimiNextAllowedAt = 0
+
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, Math.max(0, ms)))
+}
+
+function normalizePositiveInteger(value, fallback, max = 10000) {
+	const parsed = Number(value)
+	if (!Number.isFinite(parsed) || parsed < 1) return fallback
+	return Math.min(Math.floor(parsed), max)
+}
+
+function getKimiMinRequestIntervalMs(maxRpm = DEFAULT_KIMI_MAX_RPM) {
+	const rpm = normalizePositiveInteger(maxRpm, DEFAULT_KIMI_MAX_RPM)
+	return Math.ceil((60000 / rpm) * 1.05)
+}
 
 function normalizeProvider(provider) {
 	const normalized = String(provider || '').trim().toLowerCase()
@@ -62,6 +82,84 @@ async function getConfigValueFromDb(configKey) {
 	} catch (error) {
 		console.warn(`读取AI模型配置 ${configKey} 失败，尝试使用环境变量:`, error.message)
 		return ''
+	}
+}
+
+async function getKimiMaxRpm() {
+	const configured = await getConfigValueFromDb(KIMI_MAX_RPM_CONFIG_KEY)
+	const fromEnv = process.env.KIMI_MAX_RPM || process.env.MOONSHOT_MAX_RPM
+	return normalizePositiveInteger(configured || fromEnv, DEFAULT_KIMI_MAX_RPM)
+}
+
+async function acquireLocalKimiSlot(intervalMs) {
+	const now = Date.now()
+	const waitMs = Math.max(0, localKimiNextAllowedAt - now)
+	if (waitMs) await sleep(waitMs)
+	localKimiNextAllowedAt = Math.max(Date.now(), localKimiNextAllowedAt) + intervalMs
+}
+
+async function ensureKimiRateLimitDocument(collection) {
+	try {
+		const result = await collection.doc(KIMI_RATE_LIMIT_DOC_ID).get()
+		if (result.data && result.data.length) return
+		await collection.add({
+			_id: KIMI_RATE_LIMIT_DOC_ID,
+			configKey: 'KIMI_RATE_LIMIT_STATE',
+			value: 'shared',
+			nextAllowedAt: 0,
+			createTime: Date.now(),
+			updateTime: Date.now()
+		})
+	} catch (error) {
+		// 并发初始化时可能已由另一实例创建。
+		try {
+			const result = await collection.doc(KIMI_RATE_LIMIT_DOC_ID).get()
+			if (result.data && result.data.length) return
+		} catch (_) { }
+		throw error
+	}
+}
+
+async function acquireKimiRequestSlot() {
+	const maxRpm = await getKimiMaxRpm()
+	const intervalMs = getKimiMinRequestIntervalMs(maxRpm)
+
+	if (typeof uniCloud === 'undefined') {
+		await acquireLocalKimiSlot(intervalMs)
+		return { maxRpm, intervalMs }
+	}
+
+	const database = uniCloud.database()
+	const command = database && database.command
+	if (!command || typeof command.lte !== 'function') {
+		await acquireLocalKimiSlot(intervalMs)
+		return { maxRpm, intervalMs }
+	}
+
+	const collection = database.collection(CONFIG_COLLECTION)
+	await ensureKimiRateLimitDocument(collection)
+
+	while (true) {
+		const now = Date.now()
+		const updateResult = await collection.where({
+			_id: KIMI_RATE_LIMIT_DOC_ID,
+			nextAllowedAt: command.lte(now)
+		}).update({
+			nextAllowedAt: now + intervalMs,
+			updateTime: now
+		})
+		const updated = Number(updateResult.updated || updateResult.affectedDocs || 0)
+		if (updated > 0) return { maxRpm, intervalMs }
+
+		const stateResult = await collection.doc(KIMI_RATE_LIMIT_DOC_ID).get()
+		const state = stateResult.data && stateResult.data[0]
+		if (!state) {
+			await ensureKimiRateLimitDocument(collection)
+			continue
+		}
+
+		const waitMs = Math.max(100, Number(state.nextAllowedAt || 0) - Date.now())
+		await sleep(waitMs + 50 + Math.floor(Math.random() * 200))
 	}
 }
 
@@ -128,7 +226,55 @@ function parseResponseData(data) {
 	return data
 }
 
-function requestWithHttps(url, payload, headers, timeout, providerLabel) {
+function parseRetryAfterMs(headers = {}, data = null) {
+	const value = headers['retry-after'] || headers['Retry-After'] || ''
+	const seconds = Number(value)
+	if (value !== '' && Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds * 1000)
+
+	if (value) {
+		const retryAt = Date.parse(value)
+		if (Number.isFinite(retryAt)) return Math.max(0, retryAt - Date.now())
+	}
+
+	const providerMessage = String(data?.error?.message || data?.message || '')
+	const match = providerMessage.match(/try again after\s+([\d.]+)\s*seconds?/i)
+	return match ? Math.ceil(Number(match[1]) * 1000) : 0
+}
+
+function createProviderHttpError(config, statusCode, data, headers = {}) {
+	const errorType = String(data?.error?.type || data?.type || '')
+	let message = `${config.label} 请求失败(${statusCode})`
+
+	if (statusCode === 429 && errorType === 'rate_limit_reached_error') {
+		message = `${config.label} 请求频率超出组织限制，已按限流策略重试，请稍后再试`
+	} else if (statusCode === 429 && errorType === 'engine_overloaded_error') {
+		message = `${config.label} 服务当前繁忙，已按服务端要求重试`
+	} else {
+		const providerMessage = String(data?.error?.message || data?.message || '').trim()
+		if (providerMessage) {
+			const sanitized = providerMessage
+				.replace(/<[^>]*ak-[^>]+>/gi, '<已隐藏>')
+				.replace(/\bak-[a-z0-9_-]+\b/gi, '[已隐藏]')
+			message += `: ${sanitized.slice(0, 300)}`
+		}
+	}
+
+	const error = new Error(message)
+	error.statusCode = statusCode
+	error.providerId = config.id
+	error.providerErrorType = errorType
+	error.retryAfterMs = parseRetryAfterMs(headers, data)
+	if (statusCode === 429) error.code = 'AI_RATE_LIMITED'
+	return error
+}
+
+function isRetryableKimiRateLimit(error) {
+	return error?.providerId === 'kimi' &&
+		error?.statusCode === 429 &&
+		['rate_limit_reached_error', 'engine_overloaded_error'].includes(error.providerErrorType)
+}
+
+function requestWithHttps(url, payload, headers, timeout, config) {
 	return new Promise((resolve, reject) => {
 		const req = https.request(url, {
 			method: 'POST',
@@ -143,11 +289,11 @@ function requestWithHttps(url, payload, headers, timeout, providerLabel) {
 				try {
 					data = body ? JSON.parse(body) : null
 				} catch (error) {
-					return reject(new Error(`${providerLabel} 响应解析失败: ${body.slice(0, 300)}`))
+					return reject(new Error(`${config.label} 响应解析失败`))
 				}
 
 				if (res.statusCode < 200 || res.statusCode >= 300) {
-					return reject(new Error(`${providerLabel} 请求失败(${res.statusCode}): ${body.slice(0, 500)}`))
+					return reject(createProviderHttpError(config, res.statusCode, data, res.headers || {}))
 				}
 
 				resolve(data)
@@ -155,7 +301,7 @@ function requestWithHttps(url, payload, headers, timeout, providerLabel) {
 		})
 
 		req.on('timeout', () => {
-			req.destroy(new Error(`${providerLabel} 请求超时(${timeout}ms)`))
+			req.destroy(new Error(`${config.label} 请求超时(${timeout}ms)`))
 		})
 		req.on('error', reject)
 		req.write(JSON.stringify(payload))
@@ -174,26 +320,41 @@ async function requestModel(payload, { timeout = 60000, baseURL, provider = '' }
 		'Content-Type': 'application/json',
 		'Authorization': `Bearer ${config.apiKey}`
 	}
+	const attempts = config.id === 'kimi' ? KIMI_REQUEST_ATTEMPTS : 1
+	let lastError = null
 
-	if (typeof uniCloud !== 'undefined' && uniCloud.httpclient) {
-		const response = await uniCloud.httpclient.request(url, {
-			method: 'POST',
-			headers,
-			data: JSON.stringify(payload),
-			dataType: 'json',
-			timeout
-		})
+	for (let attempt = 1; attempt <= attempts; attempt++) {
+		if (config.id === 'kimi') await acquireKimiRequestSlot()
 
-		const statusCode = response.status || response.statusCode || 0
-		const data = parseResponseData(response.data)
-		if (statusCode < 200 || statusCode >= 300) {
-			throw new Error(`${config.label} 请求失败(${statusCode}): ${JSON.stringify(data || {}).slice(0, 500)}`)
+		try {
+			if (typeof uniCloud !== 'undefined' && uniCloud.httpclient) {
+				const response = await uniCloud.httpclient.request(url, {
+					method: 'POST',
+					headers,
+					data: JSON.stringify(payload),
+					dataType: 'json',
+					timeout
+				})
+
+				const statusCode = response.status || response.statusCode || 0
+				const data = parseResponseData(response.data)
+				if (statusCode < 200 || statusCode >= 300) {
+					throw createProviderHttpError(config, statusCode, data, response.headers || {})
+				}
+				return { data, config }
+			}
+
+			const data = await requestWithHttps(url, payload, headers, timeout, config)
+			return { data, config }
+		} catch (error) {
+			lastError = error
+			if (!isRetryableKimiRateLimit(error) || attempt >= attempts) throw error
+			const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 8000)
+			await sleep(Math.max(error.retryAfterMs || 0, backoffMs) + Math.floor(Math.random() * 500))
 		}
-		return { data, config }
 	}
 
-	const data = await requestWithHttps(url, payload, headers, timeout, config.label)
-	return { data, config }
+	throw lastError
 }
 
 function buildChatPayload({
@@ -297,12 +458,16 @@ async function chatText(options) {
 module.exports = {
 	ACTIVE_PROVIDER_CONFIG_KEY,
 	DEFAULT_BASE_URL,
+	DEFAULT_KIMI_MAX_RPM,
 	DEFAULT_MODEL,
 	DEFAULT_PROVIDER,
 	PROVIDERS,
 	buildChatPayload,
 	chatCompletion,
 	chatText,
+	createProviderHttpError,
 	getActiveModelInfo,
-	normalizeProvider
+	getKimiMinRequestIntervalMs,
+	normalizeProvider,
+	parseRetryAfterMs
 }

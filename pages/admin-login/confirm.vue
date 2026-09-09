@@ -21,7 +21,7 @@
 			<view v-if="status === 'ready'" class="identity-box">
 				<text class="identity-heading">已匹配手机号 {{ accountIdentifier || '当前微信账号' }}</text>
 				<view v-for="identity in identities" :key="identity.key" class="identity-row">
-					<view class="identity-icon">{{ identity.type === 'school' ? '校' : identity.type === 'system' ? '超' : '业' }}</view>
+					<view class="identity-icon" :class="`identity-icon--${identity.type}`">{{ identity.type === 'school' ? '校' : identity.type === 'teacher' ? '师' : identity.type === 'system' ? '超' : '业' }}</view>
 					<view class="identity-copy">
 						<text class="identity-name">{{ identity.displayName || displayName || '未设置昵称' }}</text>
 						<text class="identity-label">{{ identity.label }}</text>
@@ -192,6 +192,7 @@
 	.identity-heading { margin-bottom: 18rpx; color: #4b405d; font-size: 25rpx; font-weight: 800; }
 	.identity-row { display: flex; align-items: center; margin-top: 14rpx; padding: 18rpx; border: 2rpx solid #ebe5f3; border-radius: 20rpx; background: #fff; }
 	.identity-icon { display: flex; align-items: center; justify-content: center; width: 66rpx; height: 66rpx; flex: 0 0 66rpx; border-radius: 20rpx; color: #5f45ce; background: #eee9ff; font-size: 24rpx; font-weight: 900; }
+	.identity-icon--teacher { color: #14786d; background: #dff7f3; }
 	.identity-copy { min-width: 0; margin-left: 18rpx; }
 	.identity-name { color: #28233c; font-size: 28rpx; font-weight: 900; }
 	.identity-label { margin-top: 4rpx; color: #5f566a; font-size: 23rpx; font-weight: 800; }

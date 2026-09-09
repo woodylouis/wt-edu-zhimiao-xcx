@@ -434,6 +434,8 @@ async function requestJson({ task, messages, maxTokens, retryMaxTokens, onAttemp
 			}
 		} catch (error) {
 			lastError = error
+			// Kimi 限流已由公共客户端重试，避免业务层再次请求而占满 RPM。
+			if (error && error.code === 'AI_RATE_LIMITED') break
 			if (attempt < REQUEST_ATTEMPTS) {
 				await new Promise(resolve => setTimeout(resolve, 1200 * attempt))
 			}

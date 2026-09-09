@@ -46,7 +46,12 @@ exports.main = async (event = {}) => {
 					originalParamsKeys: Object.keys(originalParams),
 					completedSectionsType: typeof completedSections,
 					completedSectionsLength: completedSections?.length || 0
-				}, { taskId })
+				}, { taskId, level: 'error' })
+				await dbTask.where({ taskId }).update({
+					status: 'failed',
+					failReason: '未找到可分析的评估模块',
+					updateTime: Date.now()
+				})
 				continue
 			}
 
@@ -93,14 +98,15 @@ exports.main = async (event = {}) => {
 				}, { taskId })
 			}
 
-			// 分派完成后设置为等待合并
+			// 分派完成后仍处于模块分析阶段。
+			// 只有 worker 确认所有模块均分析成功后，才能转入 waiting_merge。
 			await dbTask.where({ taskId }).update({
-				status: 'waiting_merge',
+				status: 'processing',
 				totalSections: completedSections.length,
 				progress: 0,
 				updateTime: Date.now()
 			})
-			await log('dispatcher-task-mark-waiting-merge', {
+			await log('dispatcher-task-ready-for-analysis', {
 				totalSections: completedSections.length
 			}, { taskId })
 

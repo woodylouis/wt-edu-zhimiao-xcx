@@ -92,16 +92,31 @@ function buildSkillItem(question, ageInt) {
 	}
 }
 
+function buildFailedSectionReason(failedSections) {
+	const details = failedSections.map(item => {
+		const name = item.sectionName || item.sectionId || '未命名模块'
+		const reason = String(item.failReason || '').trim()
+		return reason ? `${name}（${reason}）` : name
+	})
+	return `${failedSections.length} 个模块分析失败：${details.join('、')}`
+}
+
 async function updateReportTaskProgress(taskId) {
 	try {
 		const [analysisRes, taskRes] = await Promise.all([
-			taskCollection.where({ taskId }).field({ status: true }).get(),
+			taskCollection.where({ taskId }).field({
+				sectionId: true,
+				sectionName: true,
+				status: true,
+				failReason: true
+			}).get(),
 			reportTaskCollection.where({ taskId }).field({ totalSections: true, logs: true }).limit(1).get()
 		])
 
 		const analysisList = analysisRes.data || []
 		const doneCount = analysisList.filter(item => item.status === 'done').length
-		const failedCount = analysisList.filter(item => item.status === 'failed').length
+		const failedSections = analysisList.filter(item => item.status === 'failed')
+		const activeCount = analysisList.filter(item => item.status === 'pending' || item.status === 'processing').length
 		const totalSections = Number(taskRes.data?.[0]?.totalSections) || analysisList.length || 0
 		const progress = totalSections ? Math.min(90, Math.round((doneCount / totalSections) * 90)) : 0
 
@@ -111,8 +126,18 @@ async function updateReportTaskProgress(taskId) {
 			updateTime: Date.now()
 		}
 
-		if (failedCount > 0) {
-			updateData.failReason = `${failedCount} 个模块分析失败`
+		if (failedSections.length > 0) {
+			updateData.status = 'failed'
+			updateData.failReason = buildFailedSectionReason(failedSections)
+		} else if (activeCount > 0) {
+			updateData.status = 'processing'
+			updateData.failReason = ''
+		} else if (analysisList.length !== totalSections || doneCount !== totalSections) {
+			updateData.status = 'failed'
+			updateData.failReason = `模块分析结果不完整：应有 ${totalSections} 个，实际完成 ${doneCount} 个`
+		} else {
+			updateData.status = 'waiting_merge'
+			updateData.failReason = ''
 		}
 
 		await reportTaskCollection.where({ taskId }).update(updateData)
@@ -166,6 +191,9 @@ async function generateSectionAnalysisWithRetry(sectionData, childName, childAge
 				error: err.message,
 				attempt
 			}, { taskId, level: 'error' })
+
+			// 公共客户端已完成 Kimi 429 的全局节流和重试，不再由模块层放大请求量。
+			if (err && err.code === 'AI_RATE_LIMITED') break
 
 			if (attempt < MAX_RETRY) {
 				await new Promise(resolve => setTimeout(resolve, 1000))
