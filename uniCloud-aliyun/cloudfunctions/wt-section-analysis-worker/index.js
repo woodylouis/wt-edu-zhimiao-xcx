@@ -141,8 +141,36 @@ async function updateReportTaskProgress(taskId) {
 		}
 
 		await reportTaskCollection.where({ taskId }).update(updateData)
+		return updateData
 	} catch (error) {
 		await log('update-report-task-progress-failed', { error: error.message }, { taskId, level: 'warn' })
+		return null
+	}
+}
+
+async function callNextStage(name, taskId, runToken) {
+	const response = await uniCloud.callFunction({
+		name,
+		data: { taskId, runToken }
+	})
+	const result = response.result || response
+	if (result && Number(result.code) >= 400) {
+		throw new Error(result.message || `${name} 执行失败`)
+	}
+	return result
+}
+
+async function continueAfterAllSectionsDone(taskId, runToken) {
+	try {
+		await log('worker-handoff-to-merge', {}, { taskId })
+		await callNextStage('wt-section-merge-to-report', taskId, runToken)
+		await callNextStage('wt-task-save-pending-report', taskId, runToken)
+		await log('worker-handoff-completed', {}, { taskId })
+	} catch (error) {
+		// 交接失败不能把已成功的模块改为失败；编排器或后台“继续生成”会再次接管。
+		await log('worker-handoff-failed', {
+			error: error.message
+		}, { taskId, level: 'warn' })
 	}
 }
 
@@ -288,8 +316,11 @@ exports.main = async (event = {}) => {
 				analysis,
 				updateTime: Date.now()
 			})
-			await updateReportTaskProgress(taskId)
+			const reportProgress = await updateReportTaskProgress(taskId)
 			await log('section-analysis-success', { sectionId, analysis: analysis.substring(0, 100) + '...' }, { taskId, recordId })
+			if (reportProgress && reportProgress.status === 'waiting_merge') {
+				await continueAfterAllSectionsDone(taskId, event.runToken)
+			}
 
 		} catch (err) {
 			console.error('任务处理失败:', err)

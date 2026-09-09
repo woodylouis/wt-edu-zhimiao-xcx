@@ -37,3 +37,11 @@ test('merge rejects incomplete analysis and returns premature merge tasks to ana
 	assert.match(merger, /analysisList\.length !== expectedTotal \|\| doneCount !== expectedTotal/)
 	assert.match(merger, /模块分析结果不完整，无法合并/)
 })
+
+test('the final successful module hands off directly to merge and save', () => {
+	assert.match(worker, /reportProgress && reportProgress\.status === 'waiting_merge'/)
+	assert.match(worker, /continueAfterAllSectionsDone\(taskId, event\.runToken\)/)
+	assert.match(worker, /callNextStage\('wt-section-merge-to-report'/)
+	assert.match(worker, /callNextStage\('wt-task-save-pending-report'/)
+	assert.match(worker, /worker-handoff-failed/)
+})
